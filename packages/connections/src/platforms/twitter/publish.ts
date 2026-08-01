@@ -7,7 +7,9 @@ import { Client } from "@xdevplatform/xdk";
 import axios from "axios";
 import { Duration, Effect } from "effect";
 import {
+  ambiguousPublish,
   type ConnectionError,
+  fromUnknownCreate,
   fromUnknownHttp,
   invalidMedia,
   mediaProcessingError,
@@ -17,6 +19,7 @@ import {
   publishRejected,
 } from "../../errors";
 import { ConnectionStore } from "../../services/connection-store";
+import { ensureFreshToken } from "../../services/token-service";
 import type {
   PlatformPublisher,
   PostResult,
@@ -111,20 +114,14 @@ const downloadFile = (
 const oneShotUpload = (
   client: Client,
   buffer: Buffer,
-  mediaCategory: MediaCategory,
-  mimeType: string
+  mediaCategory: MediaCategory
 ): Effect.Effect<string, ConnectionError> =>
   Effect.gen(function* () {
     const response = yield* Effect.tryPromise({
       try: () =>
         client.media.upload({
-          body: {
-            media: new Blob([buffer], { type: mimeType }),
-            // biome-ignore lint/suspicious/noExplicitAny: XDK types use narrow enums that don't accept string variables
-            mediaCategory: mediaCategory as any,
-            // biome-ignore lint/suspicious/noExplicitAny: XDK types use narrow enums that don't accept string variables
-            mediaType: mimeType as any,
-          },
+          media: buffer.toString("base64"),
+          mediaCategory,
         }),
       catch: (e) => fromUnknownHttp(PROVIDER, e),
     });
@@ -138,21 +135,23 @@ const initializeChunkedUpload = (
   client: Client,
   totalBytes: number,
   mimeType: string,
-  mediaCategory: MediaCategory,
-  profileId: string
+  mediaCategory: MediaCategory
 ): Effect.Effect<string, ConnectionError> =>
   Effect.gen(function* () {
     const response = yield* Effect.tryPromise({
       try: () =>
         client.media.initializeUpload({
-          body: {
-            totalBytes,
-            // biome-ignore lint/suspicious/noExplicitAny: XDK types use narrow enums that don't accept string variables
-            mediaType: mimeType as any,
-            mediaCategory,
-            additionalOwners: [profileId],
-            shared: true,
-          },
+          totalBytes,
+          // MIME is derived from a validated media URL at this boundary.
+          mediaType: mimeType as
+            | "video/mp4"
+            | "video/webm"
+            | "video/quicktime"
+            | "image/jpeg"
+            | "image/gif"
+            | "image/png"
+            | "image/webp",
+          mediaCategory,
         }),
       catch: () => networkError(PROVIDER, "media upload initialization"),
     });
@@ -179,10 +178,8 @@ const uploadChunks = (
       const chunk = fileBuffer.slice(start, end);
 
       await client.media.appendUpload(mediaId, {
-        body: {
-          media: new Blob([chunk], { type: mimeType }),
-          segmentIndex: i,
-        },
+        media: chunk.toString("base64"),
+        segmentIndex: i,
       });
     }
   };
@@ -202,7 +199,7 @@ const finalizeUpload = (
     catch: () => networkError(PROVIDER, "media finalization"),
   }).pipe(
     Effect.map((response) => ({
-      processingRequired: !!response.data?.processing_info,
+      processingRequired: !!response.data?.processingInfo,
     }))
   );
 
@@ -221,7 +218,7 @@ const waitForProcessing = (
       catch: () => networkError(PROVIDER, "status check"),
     });
 
-    const processingInfo = response.data?.processing_info;
+    const processingInfo = response.data?.processingInfo;
     if (!processingInfo) {
       return; // no processing info → treated as complete
     }
@@ -239,17 +236,13 @@ const waitForProcessing = (
       );
     }
 
-    const waitMs = Math.max(
-      (processingInfo.check_after_secs ?? 10) * 1000,
-      1000
-    );
+    const waitMs = Math.max((processingInfo.checkAfterSecs ?? 10) * 1000, 1000);
     yield* Effect.sleep(Duration.millis(waitMs));
     return yield* waitForProcessing(client, mediaId, attempt + 1);
   });
 
 const uploadMediaToTwitter = (
   fileUrl: string,
-  profileId: string,
   client: Client
 ): Effect.Effect<string, ConnectionError> =>
   Effect.gen(function* () {
@@ -261,15 +254,14 @@ const uploadMediaToTwitter = (
       buffer.length <= 5 * 1024 * 1024;
 
     if (isSmallImage) {
-      return yield* oneShotUpload(client, buffer, mediaCategory, mimeType);
+      return yield* oneShotUpload(client, buffer, mediaCategory);
     }
 
     const mediaId = yield* initializeChunkedUpload(
       client,
       buffer.length,
       mimeType,
-      mediaCategory,
-      profileId
+      mediaCategory
     );
     yield* uploadChunks(client, mediaId, buffer, mimeType);
     const { processingRequired } = yield* finalizeUpload(client, mediaId);
@@ -281,7 +273,6 @@ const uploadMediaToTwitter = (
 
 const uploadTweetMedia = (
   media: MediaType[],
-  profileId: string,
   client: Client
 ): Effect.Effect<string[], ConnectionError> => {
   if (!media.length) {
@@ -294,7 +285,7 @@ const uploadTweetMedia = (
 
   return Effect.all(
     validMediaUrls.map((item) =>
-      uploadMediaToTwitter(item.url as string, profileId, client)
+      uploadMediaToTwitter(item.url as string, client)
     ),
     { concurrency: "unbounded" }
   );
@@ -320,89 +311,96 @@ const validateAndSortTweets = (
   return Effect.succeed(tweets);
 };
 
-const postFirstTweet = (
+const postTweet = (
   tweet: Tweet,
   client: Client,
-  profile: TwitterProfile
-): Effect.Effect<{ tweetId: string }, ConnectionError> =>
+  replyToTweetId?: string
+): Effect.Effect<string, ConnectionError> =>
   Effect.gen(function* () {
-    const mediaIds = yield* uploadTweetMedia(tweet.media, profile.id, client);
+    const mediaIds = yield* uploadTweetMedia(tweet.media, client);
     const tweetData = {
       text: tweet.text,
-      ...(mediaIds.length > 0 && { media: { media_ids: mediaIds } }),
+      ...(replyToTweetId
+        ? { reply: { inReplyToTweetId: replyToTweetId } }
+        : {}),
+      ...(mediaIds.length > 0 && { media: { mediaIds } }),
     };
 
     const response = yield* Effect.tryPromise({
       try: () => client.posts.create(tweetData),
-      catch: (e) => fromUnknownHttp(PROVIDER, e),
+      catch: (e) => fromUnknownCreate(PROVIDER, e),
     });
     if (!response.data?.id) {
       return yield* Effect.fail(
         publishRejected(PROVIDER, "post creation failed")
       );
     }
-    return { tweetId: response.data.id };
+    return response.data.id;
   });
-
-const postThreadReplies = (
-  tweets: Tweet[],
-  client: Client,
-  profile: TwitterProfile,
-  replyToTweetId: string
-): Effect.Effect<void, ConnectionError> => {
-  if (!tweets.length) {
-    return Effect.void;
-  }
-
-  // Replies must be posted sequentially so each links to the previous tweet.
-  const postReplies = (
-    remaining: Tweet[],
-    replyId: string
-  ): Effect.Effect<void, ConnectionError> => {
-    const [tweet, ...rest] = remaining;
-    if (!tweet) {
-      return Effect.void;
-    }
-
-    return Effect.gen(function* () {
-      const mediaIds = yield* uploadTweetMedia(tweet.media, profile.id, client);
-      const tweetData = {
-        text: tweet.text,
-        reply: { in_reply_to_tweet_id: replyId },
-        ...(mediaIds.length > 0 && { media: { media_ids: mediaIds } }),
-      };
-
-      const response = yield* Effect.tryPromise({
-        try: () => client.posts.create(tweetData),
-        catch: (e) => fromUnknownHttp(PROVIDER, e),
-      });
-
-      // If the reply id is missing, keep chaining off the previous id
-      // (matches the provider's `continue` behaviour).
-      const nextReplyId = response.data?.id ?? replyId;
-      return yield* postReplies(rest, nextReplyId);
-    });
-  };
-
-  return postReplies(tweets, replyToTweetId);
-};
 
 const publishTwitterThread = (
   tweets: Tweet[],
   profile: TwitterProfile,
-  postId: string
+  postId: string,
+  providerState?: Record<string, unknown>,
+  persistProviderState?: (state: Record<string, unknown>) => Promise<void>
 ): Effect.Effect<PostResult, ConnectionError> =>
   Effect.gen(function* () {
     const client = new Client({ accessToken: profile.accessToken });
+    const storedIds = providerState?.publishedSegmentIds;
+    const publishedSegmentIds = Array.isArray(storedIds)
+      ? storedIds.filter((id): id is string => typeof id === "string")
+      : [];
+    if (
+      publishedSegmentIds.length > tweets.length ||
+      (Array.isArray(storedIds) &&
+        publishedSegmentIds.length !== storedIds.length)
+    ) {
+      return yield* Effect.fail(
+        publishRejected(PROVIDER, "Stored thread progress is invalid")
+      );
+    }
+    if (tweets.length > 1 && !persistProviderState) {
+      return yield* Effect.fail(
+        publishRejected(PROVIDER, "Durable thread progress is unavailable")
+      );
+    }
 
-    const { tweetId } = yield* postFirstTweet(tweets[0], client, profile);
-    yield* postThreadReplies(tweets.slice(1), client, profile, tweetId);
+    for (
+      let index = publishedSegmentIds.length;
+      index < tweets.length;
+      index++
+    ) {
+      const tweet = tweets[index];
+      if (!tweet) {
+        break;
+      }
+      const previousId = publishedSegmentIds[index - 1];
+      const tweetId = yield* postTweet(tweet, client, previousId);
+      publishedSegmentIds.push(tweetId);
+      if (persistProviderState) {
+        yield* Effect.tryPromise({
+          try: () =>
+            persistProviderState({
+              publishedSegmentIds: [...publishedSegmentIds],
+            }),
+          catch: () => ambiguousPublish(PROVIDER),
+        });
+      }
+    }
+
+    const firstTweetId = publishedSegmentIds[0];
+    if (!firstTweetId) {
+      return yield* Effect.fail(
+        publishRejected(PROVIDER, "post creation returned no ID")
+      );
+    }
 
     return {
-      platformPostId: tweetId,
+      platformPostId: firstTweetId,
       postId,
       platformId: profile.id,
-      platformPostUrl: `https://x.com/${profile.username ?? "unknown"}/status/${tweetId}`,
+      platformPostUrl: `https://x.com/${profile.username ?? "unknown"}/status/${firstTweetId}`,
       postedAt: new Date(),
     } satisfies PostResult;
   });
@@ -411,11 +409,19 @@ const publishTwitterThread = (
 
 const publishContent = (
   content: SocialPublishInputType,
-  profile: TwitterProfile
+  profile: TwitterProfile,
+  providerState?: Record<string, unknown>,
+  persistProviderState?: (state: Record<string, unknown>) => Promise<void>
 ): Effect.Effect<PostResult, ConnectionError> =>
   validateAndSortTweets(content.content).pipe(
     Effect.flatMap((tweets) =>
-      publishTwitterThread(tweets, profile, content.postId)
+      publishTwitterThread(
+        tweets,
+        profile,
+        content.postId,
+        providerState,
+        persistProviderState
+      )
     )
   );
 
@@ -423,6 +429,17 @@ export const twitterPublisher: PlatformPublisher = {
   id: "TWITTER",
   publish: (ctx: PublishContext) =>
     getProfile(ctx.socialProviderId).pipe(
-      Effect.flatMap((profile) => publishContent(ctx.content, profile))
+      Effect.flatMap((profile) =>
+        ensureFreshToken(ctx.socialProviderId).pipe(
+          Effect.flatMap((accessToken) =>
+            publishContent(
+              ctx.content,
+              { ...profile, accessToken },
+              ctx.providerState,
+              ctx.persistProviderState
+            )
+          )
+        )
+      )
     ),
 };

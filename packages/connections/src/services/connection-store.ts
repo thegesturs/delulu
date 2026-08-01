@@ -30,5 +30,9 @@ export class ConnectionStore extends Context.Service<
     readonly updateSocialProvider: (
       update: SocialProviderUpdate
     ) => Effect.Effect<void, ConnectionError>;
+    readonly withTokenRefreshLock?: <A>(
+      id: string,
+      refresh: Effect.Effect<A, ConnectionError>
+    ) => Effect.Effect<A, ConnectionError>;
   }
 >()("@delulu/connections/ConnectionStore") {}

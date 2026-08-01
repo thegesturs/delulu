@@ -1,13 +1,19 @@
 import {
   type ConnectionClient,
   type ConnectionReturnTarget,
+  ConnectionStore,
   type ConnectionUpsertInput,
   type ConnectionUpsertResult,
   callbackRedirect,
   connectFacebookPage,
+  ensureFreshToken,
   getConnection,
+  isConnectionError,
+  networkError,
   type PlatformMediaPage,
   type PublishableSocialType,
+  type SocialProviderTokens,
+  type TikTokCreatorInfo,
   withConnectionClient,
   withConnectionReturnTarget,
   withConnectionSuccess,
@@ -25,6 +31,7 @@ import {
   TokenCipher,
   type WorkspaceId,
 } from "@delulu/core";
+import { makePostgresConnectionStore } from "@delulu/db";
 import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { AutomationKvNamespace } from "./automation-kv";
@@ -386,6 +393,13 @@ export class ConnectionsService extends Context.Service<
       PlatformMediaPage,
       NotFoundError | ConflictError | ProviderUnavailableError
     >;
+    readonly getTikTokCreatorInfo: (input: {
+      readonly workspaceId: WorkspaceId;
+      readonly connectionId: string;
+    }) => Effect.Effect<
+      TikTokCreatorInfo,
+      NotFoundError | ConflictError | ProviderUnavailableError
+    >;
     readonly mint: (
       workspaceId: WorkspaceId,
       platform: string,
@@ -445,6 +459,10 @@ export class ConnectionsService extends Context.Service<
       const states = yield* ConnectionStateService;
       const cipher = yield* TokenCipher;
       const temporaryStore = yield* AutomationKvNamespace;
+      const tokenStore = Layer.succeed(
+        ConnectionStore,
+        yield* makePostgresConnectionStore
+      );
       const list = Effect.fn("ConnectionsService.list")(function* (
         workspaceId: WorkspaceId,
         limit: number,
@@ -576,6 +594,63 @@ export class ConnectionsService extends Context.Service<
           )) as PlatformMediaPage;
         }
       );
+      const getTikTokCreatorInfo = Effect.fn(
+        "ConnectionsService.getTikTokCreatorInfo"
+      )(function* (input: {
+        readonly workspaceId: WorkspaceId;
+        readonly connectionId: string;
+      }) {
+        const rows = yield* sql<{
+          platform: string;
+          profileId: string;
+        }>`SELECT platform, profile_id FROM connections
+          WHERE id = ${input.connectionId}
+            AND workspace_id = ${input.workspaceId}`.pipe(Effect.orDie);
+        const row = rows[0];
+        if (!row) {
+          return yield* new NotFoundError({
+            message: "Connection not found",
+            resource: "connection",
+          });
+        }
+        if (row.platform !== "TIKTOK") {
+          return yield* new ConflictError({
+            message: "Creator settings are available for TikTok only",
+            resource: "connection",
+          });
+        }
+        const query = getConnection("TIKTOK").queries?.getCreatorInfo;
+        if (!query) {
+          return yield* new ConflictError({
+            message: "TikTok creator settings are unavailable",
+            resource: "connection",
+          });
+        }
+        const accessToken = yield* ensureFreshToken(input.connectionId).pipe(
+          Effect.provide(tokenStore),
+          Effect.mapError(
+            (error) =>
+              new ProviderUnavailableError({
+                message: error.message,
+                provider: error.provider,
+                retryable: error.retryable,
+              })
+          )
+        );
+        return (yield* query({
+          profileId: row.profileId,
+          accessToken,
+        }).pipe(
+          Effect.mapError(
+            (error) =>
+              new ProviderUnavailableError({
+                message: error.message,
+                provider: error.provider,
+                retryable: error.retryable,
+              })
+          )
+        )) as TikTokCreatorInfo;
+      });
       const mint = Effect.fn("ConnectionsService.mint")(function* (
         workspaceId: WorkspaceId,
         platform: string,
@@ -601,8 +676,23 @@ export class ConnectionsService extends Context.Service<
           client,
           returnTarget
         );
+        const url = yield* Effect.tryPromise({
+          try: () =>
+            Promise.resolve(
+              connection.auth.getConnectUrl({
+                state,
+                includeInsights,
+                temporaryStore,
+              })
+            ),
+          catch: () =>
+            new ConflictError({
+              message: "Unable to initialize provider authorization",
+              resource: "connection",
+            }),
+        });
         return {
-          url: connection.auth.getConnectUrl({ state, includeInsights }),
+          url,
           expiresIn: 600,
         };
       });
@@ -855,6 +945,7 @@ export class ConnectionsService extends Context.Service<
       return ConnectionsService.of({
         list,
         listMedia,
+        getTikTokCreatorInfo,
         remove,
         mint,
         upsertFromOAuth,

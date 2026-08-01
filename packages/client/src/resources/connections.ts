@@ -33,6 +33,18 @@ export const createConnectionEffects = defineResourceEffects(({ client }) => ({
           query,
         }),
     }),
+  tiktokCreatorInfo: (workspaceId: string, id: string) =>
+    resourceEffect({
+      queryKey: workspaceKeys.detail(
+        workspaceId,
+        "connection-tiktok-creator-info",
+        id
+      ),
+      effect: () =>
+        client.connections.tiktokCreatorInfo({
+          params: { workspaceId, id },
+        }),
+    }),
   remove: (workspaceId: string) =>
     mutationEffect({
       mutationKey: workspaceKeys.resource(workspaceId, "connections"),

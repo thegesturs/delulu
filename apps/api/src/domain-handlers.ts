@@ -513,6 +513,20 @@ export const ConnectionsHandlers = HttpApiBuilder.group(
           });
         })
       )
+      .handle("tiktokCreatorInfo", ({ params }) =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          const access = yield* workspaces.require({
+            workspaceId: params.workspaceId,
+            auth,
+            scope: "accounts:read",
+          });
+          return yield* connections.getTikTokCreatorInfo({
+            workspaceId: access.workspaceId,
+            connectionId: params.id,
+          });
+        })
+      )
       .handle("mint", ({ params, payload }) =>
         Effect.gen(function* () {
           const auth = yield* CurrentAuth;

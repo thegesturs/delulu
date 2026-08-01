@@ -995,8 +995,8 @@ importers:
         specifier: 1.6.0
         version: 1.6.0(wrangler@4.110.0(@cloudflare/workers-types@5.20260713.1)(bufferutil@4.0.9)(utf-8-validate@5.0.10))
       '@xdevplatform/xdk':
-        specifier: 0.5.0
-        version: 0.5.0(node-fetch@3.3.2)
+        specifier: 0.6.6
+        version: 0.6.6(node-fetch@3.3.2)
       axios:
         specifier: ^1.9.0
         version: 1.11.0
@@ -1066,6 +1066,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@delulu/connections':
+        specifier: workspace:*
+        version: link:../connections
       '@delulu/core':
         specifier: workspace:*
         version: link:../core
@@ -1433,7 +1436,7 @@ importers:
         version: link:../typescript-config
       next:
         specifier: 15.3.3
-        version: 15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
 
   packages/notifications:
     dependencies:
@@ -1576,7 +1579,7 @@ importers:
         version: 19.2.3(@types/react@19.2.17)
       next:
         specifier: 15.3.3
-        version: 15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
 
   packages/services:
     dependencies:
@@ -1592,6 +1595,9 @@ importers:
       '@delulu/core':
         specifier: workspace:*
         version: link:../core
+      '@delulu/db':
+        specifier: workspace:*
+        version: link:../db
       '@delulu/payments':
         specifier: workspace:*
         version: link:../payments
@@ -1690,6 +1696,9 @@ importers:
       '@delulu/core':
         specifier: workspace:*
         version: link:../core
+      '@delulu/db':
+        specifier: workspace:*
+        version: link:../db
       '@delulu/payments':
         specifier: workspace:*
         version: link:../payments
@@ -1705,9 +1714,6 @@ importers:
       '@types/node':
         specifier: 22.14.1
         version: 22.14.1
-      '@xdevplatform/xdk':
-        specifier: 0.5.0
-        version: 0.5.0(node-fetch@3.3.2)
       axios:
         specifier: ^1.9.0
         version: 1.10.0
@@ -10072,6 +10078,15 @@ packages:
 
   '@xdevplatform/xdk@0.5.0':
     resolution: {integrity: sha512-Ye3yAmJOhal7wqvq6z8iJgSxq4+ytQmPFMMkyg/cPcdoeebqHZBdwTmc3T78kTbUwQy8NoCFRjgTrC+n7lmPnA==}
+    engines: {node: '>=16.14'}
+    peerDependencies:
+      node-fetch: ^3.3.0
+    peerDependenciesMeta:
+      node-fetch:
+        optional: true
+
+  '@xdevplatform/xdk@0.6.6':
+    resolution: {integrity: sha512-ced4iHSz08eQe1L0N3UWVvJyfGnmGU0CRjecoXpr27dVIyQvc637Pxm3cdP4G85PwhHn5IGVJ1DJF2YD9zWfAg==}
     engines: {node: '>=16.14'}
     peerDependencies:
       node-fetch: ^3.3.0
@@ -29164,6 +29179,10 @@ snapshots:
     optionalDependencies:
       node-fetch: 3.3.2
 
+  '@xdevplatform/xdk@0.6.6(node-fetch@3.3.2)':
+    optionalDependencies:
+      node-fetch: 3.3.2
+
   '@xtuc/ieee754@1.2.0': {}
 
   '@xtuc/long@4.2.2': {}
@@ -34758,7 +34777,7 @@ snapshots:
       postcss: 8.4.31
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      styled-jsx: 5.1.6(react@19.2.7)
+      styled-jsx: 5.1.6(@babel/core@7.29.7)(react@19.2.7)
     optionalDependencies:
       '@next/swc-darwin-arm64': 15.2.4
       '@next/swc-darwin-x64': 15.2.4
@@ -34836,7 +34855,7 @@ snapshots:
       postcss: 8.4.31
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      styled-jsx: 5.1.6(react@19.2.7)
+      styled-jsx: 5.1.6(@babel/core@7.29.7)(react@19.2.7)
     optionalDependencies:
       '@next/swc-darwin-arm64': 15.3.3
       '@next/swc-darwin-x64': 15.3.3
@@ -37638,11 +37657,6 @@ snapshots:
       react: 19.2.7
     optionalDependencies:
       '@babel/core': 7.29.7
-
-  styled-jsx@5.1.6(react@19.2.7):
-    dependencies:
-      client-only: 0.0.1
-      react: 19.2.7
 
   styled-jsx@5.1.7(@babel/core@7.27.7)(react@19.2.7):
     dependencies:

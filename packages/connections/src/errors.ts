@@ -17,7 +17,7 @@ export class NetworkConnectionError extends Schema.TaggedErrorClass<NetworkConne
 ) {}
 export class TokenExpiredError extends Schema.TaggedErrorClass<TokenExpiredError>()(
   "TokenExpiredError",
-  fields("TOKEN_EXPIRED", true)
+  fields("TOKEN_EXPIRED", false)
 ) {}
 export class MediaProcessingTimeoutError extends Schema.TaggedErrorClass<MediaProcessingTimeoutError>()(
   "MediaProcessingTimeoutError",
@@ -34,6 +34,10 @@ export class ProfileNotFoundError extends Schema.TaggedErrorClass<ProfileNotFoun
 export class PublishRejectedError extends Schema.TaggedErrorClass<PublishRejectedError>()(
   "PublishRejectedError",
   fields("PUBLISH_REJECTED", false)
+) {}
+export class AmbiguousPublishError extends Schema.TaggedErrorClass<AmbiguousPublishError>()(
+  "AmbiguousPublishError",
+  fields("AMBIGUOUS_PUBLISH", false)
 ) {}
 export class MediaProcessingError extends Schema.TaggedErrorClass<MediaProcessingError>()(
   "MediaProcessingError",
@@ -57,6 +61,7 @@ export type ConnectionError =
   | InvalidMediaError
   | ProfileNotFoundError
   | PublishRejectedError
+  | AmbiguousPublishError
   | MediaProcessingError
   | ProviderApiError;
 
@@ -89,7 +94,7 @@ export const tokenExpired = (
     code: "TOKEN_EXPIRED",
     provider,
     message,
-    retryable: true,
+    retryable: false,
   });
 export const mediaProcessingTimeout = (provider: string) =>
   new MediaProcessingTimeoutError({
@@ -117,6 +122,13 @@ export const publishRejected = (provider: string, reason: string) =>
     code: "PUBLISH_REJECTED",
     provider,
     message: `${provider} rejected the post: ${reason}`,
+    retryable: false,
+  });
+export const ambiguousPublish = (provider: string) =>
+  new AmbiguousPublishError({
+    code: "AMBIGUOUS_PUBLISH",
+    provider,
+    message: `${provider} did not confirm whether the post was created. Verify the provider account before retrying to avoid a duplicate.`,
     retryable: false,
   });
 export const mediaProcessingError = (provider: string, reason?: string) =>
@@ -171,4 +183,20 @@ export const fromUnknownHttp = (
     }
   }
   return networkError(provider, "request");
+};
+
+/** Classify a final create call conservatively so automatic retries cannot
+ * duplicate a post whose response was lost after the provider accepted it. */
+export const fromUnknownCreate = (
+  provider: string,
+  error: unknown
+): ConnectionError => {
+  const classified = fromUnknownHttp(provider, error);
+  if (
+    classified.code === "NETWORK_ERROR" ||
+    (classified.code === "API_ERROR" && classified.retryable)
+  ) {
+    return ambiguousPublish(provider);
+  }
+  return classified;
 };

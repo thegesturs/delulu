@@ -61,6 +61,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   smoke:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     env:
       COMPOSE_ENV_FILES: deploy/self-host/.env

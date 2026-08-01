@@ -1,0 +1,387 @@
+{
+  "cases": [
+    {
+      "name": "instagram-reel",
+      "platform": "INSTAGRAM",
+      "connectionId": "connection_instagram",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Reel",
+            "text": "Live reel verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "VIDEO",
+                "url": "https://media.example.test/reel.mp4",
+                "durationSeconds": 10
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "instagram-carousel",
+      "platform": "INSTAGRAM",
+      "connectionId": "connection_instagram",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Carousel",
+            "text": "Live carousel verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "IMAGE",
+                "url": "https://media.example.test/one.jpg"
+              },
+              {
+                "mediaType": "IMAGE",
+                "url": "https://media.example.test/two.jpg"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "instagram-single-image",
+      "platform": "INSTAGRAM",
+      "connectionId": "connection_instagram",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Single image",
+            "text": "Live image verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "IMAGE",
+                "url": "https://media.example.test/one.jpg"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "instagram-multi-image",
+      "platform": "INSTAGRAM",
+      "connectionId": "connection_instagram",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Multiple images",
+            "text": "Live multi-image verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "IMAGE",
+                "url": "https://media.example.test/three.jpg"
+              },
+              {
+                "mediaType": "IMAGE",
+                "url": "https://media.example.test/four.jpg"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "twitter-single-text",
+      "platform": "TWITTER",
+      "connectionId": "connection_twitter",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Text",
+            "text": "Live text verification",
+            "tags": [],
+            "media": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "twitter-thread",
+      "platform": "TWITTER",
+      "connectionId": "connection_twitter",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Thread 1",
+            "text": "Live thread verification 1/2",
+            "tags": [],
+            "media": []
+          },
+          {
+            "order": 1,
+            "name": "Thread 2",
+            "text": "Live thread verification 2/2",
+            "tags": [],
+            "media": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "twitter-video",
+      "platform": "TWITTER",
+      "connectionId": "connection_twitter",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Video",
+            "text": "Live video verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "VIDEO",
+                "url": "https://media.example.test/video.mp4"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "twitter-multiple-images",
+      "platform": "TWITTER",
+      "connectionId": "connection_twitter",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Multiple images",
+            "text": "Live multiple-image verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "IMAGE",
+                "url": "https://media.example.test/one.jpg"
+              },
+              {
+                "mediaType": "IMAGE",
+                "url": "https://media.example.test/two.jpg"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "twitter-single-image",
+      "platform": "TWITTER",
+      "connectionId": "connection_twitter",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Single image",
+            "text": "Live image verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "IMAGE",
+                "url": "https://media.example.test/one.jpg"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "linkedin-video",
+      "platform": "LINKEDIN",
+      "connectionId": "connection_linkedin",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Video",
+            "text": "Live LinkedIn video verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "VIDEO",
+                "url": "https://media.example.test/video.mp4",
+                "durationSeconds": 10
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "linkedin-pdf",
+      "platform": "LINKEDIN",
+      "connectionId": "connection_linkedin",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "PDF",
+            "text": "Live PDF verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "DOCUMENT",
+                "url": "https://media.example.test/document.pdf"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "linkedin-ppt",
+      "platform": "LINKEDIN",
+      "connectionId": "connection_linkedin",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "PPT",
+            "text": "Live presentation verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "DOCUMENT",
+                "url": "https://media.example.test/presentation.pptx"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "linkedin-image",
+      "platform": "LINKEDIN",
+      "connectionId": "connection_linkedin",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Image",
+            "text": "Live image verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "IMAGE",
+                "url": "https://media.example.test/one.jpg"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "tiktok-video",
+      "platform": "TIKTOK",
+      "connectionId": "connection_tiktok",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Video",
+            "text": "Live video verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "VIDEO",
+                "url": "https://media.example.test/video.mp4",
+                "durationSeconds": 10
+              }
+            ]
+          }
+        ],
+        "providerSettings": {
+          "socialProviderId": "replaced-by-live-run",
+          "type": "TIKTOK",
+          "settings": {
+            "privacy": "SELF_ONLY",
+            "allowComments": false,
+            "allowDuet": false,
+            "allowStitch": false,
+            "promotionContent": "NONE"
+          }
+        }
+      }
+    },
+    {
+      "name": "tiktok-photo-carousel",
+      "platform": "TIKTOK",
+      "connectionId": "connection_tiktok",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Photo carousel",
+            "text": "Live photo-carousel verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "IMAGE",
+                "url": "https://media.example.test/one.jpg"
+              },
+              {
+                "mediaType": "IMAGE",
+                "url": "https://media.example.test/two.jpg"
+              }
+            ]
+          }
+        ],
+        "providerSettings": {
+          "socialProviderId": "replaced-by-live-run",
+          "type": "TIKTOK",
+          "settings": {
+            "privacy": "SELF_ONLY",
+            "allowComments": false,
+            "allowDuet": false,
+            "allowStitch": false,
+            "promotionContent": "NONE"
+          }
+        }
+      }
+    }
+  ]
+}

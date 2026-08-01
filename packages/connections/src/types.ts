@@ -41,6 +41,8 @@ export interface ConnectContext {
   state?: string;
   /** Instagram-only: opt-in insights scope (admin feature). */
   includeInsights?: boolean;
+  /** Short-lived storage for per-attempt OAuth material such as PKCE. */
+  temporaryStore?: ConnectionTemporaryStore;
 }
 
 /** Minimal temporary storage needed by multi-step connection callbacks. */
@@ -105,7 +107,7 @@ export interface TokenRefreshResult {
 export interface PlatformAuth {
   scopes: string[];
   isMultiStep: boolean;
-  getConnectUrl(ctx?: ConnectContext): string;
+  getConnectUrl(ctx?: ConnectContext): string | Promise<string>;
   handleCallback(ctx: CallbackContext): Promise<Response>;
   refreshToken?(input: {
     socialProviderId: string;
@@ -219,6 +221,10 @@ export interface PostResult {
 export interface PublishContext {
   content: SocialPublishInputType;
   socialProviderId: string;
+  /** Provider-owned resumable state persisted with the post target. */
+  providerState?: Record<string, unknown>;
+  /** Durably replace provider state after each externally visible step. */
+  persistProviderState?: (state: Record<string, unknown>) => Promise<void>;
 }
 
 // ── The connection objects ─────────────────────────────────────────────────

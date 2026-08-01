@@ -366,6 +366,16 @@ export const ConnectionMediaPage = Schema.Struct({
   data: Schema.Array(ConnectionMediaItem),
   nextCursor: Schema.NullOr(Schema.String),
 });
+export const TikTokCreatorInfoView = Schema.Struct({
+  creator_username: Schema.String,
+  creator_nickname: Schema.optional(Schema.String),
+  creator_avatar_url: Schema.optional(Schema.String),
+  privacy_level_options: Schema.Array(Schema.String),
+  comment_disabled: Schema.optional(Schema.Boolean),
+  duet_disabled: Schema.optional(Schema.Boolean),
+  stitch_disabled: Schema.optional(Schema.Boolean),
+  max_video_post_duration_sec: Schema.Number,
+});
 export const ConnectionsGroup = HttpApiGroup.make("connections")
   .add(
     HttpApiEndpoint.get("list", "/", {
@@ -387,6 +397,11 @@ export const ConnectionsGroup = HttpApiGroup.make("connections")
         after: Schema.optional(Schema.String),
       },
       success: ConnectionMediaPage,
+      error: [...domainErrors, ProviderUnavailableErrorResponse],
+    }),
+    HttpApiEndpoint.get("tiktokCreatorInfo", "/:id/tiktok-creator-info", {
+      params: ResourcePath,
+      success: TikTokCreatorInfoView,
       error: [...domainErrors, ProviderUnavailableErrorResponse],
     }),
     HttpApiEndpoint.post("mint", "/connect/:platform", {

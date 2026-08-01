@@ -7,65 +7,91 @@ import {
 import axios from "axios";
 import { Duration, Effect } from "effect";
 import {
+  ambiguousPublish,
   type ConnectionError,
+  fromUnknownCreate,
   fromUnknownHttp,
   invalidMedia,
   mediaProcessingError,
   mediaProcessingTimeout,
   profileNotFound,
-  tokenExpired,
+  publishRejected,
 } from "../../errors";
 import { ConnectionStore } from "../../services/connection-store";
+import { ensureFreshToken } from "../../services/token-service";
 import type {
   PlatformPublisher,
   PostResult,
   PublishContext,
 } from "../../types";
 import {
+  PHOTO_INIT_URL,
   POLL_INTERVAL_MS,
   POLL_MAX_ATTEMPTS,
   PROVIDER,
   STATUS_FETCH_URL,
   TITLE_LIMIT,
   VIDEO_INIT_URL,
-  VIDEO_LIST_URL,
 } from "./constants";
+import { getTikTokCreatorInfo } from "./queries";
+
+export const buildTikTokCommercialFields = (
+  promotionContent: TikTokSettings["promotionContent"]
+) => ({
+  brand_organic_toggle:
+    promotionContent === promotionContentTypes.SELF ||
+    promotionContent === promotionContentTypes.BOTH,
+  brand_content_toggle:
+    promotionContent === promotionContentTypes.PAID ||
+    promotionContent === promotionContentTypes.BOTH,
+});
+
+export const buildTikTokPhotoPost = (
+  photoUrls: string[],
+  caption: string,
+  settings: TikTokSettings
+) => ({
+  media_type: "PHOTO" as const,
+  post_mode: "DIRECT_POST" as const,
+  post_info: {
+    title: caption.slice(0, 90),
+    description: caption.slice(0, 4000),
+    privacy_level: settings.privacy,
+    disable_comment: settings.allowComments === false,
+    auto_add_music: true,
+    ...buildTikTokCommercialFields(settings.promotionContent),
+  },
+  source_info: {
+    source: "PULL_FROM_URL" as const,
+    photo_images: photoUrls,
+    photo_cover_index: 0,
+  },
+});
 
 /**
  * TikTok publishing (Effect port of `worker/providers/tiktok.provider.ts`).
  *
  * Flow: refresh the access token (TikTok's short-lived tokens expire fast),
  * init a video publish via PULL_FROM_URL, poll publish status until
- * PUBLISH_COMPLETE, then look up the real video id from the video list API to
- * build a canonical URL.
+ * PUBLISH_COMPLETE, then use the public post ID returned after moderation when
+ * TikTok makes one available.
  */
 
 interface TikTokProfile {
   id: string;
-  accessToken: string;
-  refreshToken: string;
   username: string;
   profileId: string;
-}
-
-interface TikTokRefreshResponse {
-  access_token?: string;
 }
 interface TikTokVideoInitResponse {
   data?: { publish_id?: string };
 }
 interface TikTokStatusResponse {
-  data?: { status?: string; fail_reason?: string };
+  data?: {
+    status?: string;
+    fail_reason?: string;
+    publicaly_available_post_id?: Array<string | number>;
+  };
 }
-interface TikTokVideoListResponse {
-  data?: { videos?: { id: string; create_time: number }[] };
-}
-
-const tiktokEnv = () => ({
-  TIKTOK_CLIENT_ID: process.env.TIKTOK_CLIENT_ID ?? "",
-  TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET ?? "",
-});
-
 const getProfile = (
   socialProviderId: string
 ): Effect.Effect<TikTokProfile, ConnectionError, ConnectionStore> =>
@@ -73,54 +99,14 @@ const getProfile = (
     const store = yield* ConnectionStore;
     const profile =
       yield* store.getSocialProviderWithDecryptedTokens(socialProviderId);
-    if (!(profile?.accessToken && profile.refreshToken)) {
+    if (!profile?.accessToken) {
       return yield* Effect.fail(profileNotFound(PROVIDER));
     }
     return {
       id: profile._id,
-      accessToken: profile.accessToken,
-      refreshToken: profile.refreshToken,
       username: profile.username ?? "",
       profileId: profile.profileId ?? "",
     } satisfies TikTokProfile;
-  });
-
-/**
- * Get a fresh access token from the refresh token. TikTok access tokens are
- * short-lived, so the provider always refreshes right before publishing.
- */
-const getFreshAccessToken = (
-  refreshToken: string
-): Effect.Effect<string, ConnectionError> =>
-  Effect.gen(function* () {
-    const e = tiktokEnv();
-    const data = yield* Effect.tryPromise({
-      try: () =>
-        axios
-          .post(
-            "https://open.tiktokapis.com/v2/oauth/token/",
-            new URLSearchParams({
-              client_key: e.TIKTOK_CLIENT_ID,
-              client_secret: e.TIKTOK_CLIENT_SECRET,
-              grant_type: "refresh_token",
-              refresh_token: refreshToken,
-            }),
-            {
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-            }
-          )
-          .then((r) => r.data as TikTokRefreshResponse),
-      catch: () => tokenExpired(PROVIDER, "Failed to get fresh access token"),
-    });
-
-    if (!data.access_token) {
-      return yield* Effect.fail(
-        tokenExpired(PROVIDER, "No access token received")
-      );
-    }
-    return data.access_token;
   });
 
 /**
@@ -132,7 +118,7 @@ const uploadVideo = (
   videoUrl: string,
   caption: string,
   media: { thumbnailTimestamp?: number },
-  settings?: TikTokSettings
+  settings: TikTokSettings
 ): Effect.Effect<string, ConnectionError> =>
   Effect.gen(function* () {
     const thumbnailTimestampMs = media.thumbnailTimestamp
@@ -142,29 +128,13 @@ const uploadVideo = (
     // biome-ignore lint/suspicious/noExplicitAny: TikTok post_info is dynamically shaped.
     const postInfo: any = {
       title: caption.slice(0, TITLE_LIMIT) || "TikTok Video",
-      privacy_level: settings?.privacy || "PUBLIC_TO_EVERYONE",
-      disable_duet: settings?.allowDuet === false,
-      disable_comment: settings?.allowComments === false,
-      disable_stitch: settings?.allowStitch === false,
+      privacy_level: settings.privacy,
+      disable_duet: settings.allowDuet === false,
+      disable_comment: settings.allowComments === false,
+      disable_stitch: settings.allowStitch === false,
       video_cover_timestamp_ms: thumbnailTimestampMs,
+      ...buildTikTokCommercialFields(settings.promotionContent),
     };
-
-    if (
-      settings?.promotionContent &&
-      settings.promotionContent !== promotionContentTypes.NONE
-    ) {
-      postInfo.brand_content_toggle = true;
-      if (settings.promotionContent === promotionContentTypes.SELF) {
-        postInfo.brand_organic_toggle = true;
-        postInfo.branded_content_toggle = false;
-      } else if (settings.promotionContent === promotionContentTypes.PAID) {
-        postInfo.brand_organic_toggle = false;
-        postInfo.branded_content_toggle = true;
-      } else if (settings.promotionContent === promotionContentTypes.BOTH) {
-        postInfo.brand_organic_toggle = true;
-        postInfo.branded_content_toggle = true;
-      }
-    }
 
     const uploadData = {
       source_info: {
@@ -184,9 +154,41 @@ const uploadVideo = (
             },
           })
           .then((r) => r.data as TikTokVideoInitResponse),
-      catch: (err) => fromUnknownHttp(PROVIDER, err),
+      catch: (err) => fromUnknownCreate(PROVIDER, err),
     });
 
+    const publishId = data.data?.publish_id;
+    if (!publishId) {
+      return yield* Effect.fail(
+        mediaProcessingError(PROVIDER, "Failed to get publish ID from TikTok")
+      );
+    }
+    return publishId;
+  });
+
+const uploadPhotos = (
+  accessToken: string,
+  photoUrls: string[],
+  caption: string,
+  settings: TikTokSettings
+): Effect.Effect<string, ConnectionError> =>
+  Effect.gen(function* () {
+    const data = yield* Effect.tryPromise({
+      try: () =>
+        axios
+          .post(
+            PHOTO_INIT_URL,
+            buildTikTokPhotoPost(photoUrls, caption, settings),
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json; charset=UTF-8",
+              },
+            }
+          )
+          .then((response) => response.data as TikTokVideoInitResponse),
+      catch: (error) => fromUnknownCreate(PROVIDER, error),
+    });
     const publishId = data.data?.publish_id;
     if (!publishId) {
       return yield* Effect.fail(
@@ -199,7 +201,10 @@ const uploadVideo = (
 const checkPostStatus = (
   accessToken: string,
   publishId: string
-): Effect.Effect<{ status: string; fail_reason?: string }, ConnectionError> =>
+): Effect.Effect<
+  { status: string; fail_reason?: string; postId?: string },
+  ConnectionError
+> =>
   Effect.gen(function* () {
     const data = yield* Effect.tryPromise({
       try: () =>
@@ -226,6 +231,7 @@ const checkPostStatus = (
     return {
       status: data.data.status ?? "",
       fail_reason: data.data.fail_reason,
+      postId: data.data.publicaly_available_post_id?.[0]?.toString(),
     };
   });
 
@@ -234,19 +240,19 @@ const waitForPostCompletion = (
   accessToken: string,
   publishId: string,
   attempt = 0
-): Effect.Effect<void, ConnectionError> =>
+): Effect.Effect<string | null, ConnectionError> =>
   Effect.gen(function* () {
     if (attempt >= POLL_MAX_ATTEMPTS) {
       return yield* Effect.fail(mediaProcessingTimeout(PROVIDER));
     }
 
-    const { status, fail_reason } = yield* checkPostStatus(
+    const { status, fail_reason, postId } = yield* checkPostStatus(
       accessToken,
       publishId
     );
 
     if (status === "PUBLISH_COMPLETE") {
-      return;
+      return postId ?? null;
     }
     if (status === "FAILED") {
       return yield* Effect.fail(
@@ -258,62 +264,48 @@ const waitForPostCompletion = (
     return yield* waitForPostCompletion(accessToken, publishId, attempt + 1);
   });
 
-/**
- * Fetch the real video id from the video list API (with retry), so the returned
- * URL points at the actual video rather than the transient publish_id.
- */
-const getRecentVideoId = (
+const waitForPublicPostId = (
   accessToken: string,
-  maxAgeMinutes = 5,
-  attempt = 0,
-  maxRetries = 3
-): Effect.Effect<string | null, ConnectionError> =>
+  publishId: string,
+  attempt = 0
+): Effect.Effect<string, ConnectionError> =>
   Effect.gen(function* () {
-    // Give the video a moment to propagate into the list API on first attempt.
-    yield* Effect.sleep(Duration.millis(attempt === 0 ? 3000 : 5000));
-
-    const data = yield* Effect.tryPromise({
-      try: () =>
-        axios
-          .post(
-            VIDEO_LIST_URL,
-            { max_count: 10 },
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                "Content-Type": "application/json; charset=UTF-8",
-              },
-            }
-          )
-          .then((r) => r.data as TikTokVideoListResponse),
-      catch: (err) => fromUnknownHttp(PROVIDER, err),
-    });
-
-    const videos = data.data?.videos ?? [];
-    if (videos.length > 0) {
-      const now = Date.now() / 1000;
-      const maxAge = maxAgeMinutes * 60;
-      const recent = videos.find((v) => now - v.create_time <= maxAge);
-      if (recent) {
-        return recent.id;
-      }
+    if (attempt >= POLL_MAX_ATTEMPTS) {
+      return yield* Effect.fail(mediaProcessingTimeout(PROVIDER));
     }
-
-    if (attempt < maxRetries - 1) {
-      return yield* getRecentVideoId(
-        accessToken,
-        maxAgeMinutes,
-        attempt + 1,
-        maxRetries
+    const { status, fail_reason, postId } = yield* checkPostStatus(
+      accessToken,
+      publishId
+    );
+    if (postId) {
+      return postId;
+    }
+    if (status === "FAILED") {
+      return yield* Effect.fail(
+        mediaProcessingError(PROVIDER, fail_reason || "Unknown error")
       );
     }
-    return null;
+    yield* Effect.sleep(Duration.millis(POLL_INTERVAL_MS));
+    return yield* waitForPublicPostId(accessToken, publishId, attempt + 1);
   });
+
+const persistTikTokState = (
+  persistProviderState: PublishContext["persistProviderState"],
+  state: Record<string, unknown>
+): Effect.Effect<void, ConnectionError> =>
+  persistProviderState
+    ? Effect.tryPromise({
+        try: () => persistProviderState(state),
+        catch: () => ambiguousPublish(PROVIDER),
+      })
+    : Effect.void;
 
 const publishContent = (
   content: SocialPublishInputType,
-  profile: TikTokProfile
-): Effect.Effect<PostResult, ConnectionError> =>
+  profile: TikTokProfile,
+  providerState?: Record<string, unknown>,
+  persistProviderState?: (state: Record<string, unknown>) => Promise<void>
+): Effect.Effect<PostResult, ConnectionError, ConnectionStore> =>
   Effect.gen(function* () {
     const firstContent = content.content[0];
     if (!firstContent) {
@@ -324,9 +316,12 @@ const publishContent = (
 
     const validMedia = getValidMediaUrls(firstContent.media);
     const videoMedia = validMedia.find((m) => m.mediaType === "VIDEO" && m.url);
-    if (!videoMedia?.url) {
+    const photoUrls = validMedia.flatMap((item) =>
+      item.mediaType === "IMAGE" && item.url ? [item.url] : []
+    );
+    if (!(videoMedia?.url || photoUrls.length > 0)) {
       return yield* Effect.fail(
-        invalidMedia(PROVIDER, "TikTok requires exactly one video file")
+        invalidMedia(PROVIDER, "TikTok requires a video or photo carousel")
       );
     }
 
@@ -336,27 +331,141 @@ const publishContent = (
       content.providerSettings?.type === "TIKTOK"
         ? content.providerSettings.settings
         : undefined;
+    if (!tiktokSettings) {
+      return yield* Effect.fail(
+        invalidMedia(PROVIDER, "TikTok creator settings are required")
+      );
+    }
 
-    const freshAccessToken = yield* getFreshAccessToken(profile.refreshToken);
+    const storedPublishId =
+      typeof providerState?.tiktokPublishId === "string"
+        ? providerState.tiktokPublishId
+        : undefined;
+    const storedPostId =
+      typeof providerState?.tiktokPublicPostId === "string"
+        ? providerState.tiktokPublicPostId
+        : undefined;
+    const storedStatus = providerState?.tiktokStatus;
+    const hasStoredPublish =
+      storedPublishId !== undefined &&
+      (storedStatus === "INITIATED" || storedStatus === "PUBLISH_COMPLETE");
+    if (
+      storedStatus === "PUBLISH_COMPLETE" &&
+      storedPublishId !== undefined &&
+      (storedPostId !== undefined || tiktokSettings.privacy === "SELF_ONLY")
+    ) {
+      return {
+        platformPostId: storedPostId ?? storedPublishId,
+        postId: content.postId,
+        platformId: profile.id,
+        platformPostUrl: storedPostId
+          ? `https://www.tiktok.com/@${profile.username}/video/${storedPostId}`
+          : "",
+        postedAt: new Date(),
+      } satisfies PostResult;
+    }
+    if (hasStoredPublish && !persistProviderState) {
+      return yield* Effect.fail(
+        publishRejected(PROVIDER, "Durable publish progress is unavailable")
+      );
+    }
 
-    const publishId = yield* uploadVideo(
-      freshAccessToken,
-      videoMedia.url,
-      caption,
-      videoMedia,
-      tiktokSettings
-    );
+    const freshAccessToken = yield* ensureFreshToken(profile.id);
+    if (!hasStoredPublish) {
+      const creator = yield* getTikTokCreatorInfo({
+        accessToken: freshAccessToken,
+      });
+      if (!creator.privacy_level_options.includes(tiktokSettings.privacy)) {
+        return yield* Effect.fail(
+          publishRejected(
+            PROVIDER,
+            "The selected privacy level is not available for this creator"
+          )
+        );
+      }
+      if (creator.comment_disabled && tiktokSettings.allowComments) {
+        return yield* Effect.fail(
+          publishRejected(PROVIDER, "Comments are disabled for this creator")
+        );
+      }
+      if (creator.duet_disabled && tiktokSettings.allowDuet) {
+        return yield* Effect.fail(
+          publishRejected(PROVIDER, "Duet is disabled for this creator")
+        );
+      }
+      if (creator.stitch_disabled && tiktokSettings.allowStitch) {
+        return yield* Effect.fail(
+          publishRejected(PROVIDER, "Stitch is disabled for this creator")
+        );
+      }
+      if (
+        videoMedia?.durationSeconds !== undefined &&
+        videoMedia.durationSeconds > creator.max_video_post_duration_sec
+      ) {
+        return yield* Effect.fail(
+          invalidMedia(
+            PROVIDER,
+            `Video duration exceeds this creator's ${creator.max_video_post_duration_sec}-second limit`
+          )
+        );
+      }
+    }
 
-    yield* waitForPostCompletion(freshAccessToken, publishId);
+    if (!persistProviderState) {
+      return yield* Effect.fail(
+        publishRejected(PROVIDER, "Durable publish progress is unavailable")
+      );
+    }
 
-    const itemId = yield* getRecentVideoId(freshAccessToken);
-    const videoId = itemId || publishId;
+    let publishId: string;
+    if (hasStoredPublish && storedPublishId) {
+      publishId = storedPublishId;
+    } else {
+      publishId = videoMedia?.url
+        ? yield* uploadVideo(
+            freshAccessToken,
+            videoMedia.url,
+            caption,
+            videoMedia,
+            tiktokSettings
+          )
+        : yield* uploadPhotos(
+            freshAccessToken,
+            photoUrls,
+            caption,
+            tiktokSettings
+          );
+      yield* persistTikTokState(persistProviderState, {
+        tiktokStatus: "INITIATED",
+        tiktokPublishId: publishId,
+      });
+    }
+
+    let publicPostId = typeof storedPostId === "string" ? storedPostId : null;
+    if (storedStatus !== "PUBLISH_COMPLETE") {
+      publicPostId = yield* waitForPostCompletion(freshAccessToken, publishId);
+      yield* persistTikTokState(persistProviderState, {
+        tiktokStatus: "PUBLISH_COMPLETE",
+        tiktokPublishId: publishId,
+        ...(publicPostId ? { tiktokPublicPostId: publicPostId } : {}),
+      });
+    }
+    if (!publicPostId && tiktokSettings.privacy !== "SELF_ONLY") {
+      publicPostId = yield* waitForPublicPostId(freshAccessToken, publishId);
+      yield* persistTikTokState(persistProviderState, {
+        tiktokStatus: "PUBLISH_COMPLETE",
+        tiktokPublishId: publishId,
+        tiktokPublicPostId: publicPostId,
+      });
+    }
 
     return {
-      platformPostId: publishId,
+      platformPostId: publicPostId ?? publishId,
       postId: content.postId,
       platformId: profile.id,
-      platformPostUrl: `https://www.tiktok.com/@${profile.username}/video/${videoId}`,
+      platformPostUrl: publicPostId
+        ? `https://www.tiktok.com/@${profile.username}/video/${publicPostId}`
+        : "",
       postedAt: new Date(),
     } satisfies PostResult;
   });
@@ -365,6 +474,13 @@ export const tiktokPublisher: PlatformPublisher = {
   id: "TIKTOK",
   publish: (ctx: PublishContext) =>
     getProfile(ctx.socialProviderId).pipe(
-      Effect.flatMap((profile) => publishContent(ctx.content, profile))
+      Effect.flatMap((profile) =>
+        publishContent(
+          ctx.content,
+          profile,
+          ctx.providerState,
+          ctx.persistProviderState
+        )
+      )
     ),
 };

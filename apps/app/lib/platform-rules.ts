@@ -72,7 +72,7 @@ export const PLATFORM_IMAGE_LIMITS: Record<SocialType, number> = {
   [SocialTypes.FACEBOOK]: 10,
   [SocialTypes.INSTAGRAM]: 10,
   [SocialTypes.PINTEREST]: 5,
-  [SocialTypes.TIKTOK]: 1, // Thumbnail only
+  [SocialTypes.TIKTOK]: 35,
   [SocialTypes.YOUTUBE]: 1, // Thumbnail only
   [SocialTypes.THREADS]: 10,
   [SocialTypes.FARCASTER]: 2,
@@ -158,7 +158,7 @@ export function shouldDefaultUseVideoLayout(
     return false;
   }
 
-  const videoPlatforms = [SocialTypes.TIKTOK, SocialTypes.YOUTUBE] as const;
+  const videoPlatforms = [SocialTypes.YOUTUBE] as const;
 
   return platformsInDefault.some((platform) =>
     (videoPlatforms as readonly SocialType[]).includes(platform)
@@ -614,10 +614,67 @@ export function getDynamicMediaLimits(
   const platformName = getPlatformDisplayName(socialType);
   const baseMaxImages = PLATFORM_IMAGE_LIMITS[socialType];
 
-  // TikTok/YouTube: Special case - video + thumbnail
-  if (socialType === SocialTypes.TIKTOK || socialType === SocialTypes.YOUTUBE) {
+  // TikTok supports either one video or a photo carousel, never a mixture.
+  if (socialType === SocialTypes.TIKTOK) {
     if (state.videos > 0) {
-      // Video exists, can only add thumbnail
+      return {
+        maxImages: 0,
+        maxVideos: 1,
+        remainingImages: 0,
+        remainingVideos: 0,
+        canAddImages: false,
+        canAddVideos: false,
+        canAddDocuments: false,
+        canMixTypes: false,
+        acceptedMimeTypes: [],
+        instruction: "TikTok video: 1 video only",
+        platformHint: "Video mode",
+      };
+    }
+
+    if (state.images > 0) {
+      const remaining = Math.max(0, 35 - state.images);
+      return {
+        maxImages: 35,
+        maxVideos: 0,
+        remainingImages: remaining,
+        remainingVideos: 0,
+        canAddImages: remaining > 0,
+        canAddVideos: false,
+        canAddDocuments: false,
+        canMixTypes: false,
+        acceptedMimeTypes: remaining > 0 ? ["image/*"] : [],
+        instruction:
+          remaining > 0
+            ? `TikTok carousel: Add up to ${remaining} more ${remaining === 1 ? "photo" : "photos"}`
+            : "TikTok carousel: Maximum 35 photos reached",
+        platformHint: "Photo carousel mode",
+      };
+    }
+
+    return {
+      maxImages: 35,
+      maxVideos: 1,
+      remainingImages: 35,
+      remainingVideos: 1,
+      canAddImages: true,
+      canAddVideos: true,
+      canAddDocuments: false,
+      canMixTypes: false,
+      acceptedMimeTypes: [
+        "image/*",
+        "video/mp4",
+        "video/quicktime",
+        "video/webm",
+      ],
+      instruction: `${platformName}: Upload up to 35 photos or 1 video`,
+      platformHint: "Choose format",
+    };
+  }
+
+  // YouTube uses one video plus an optional thumbnail.
+  if (socialType === SocialTypes.YOUTUBE) {
+    if (state.videos > 0) {
       return {
         maxImages: 1,
         maxVideos: 1,
@@ -635,9 +692,7 @@ export function getDynamicMediaLimits(
         platformHint: "Video uploaded",
       };
     }
-
     if (state.images > 0) {
-      // Thumbnail exists, can only add video
       return {
         maxImages: 1,
         maxVideos: 1,
@@ -655,8 +710,6 @@ export function getDynamicMediaLimits(
         platformHint: "Thumbnail uploaded",
       };
     }
-
-    // Empty state - allow both
     return {
       maxImages: 1,
       maxVideos: 1,

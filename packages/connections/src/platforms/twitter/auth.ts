@@ -26,7 +26,6 @@ const twitterEnv = () => ({
   TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID ?? "",
   TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET ?? "",
   TWITTER_CALLBACK_URL: process.env.TWITTER_CALLBACK_URL ?? "",
-  TWITTER_STATE: process.env.TWITTER_STATE ?? "",
 });
 
 interface TwitterTokenResponse {
@@ -44,6 +43,7 @@ interface TwitterUserResponse {
 }
 
 const TIMEOUT_MS = 8000; // matches the old callback route
+const BASE64_PADDING = /=+$/u;
 
 const fetchTimeout = (
   url: string,
@@ -61,20 +61,48 @@ const fetchTimeout = (
 const basicAuth = (clientId: string, clientSecret: string): string =>
   btoa(`${clientId}:${clientSecret}`);
 
+const base64Url = (bytes: Uint8Array): string => {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(BASE64_PADDING, "");
+};
+
+const pkceKey = (state: string) => `oauth:twitter:pkce:${state}`;
+
 export const twitterAuth: PlatformAuth = {
   scopes: SCOPES,
   isMultiStep: false,
 
-  getConnectUrl(ctx?: ConnectContext): string {
+  async getConnectUrl(ctx?: ConnectContext): Promise<string> {
     const e = twitterEnv();
+    if (!(ctx?.state && ctx.temporaryStore)) {
+      throw new Error("twitter_pkce_state_unavailable");
+    }
+    const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
+    const challenge = base64Url(
+      new Uint8Array(
+        await crypto.subtle.digest(
+          "SHA-256",
+          new TextEncoder().encode(verifier)
+        )
+      )
+    );
+    await ctx.temporaryStore.put(pkceKey(ctx.state), verifier, {
+      expirationTtl: 600,
+    });
     const params = new URLSearchParams({
       response_type: "code",
       client_id: e.TWITTER_CLIENT_ID,
       redirect_uri: e.TWITTER_CALLBACK_URL,
       scope: SCOPES.join(" "),
-      state: ctx?.state ?? e.TWITTER_STATE,
-      code_challenge: "challenge",
-      code_challenge_method: "plain",
+      state: ctx.state,
+      code_challenge: challenge,
+      code_challenge_method: "S256",
     });
     return `https://x.com/i/oauth2/authorize?${params.toString()}`;
   },
@@ -98,6 +126,13 @@ export const twitterAuth: PlatformAuth = {
     }
 
     try {
+      const verifier = ctx.state
+        ? await ctx.temporaryStore.get(pkceKey(ctx.state))
+        : null;
+      if (!verifier) {
+        throw new Error("twitter_pkce_invalid");
+      }
+      await ctx.temporaryStore.delete(pkceKey(ctx.state ?? ""));
       const bearerToken = basicAuth(
         e.TWITTER_CLIENT_ID,
         e.TWITTER_CLIENT_SECRET
@@ -105,7 +140,7 @@ export const twitterAuth: PlatformAuth = {
 
       // 1. Exchange the authorization code for tokens.
       const tokenResponse = await fetchTimeout(
-        "https://api.twitter.com/2/oauth2/token",
+        "https://api.x.com/2/oauth2/token",
         {
           method: "POST",
           headers: {
@@ -116,7 +151,7 @@ export const twitterAuth: PlatformAuth = {
             code,
             grant_type: "authorization_code",
             redirect_uri: e.TWITTER_CALLBACK_URL,
-            code_verifier: "challenge",
+            code_verifier: verifier,
           }).toString(),
         }
       ).catch((error) => {
@@ -133,7 +168,7 @@ export const twitterAuth: PlatformAuth = {
 
       // 2. Fetch the authenticated user's profile.
       const userResponse = await fetchTimeout(
-        "https://api.twitter.com/2/users/me?user.fields=username,profile_image_url,name,id",
+        "https://api.x.com/2/users/me?user.fields=username,profile_image_url,name,id",
         { headers: { Authorization: `Bearer ${access_token}` } }
       );
       if (!userResponse.ok) {
@@ -192,7 +227,7 @@ export const twitterAuth: PlatformAuth = {
 
       const response = yield* Effect.tryPromise({
         try: () =>
-          fetchTimeout("https://api.twitter.com/2/oauth2/token", {
+          fetchTimeout("https://api.x.com/2/oauth2/token", {
             method: "POST",
             headers: {
               Authorization: `Basic ${bearerToken}`,
