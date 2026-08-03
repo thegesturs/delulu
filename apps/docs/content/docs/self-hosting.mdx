@@ -18,6 +18,12 @@ The current release requires operator-owned Clerk and Cloudflare R2 projects. Ge
 
 Optional integrations remain inactive when their credentials are absent.
 
+Persistent agent computers are optional. Set `DAYTONA_API_KEY` to enable them;
+`DAYTONA_API_URL`, `DAYTONA_TARGET`, `DAYTONA_SNAPSHOT`, and
+`AGENT_COMPUTER_AUTO_PAUSE_MINUTES` tune the execution environment. Without an
+API key, workspace file storage remains available and computer operations return
+a typed provider-unavailable response.
+
 ## Install
 
 ```bash
@@ -59,6 +65,12 @@ docker compose up -d --build --wait
 - `migrate`: one-shot schema migration before application services start.
 - `postgres`: authoritative state in a persistent volume.
 - `proxy`: optional automatic TLS termination with Caddy.
+
+Agent computer metadata, task history, file paths, and file versions live in
+PostgreSQL. Computer filesystems live in the configured execution provider and
+auto-pause when idle. Durable user files live as private R2 objects and are
+downloaded through one-hour signed URLs; a file marked `private` is visible only
+to its owner, while a `workspace` file follows workspace membership and scopes.
 
 ## Backup and restore
 
@@ -115,6 +127,10 @@ Validate the API and scheduler Worker versions against the recovered SQL and DO
 state, remove the database fence, then deploy `SCHEDULER_PAUSED="false"` and
 resume application traffic. Verify a controlled scheduled operation before
 reopening writes to users.
+R2 objects and execution-provider filesystems are not included in the database
+backup. Enable bucket versioning or maintain an independent object backup, and
+use your execution provider's backup facilities when recovery must include
+installed tools and working files.
 
 ## Upgrade
 

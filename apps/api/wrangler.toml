@@ -51,6 +51,7 @@ ENVIRONMENT = "production"
 CLERK_ISSUER = "https://clerk.delulu.social"
 R2_BUCKET_NAME = "delulu-social"
 R2_PUBLIC_BASE_URL = "https://media.delulu.social"
+AGENT_COMPUTER_AUTO_PAUSE_MINUTES = "10"
 TWITTER_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/twitter"
 LINKEDIN_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/linkedin"
 TIKTOK_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/tiktok"
@@ -70,6 +71,7 @@ CAL_RETENTION_EVENT_SLUG = "retention"
 #   CONNECTION_STATE_SECRET
 #   CLERK_SECRET_KEY
 #   R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
+#   DAYTONA_API_KEY (optional; enables persistent agent computers)
 #   ENCRYPTION_SECRET
 #   SCHEDULER_SECRET (remote self-hosted API ingress, when configured)
 #   META_APP_SECRET / META_VERIFY_TOKEN

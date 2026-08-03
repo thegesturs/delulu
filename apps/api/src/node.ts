@@ -4,6 +4,7 @@ import {
   type ServerResponse,
 } from "node:http";
 import { Readable } from "node:stream";
+import { runAgentTasks } from "./agent-task-runner";
 import { buildWebHandler } from "./app";
 import { appOrigins, type Env } from "./env";
 import { makeBaseLayer } from "./index";

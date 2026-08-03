@@ -276,6 +276,8 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
       deploymentMode: "hosted",
       billingEnabled: true,
       registrationEnabled: true,
+      agentComputerEnabled: false,
+      workspaceFilesEnabled: false,
       version: "development",
     });
   });

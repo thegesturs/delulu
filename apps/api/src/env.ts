@@ -7,6 +7,7 @@ import {
   AuthConfig,
   ClerkAdminConfig,
   ConnectionStateConfig,
+  ExecutionWorkspaceConfig,
   PostHogConfig,
   R2Config,
 } from "@delulu/services";
@@ -51,6 +52,13 @@ export interface Env {
   readonly R2_BUCKET_NAME?: string;
   readonly R2_PUBLIC_BASE_URL?: string;
   readonly ENCRYPTION_SECRET?: string;
+  readonly DAYTONA_API_KEY?: string;
+  readonly DAYTONA_API_URL?: string;
+  readonly DAYTONA_TARGET?: string;
+  readonly DAYTONA_SNAPSHOT?: string;
+  readonly AGENT_COMPUTER_AUTO_PAUSE_MINUTES?: string;
+  readonly SQS_INGRESS_URL?: string;
+  readonly SQS_INGRESS_SECRET?: string;
   readonly EDGE_CACHE_KV?: KeyValueCacheBinding;
   readonly AUTOMATION_KV?: WorkersKvNamespace;
   readonly META_APP_SECRET?: string;
@@ -164,3 +172,18 @@ export const domainConfigLayers = (env: Env) =>
       })
     ),
   ] as const;
+
+export const executionWorkspaceConfigLayer = (env: Env) =>
+  Layer.succeed(
+    ExecutionWorkspaceConfig,
+    ExecutionWorkspaceConfig.of({
+      apiKey: env.DAYTONA_API_KEY ?? "",
+      apiUrl: env.DAYTONA_API_URL,
+      target: env.DAYTONA_TARGET,
+      snapshot: env.DAYTONA_SNAPSHOT,
+      autoPauseMinutes: Math.max(
+        1,
+        Number(env.AGENT_COMPUTER_AUTO_PAUSE_MINUTES ?? 10)
+      ),
+    })
+  );

@@ -1,6 +1,7 @@
 import { makeTokenCipher, TokenCipher } from "@delulu/core";
 import {
   AdminService,
+  AgentComputerService,
   AnalyticsService,
   ApiKeyVerifier,
   AsTokenService,
@@ -23,9 +24,11 @@ import {
   ClerkTokenVerifier,
   ConnectionStateService,
   ConnectionsService,
+  DaytonaExecutionWorkspace,
   DeploymentConfig,
   DmDispatchService,
   EntitlementPolicy,
+  ExecutionWorkspaceConfig,
   IdentityService,
   JobIntent,
   JobService,
@@ -52,6 +55,7 @@ import {
   WebhookIngressService,
   WebhookSecrets,
   WorkspaceAccessService,
+  WorkspaceFileService,
 } from "@delulu/services";
 import { PgClient } from "@effect/sql-pg";
 import {
@@ -74,6 +78,7 @@ import {
   domainConfigLayers,
   type Env,
   type ExecutionContext,
+  executionWorkspaceConfigLayer,
   postHogConfigLayer,
 } from "./env";
 import { executeJob, failJob } from "./execute-job";
@@ -143,6 +148,16 @@ export const makeBaseLayer = (
     TokenCipher.of(makeTokenCipher(env.ENCRYPTION_SECRET ?? ""))
   );
   const R2 = R2Service.layer.pipe(Layer.provide(R2Config));
+  const ExecutionConfig = executionWorkspaceConfigLayer(env);
+  const Execution = DaytonaExecutionWorkspace.pipe(
+    Layer.provide(ExecutionConfig)
+  );
+  const AgentComputers = AgentComputerService.layer.pipe(
+    Layer.provide(Execution)
+  );
+  const WorkspaceFiles = WorkspaceFileService.layer.pipe(
+    Layer.provide([R2, QuotaGuard.layer.pipe(Layer.provide(Entitlements))])
+  );
   const Access = WorkspaceAccessService.layer.pipe(
     Layer.provide([MembershipService.layer, Authorization, Entitlements])
   );
@@ -320,6 +335,10 @@ export const makeBaseLayer = (
     ClerkAdmin,
     ConnectionState,
     R2,
+    ExecutionConfig,
+    Execution,
+    AgentComputers,
+    WorkspaceFiles,
     Access,
     Posts,
     Reviews,

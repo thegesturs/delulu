@@ -15,6 +15,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
+    "@daytona/sdk": "0.203.0",
     "@delulu/analytics": "workspace:*",
     "@delulu/connections": "workspace:*",
     "@delulu/contracts": "workspace:*",

@@ -80,6 +80,26 @@ export const OAuthRefreshTokenId = nanoId(
 export type OAuthRefreshTokenId = typeof OAuthRefreshTokenId.Type;
 export const JobId = nanoId("job", "JobId");
 export type JobId = typeof JobId.Type;
+export const AgentComputerId = nanoId("agent_computer", "AgentComputerId");
+export type AgentComputerId = typeof AgentComputerId.Type;
+export const AgentTaskId = nanoId("agent_task", "AgentTaskId");
+export type AgentTaskId = typeof AgentTaskId.Type;
+export const AgentCommandId = nanoId("agent_command", "AgentCommandId");
+export type AgentCommandId = typeof AgentCommandId.Type;
+export const AgentProcessId = nanoId("agent_process", "AgentProcessId");
+export type AgentProcessId = typeof AgentProcessId.Type;
+export const WorkspaceFileId = nanoId("workspace_file", "WorkspaceFileId");
+export type WorkspaceFileId = typeof WorkspaceFileId.Type;
+export const WorkspaceFileVersionId = nanoId(
+  "file_version",
+  "WorkspaceFileVersionId"
+);
+export type WorkspaceFileVersionId = typeof WorkspaceFileVersionId.Type;
+export const WorkspaceSnapshotId = nanoId(
+  "workspace_snapshot",
+  "WorkspaceSnapshotId"
+);
+export type WorkspaceSnapshotId = typeof WorkspaceSnapshotId.Type;
 
 export const makeId = <A>(schema: EntityIdSchema<A>): A =>
   Schema.decodeUnknownSync(schema)(`${schema[EntityIdTypeId]}${makeNanoId()}`);
