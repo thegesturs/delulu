@@ -108,7 +108,12 @@ export function AlternativeContentSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className="size-7 rounded-md" size="icon">
+        <Button
+          aria-label="Choose platform-specific content"
+          className="size-11 rounded-lg"
+          size="icon"
+          variant="ghost"
+        >
           <Icon icon={ArrowDown01Icon} size={12} />
         </Button>
       </DropdownMenuTrigger>

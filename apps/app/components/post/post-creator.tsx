@@ -1,7 +1,6 @@
 "use client";
 
 import { resourceEffect } from "@delulu/client";
-import { DottedSeparator } from "@delulu/design-system/components/ui/dotted-separator";
 import {
   Tabs,
   TabsContent,
@@ -25,12 +24,10 @@ import {
   useSelectedSocialProviders,
   useStore,
 } from "@/store/post";
-import { Header } from "../layout/header";
+import { ComposerToolbar } from "./composer-toolbar";
 import { ContentModule } from "./content-module";
-import { MobilePostHeader } from "./mobile-post-header";
 import { AlternativeContentSelector } from "./network-selector";
 import { ReviewBanner } from "./review-banner";
-import { PostSidebar } from "./sidebar/post-sidebar";
 import { SocialIcon } from "./sidebar/social-icon";
 
 interface PostCreatorProps {
@@ -200,12 +197,10 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   // Show loading state while fetching post data
   if (postId && (postData.isPending || mediaResults.isPending)) {
     return (
-      <div className="flex h-full gap-4">
-        <div className="flex-1">
-          <Header page="Loading..." pages={["Post"]} />
-          <div className="flex h-64 items-center justify-center">
-            <div className="text-muted-foreground">Loading post...</div>
-          </div>
+      <div className="flex h-full flex-col">
+        <ComposerToolbar actionsDisabled postId={postId} />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-muted-foreground">Loading post…</div>
         </div>
       </div>
     );
@@ -213,13 +208,14 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
 
   if (postId && (postData.isError || mediaResults.isError)) {
     return (
-      <div className="flex h-full gap-4">
-        <div className="flex-1">
-          <Header page="Unable to load post" pages={["Post"]} />
-          <div className="flex h-64 items-center justify-center">
-            <div className="text-muted-foreground">
+      <div className="flex h-full flex-col">
+        <ComposerToolbar actionsDisabled postId={postId} />
+        <div className="flex flex-1 items-center justify-center px-6 text-center">
+          <div>
+            <h2 className="font-medium">Unable to load post</h2>
+            <p className="mt-1 text-muted-foreground text-sm">
               The post media could not be loaded. Please retry.
-            </div>
+            </p>
           </div>
         </div>
       </div>
@@ -227,52 +223,29 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   }
 
   return (
-    <div className="flex h-full flex-col lg:flex-row">
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 pb-24 lg:pr-6 lg:pb-6">
-        {/* Show warning if post is already published */}
-        {postData.data?.status === "published" && (
-          <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50/60 p-4 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-            <h3 className="font-semibold">
-              Warning: This post has already been published
-            </h3>
-            <p className="text-sm">
-              This post has already been published to social media. Any changes
-              you make will only be saved as drafts and won't affect the
-              published content.
-            </p>
-          </div>
-        )}
+    <div className="flex h-full min-h-0 flex-col bg-background">
+      <ComposerToolbar
+        organizationId={postData.data?.workspaceId}
+        postId={postId}
+      />
 
-        {/* Review status banner for org posts */}
-        {postData.data?.workspaceId && (
-          <div className="mb-4">
-            <ReviewBanner
-              organizationId={postData.data.workspaceId}
-              postId={postData.data.id}
-              reviewStatus=""
-            />
-          </div>
-        )}
-        <div className="hidden lg:block">
-          <Header
-            page={postId ? "Edit Post" : "Create Post"}
-            pages={["Post"]}
-          />
-          <DottedSeparator className="mb-4" />
-        </div>
-        <MobilePostHeader />
-
-        <Tabs onValueChange={handleTabChange} value={activeModuleId}>
-          <div className="w-full overflow-x-auto pb-2 lg:overflow-visible lg:pb-0">
+      <Tabs
+        className="flex min-h-0 flex-1 flex-col"
+        onValueChange={handleTabChange}
+        value={activeModuleId}
+      >
+        <div className="shrink-0 border-border/60 border-b bg-background">
+          <div className="mx-auto w-full max-w-5xl overflow-x-auto px-3 py-2 sm:px-6">
             <TabsList
               className={cn(
                 socialProviders.length < 2 && "hidden",
-                "w-max justify-start lg:w-full"
+                "h-11 w-max justify-start gap-1 bg-transparent p-0"
               )}
             >
               <TabsTrigger
                 className={cn(
-                  singleProviderInDefault && "min-w-fit gap-2 text-xs"
+                  "h-11 min-w-fit rounded-lg px-3 text-sm",
+                  singleProviderInDefault && "gap-2"
                 )}
                 value="global"
               >
@@ -290,7 +263,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
               </TabsTrigger>
               {alternativeContent.map((content) => (
                 <TabsTrigger
-                  className="min-w-fit gap-2 text-xs"
+                  className="h-11 min-w-fit gap-2 rounded-lg px-3 text-sm"
                   key={content.socialProvider.socialId}
                   value={content.socialProvider.socialId}
                 >
@@ -304,30 +277,52 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
               <AlternativeContentSelector />
             </TabsList>
           </div>
+        </div>
 
-          <TabsContent value="global">
-            <ContentModule socialId="global" socialType={SocialTypes.DEFAULT} />
-          </TabsContent>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
+            {postData.data?.status === "published" && (
+              <div className="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-amber-900 ring-1 ring-amber-200/80 dark:bg-amber-950/30 dark:text-amber-100 dark:ring-amber-800">
+                <h3 className="font-medium text-sm">Already published</h3>
+                <p className="mt-0.5 text-xs opacity-80">
+                  Changes are saved as a new draft and won’t alter the live
+                  post.
+                </p>
+              </div>
+            )}
 
-          {alternativeContent.map((content) => (
-            <TabsContent
-              key={content.socialProvider.socialId}
-              value={content.socialProvider.socialId}
-            >
+            {postData.data?.workspaceId && (
+              <div className="mb-6">
+                <ReviewBanner
+                  organizationId={postData.data.workspaceId}
+                  postId={postData.data.id}
+                  reviewStatus=""
+                />
+              </div>
+            )}
+
+            <TabsContent className="mt-0" value="global">
               <ContentModule
-                socialId={content.socialProvider.socialId}
-                socialType={content.socialProvider.socialType}
+                socialId="global"
+                socialType={SocialTypes.DEFAULT}
               />
             </TabsContent>
-          ))}
-        </Tabs>
-      </div>
-      <div className="hidden h-full shrink-0 lg:block">
-        <PostSidebar
-          organizationId={postData.data?.workspaceId}
-          postId={postId}
-        />
-      </div>
+
+            {alternativeContent.map((content) => (
+              <TabsContent
+                className="mt-0"
+                key={content.socialProvider.socialId}
+                value={content.socialProvider.socialId}
+              >
+                <ContentModule
+                  socialId={content.socialProvider.socialId}
+                  socialType={content.socialProvider.socialType}
+                />
+              </TabsContent>
+            ))}
+          </div>
+        </div>
+      </Tabs>
     </div>
   );
 }

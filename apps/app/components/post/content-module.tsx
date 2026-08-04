@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@delulu/design-system/components/ui/button";
-import { Card } from "@delulu/design-system/components/ui/card";
 import { Textarea } from "@delulu/design-system/components/ui/textarea";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
@@ -21,6 +20,7 @@ import {
   useStore,
 } from "@/store/post";
 import { MediaUploader } from "./media-uploader";
+import { SocialIcon } from "./sidebar/social-icon";
 import { VideoContentLayout } from "./video-content-layout";
 
 const VIDEO_UPLOAD_LOG_PREFIX = "[video-upload-layout]";
@@ -74,6 +74,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
         : socialType,
     [isGlobal, platformsInDefault, socialType]
   );
+  const showPlatformMarker = !isGlobal || platformsInDefault.length === 1;
 
   const content = isGlobal
     ? post.content
@@ -445,78 +446,118 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   }
 
   return (
-    <Card className="mt-4 max-h-[calc(100vh-220px)] overflow-y-auto border-none p-4 shadow-sm">
-      <div className="space-y-6 border-l-2 border-l-border">
+    <div className="mx-auto w-full max-w-3xl">
+      <div className="relative space-y-8">
+        {content.length > 1 && (
+          <div
+            aria-hidden
+            className="absolute top-5 bottom-16 left-5 w-px bg-border"
+          />
+        )}
         {content.map((item) => (
-          <div className="space-y-4 p-2" key={item.order}>
-            <div className="relative">
-              <Textarea
-                className="min-h-[200px] resize-none border-none shadow-none focus-visible:ring-0"
-                onChange={(e) => handleTextChange(e.target.value, item.order)}
-                placeholder={
-                  isGlobal
-                    ? getDefaultPlaceholder(platformsInDefault)
-                    : socialType === SocialTypes.TWITTER
-                      ? "What's happening?"
-                      : "Type your caption here"
-                }
-                value={item.text}
-              />
-              {(isTwitter ||
-                (isGlobal && getDefaultCharacterLimit(platformsInDefault))) && (
-                <div
+          <div
+            className="relative grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 sm:gap-5"
+            key={item.order}
+          >
+            <div
+              aria-hidden
+              className="relative z-10 flex size-10 items-center justify-center rounded-full bg-muted font-medium text-muted-foreground text-xs ring-4 ring-background"
+            >
+              {showPlatformMarker ? (
+                <SocialIcon className="size-4" type={effectiveSocialType} />
+              ) : (
+                item.order + 1
+              )}
+            </div>
+
+            <div className="min-w-0 pb-1">
+              <div className="relative">
+                <label
+                  className="sr-only"
+                  htmlFor={`post-content-${socialId}-${item.order}`}
+                >
+                  {content.length > 1
+                    ? `Post ${item.order + 1}`
+                    : "Post content"}
+                </label>
+                <Textarea
                   className={cn(
-                    "absolute top-2 right-2 text-sm",
-                    (() => {
+                    "resize-none overflow-hidden rounded-lg border-0 bg-transparent px-2 pt-1 pb-8 text-[17px] leading-7 shadow-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-transparent focus-visible:bg-muted/30 focus-visible:ring-0 md:text-[17px]",
+                    content.length === 1
+                      ? "min-h-[clamp(240px,42vh,520px)]"
+                      : "min-h-36"
+                  )}
+                  id={`post-content-${socialId}-${item.order}`}
+                  onChange={(e) => handleTextChange(e.target.value, item.order)}
+                  placeholder={
+                    isGlobal
+                      ? getDefaultPlaceholder(platformsInDefault)
+                      : socialType === SocialTypes.TWITTER
+                        ? "What's happening?"
+                        : "Write your post…"
+                  }
+                  value={item.text}
+                />
+
+                {(isTwitter ||
+                  (isGlobal &&
+                    getDefaultCharacterLimit(platformsInDefault))) && (
+                  <div
+                    className={cn(
+                      "absolute right-0 bottom-2 font-medium text-xs tabular-nums",
+                      (() => {
+                        const limit = isGlobal
+                          ? getDefaultCharacterLimit(platformsInDefault) || 0
+                          : 280;
+                        return limit - item.text.length < 0
+                          ? "text-destructive"
+                          : "text-muted-foreground";
+                      })()
+                    )}
+                  >
+                    {(() => {
                       const limit = isGlobal
                         ? getDefaultCharacterLimit(platformsInDefault) || 0
                         : 280;
-                      return limit - item.text.length < 0
-                        ? "text-destructive"
-                        : "text-muted-foreground";
-                    })()
-                  )}
-                >
-                  {(() => {
-                    const limit = isGlobal
-                      ? getDefaultCharacterLimit(platformsInDefault) || 0
-                      : 280;
-                    return limit - item.text.length;
-                  })()}
-                </div>
-              )}
-              {isTwitter && (
-                <div className="absolute right-2 bottom-2 flex items-center gap-2">
-                  {content.length > 1 && (
-                    <Button
-                      className="h-6 w-6"
-                      onClick={() => removeTweet(item.order)}
-                      size="icon"
-                      variant="destructive"
-                    >
-                      <Icon icon={Remove01Icon} size={12} />
-                    </Button>
-                  )}
-                  <Button
-                    className="h-6 w-6"
-                    onClick={() => addTweet(item.order)}
-                    size="icon"
-                  >
-                    <Icon icon={Add01Icon} size={12} />
-                  </Button>
-                </div>
-              )}
-            </div>
-            <div className="relative">
+                      return limit - item.text.length;
+                    })()}
+                  </div>
+                )}
+              </div>
+
               <MediaUploader
                 orderId={item.order}
                 socialId={socialId}
                 socialType={effectiveSocialType}
               />
+
+              {isTwitter && (
+                <div className="mt-4 flex items-center gap-2">
+                  <Button
+                    className="h-11"
+                    onClick={() => addTweet(item.order)}
+                    variant="ghost"
+                  >
+                    <Icon icon={Add01Icon} size={16} />
+                    Add to thread
+                  </Button>
+                  {content.length > 1 && (
+                    <Button
+                      aria-label={`Remove post ${item.order + 1}`}
+                      className="size-11 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeTweet(item.order)}
+                      size="icon"
+                      variant="ghost"
+                    >
+                      <Icon icon={Remove01Icon} size={16} />
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ))}
       </div>
-    </Card>
+    </div>
   );
 }

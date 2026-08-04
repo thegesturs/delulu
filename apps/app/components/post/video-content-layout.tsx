@@ -2,7 +2,6 @@
 
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
-import { Card } from "@delulu/design-system/components/ui/card";
 import { Input } from "@delulu/design-system/components/ui/input";
 import { Label } from "@delulu/design-system/components/ui/label";
 import { Textarea } from "@delulu/design-system/components/ui/textarea";
@@ -162,10 +161,10 @@ export function VideoContentLayout({
   const videoAspectClass = config.isVertical ? "aspect-[9/16]" : "aspect-video";
 
   return (
-    <Card className="mt-4 max-h-[calc(100vh-220px)] overflow-y-auto border-none p-4 shadow-sm">
-      <div className="grid gap-6 lg:grid-cols-[minmax(200px,320px)_1fr]">
+    <div className="mx-auto w-full max-w-4xl">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-12">
         {/* Left Column - Video Upload or Thumbnail Preview */}
-        <div className="space-y-4">
+        <div className="order-2 space-y-4">
           {videoUrl ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -269,7 +268,7 @@ export function VideoContentLayout({
         </div>
 
         {/* Right Column - Text Content */}
-        <div className="space-y-4">
+        <div className="order-1 space-y-5">
           {/* Platform Requirements */}
           {config.requirements && (
             <div className="rounded-lg bg-muted p-3">
@@ -332,7 +331,7 @@ export function VideoContentLayout({
             </Label>
             <div className="relative">
               <Textarea
-                className="min-h-[300px] resize-none border-border pr-16 shadow-none focus-visible:ring-1"
+                className="min-h-[clamp(280px,48vh,560px)] resize-none overflow-hidden rounded-lg border-0 bg-transparent px-2 pt-1 pr-16 text-[17px] leading-7 shadow-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-transparent focus-visible:bg-muted/30 focus-visible:ring-0 md:text-[17px]"
                 id="video-caption"
                 onChange={handleTextChange}
                 placeholder={config.captionPlaceholder}
@@ -377,6 +376,6 @@ export function VideoContentLayout({
           videoUrl={videoUrl}
         />
       )}
-    </Card>
+    </div>
   );
 }

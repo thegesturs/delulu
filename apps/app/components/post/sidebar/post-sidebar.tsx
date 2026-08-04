@@ -46,14 +46,14 @@ export function PostSidebar({ postId, organizationId }: PostSidebarProps) {
     "rounded-none border-0 border-transparent border-b-2 bg-transparent px-0 py-2 font-medium text-muted-foreground text-sm data-[state=active]:border-current data-[state=active]:bg-transparent data-[state=active]:text-current";
 
   return (
-    <div className="flex h-full w-full flex-col bg-card lg:w-[420px] lg:border-border/60 lg:border-l">
+    <div className="flex h-full w-full flex-col bg-background">
       <Tabs
         className="flex min-h-0 w-full flex-1 flex-col"
         defaultValue="basic"
       >
         <TabsList
           className={cn(
-            "grid w-full shrink-0 rounded-none bg-transparent px-3 pt-1",
+            "grid min-h-12 w-full shrink-0 rounded-none bg-transparent px-3",
             showActivity ? "grid-cols-3" : "grid-cols-2"
           )}
         >
@@ -94,7 +94,7 @@ export function PostSidebar({ postId, organizationId }: PostSidebarProps) {
                       return (
                         <button
                           className={cn(
-                            "flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium text-xs transition-colors",
+                            "flex min-h-11 items-center gap-1.5 rounded-md px-3 font-medium text-xs transition-colors",
                             isActive
                               ? "bg-accent text-foreground"
                               : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"

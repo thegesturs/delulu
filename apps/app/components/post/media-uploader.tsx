@@ -152,7 +152,7 @@ export function MediaPreview({
       <motion.button
         animate={{ opacity: 1, scale: 1 }}
         aria-label="Remove media"
-        className="absolute top-1 right-1 z-10 rounded-full bg-destructive p-1 text-destructive-foreground opacity-0 transition-opacity duration-200 hover:bg-destructive/90 group-hover:opacity-100"
+        className="absolute top-1 right-1 z-10 flex size-11 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-border transition-colors hover:bg-destructive hover:text-destructive-foreground"
         initial={{ opacity: 0, scale: 0.8 }}
         onClick={() => onRemove(media.id)}
         type="button"
@@ -212,7 +212,7 @@ function MediaStats({ mediaFiles, onClearAll, platformHint }: MediaStatsProps) {
         )}
       </div>
       <Button
-        className="h-auto px-2 py-1 text-xs"
+        className="h-11 px-3 text-xs"
         onClick={onClearAll}
         size="sm"
         type="button"
@@ -715,45 +715,39 @@ export function MediaUploader({
       />
 
       {mediaFiles.length === 0 ? (
-        /* Empty state — plus icon, acts as drop zone */
-        <>
-          <motion.button
+        <div
+          className={cn(
+            "flex min-h-16 flex-wrap items-center gap-1 rounded-lg border border-border/70 border-dashed px-2 py-1 transition-colors",
+            isDragOver && "border-primary bg-primary/5"
+          )}
+          {...dragHandlers}
+        >
+          <button
+            aria-label={`Add media. ${instruction}`}
             className={cn(
-              "flex w-full items-center justify-center rounded-lg border-2 border-dashed transition-colors",
-              isDragOver
-                ? "border-primary bg-primary/10"
-                : "border-border hover:border-input hover:bg-muted/50",
-              "aspect-[3/1]"
+              "flex h-11 items-center gap-2 rounded-md px-3 font-medium text-muted-foreground text-sm outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
+              isDragOver && "bg-primary/10 text-primary"
             )}
             onClick={() => fileInputRef.current?.click()}
             title={platformHint}
             type="button"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            {...dragHandlers}
           >
-            <div className="flex flex-col items-center gap-1">
-              <Icon
-                className="text-muted-foreground"
-                icon={Add01Icon}
-                size={28}
-              />
-              <span className="text-muted-foreground text-xs">
-                {instruction}
-              </span>
-            </div>
-          </motion.button>
+            <Icon icon={Add01Icon} size={18} />
+            Add media
+          </button>
           <Button
-            className="w-full text-muted-foreground"
+            className="h-11 text-muted-foreground"
             onClick={() => setIsDialogOpen(true)}
-            size="sm"
             type="button"
             variant="ghost"
           >
-            <Icon className="mr-2" icon={FolderLibraryIcon} size={14} />
-            Choose from library
+            <Icon icon={FolderLibraryIcon} size={16} />
+            Media library
           </Button>
-        </>
+          <span className="ml-auto hidden text-muted-foreground text-xs lg:inline">
+            {instruction}
+          </span>
+        </div>
       ) : (
         /* Has media — grid of thumbnails + plus icon to add more */
         <>
@@ -804,9 +798,8 @@ export function MediaUploader({
 
           {canUploadMore && (
             <Button
-              className="w-full text-muted-foreground"
+              className="h-11 w-full text-muted-foreground"
               onClick={() => setIsDialogOpen(true)}
-              size="sm"
               type="button"
               variant="ghost"
             >
