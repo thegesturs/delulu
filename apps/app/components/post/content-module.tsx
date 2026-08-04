@@ -20,7 +20,6 @@ import {
   useStore,
 } from "@/store/post";
 import { MediaUploader } from "./media-uploader";
-import { SocialIcon } from "./sidebar/social-icon";
 import { VideoContentLayout } from "./video-content-layout";
 
 const VIDEO_UPLOAD_LOG_PREFIX = "[video-upload-layout]";
@@ -74,8 +73,6 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
         : socialType,
     [isGlobal, platformsInDefault, socialType]
   );
-  const showPlatformMarker = !isGlobal || platformsInDefault.length === 1;
-
   const content = isGlobal
     ? post.content
     : post.alternativeContent.find(
@@ -447,31 +444,11 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
 
   return (
     <div className="mx-auto w-full max-w-[740px]">
-      <div className="relative space-y-6">
-        {content.length > 1 && (
-          <div
-            aria-hidden
-            className="absolute top-5 bottom-14 left-[18px] w-px bg-border"
-          />
-        )}
+      <div className="space-y-4">
         {content.map((item) => (
-          <div
-            className="relative grid grid-cols-[2.25rem_minmax(0,1fr)] gap-2.5 sm:grid-cols-[2.5rem_minmax(0,1fr)] sm:gap-4"
-            key={item.order}
-          >
-            <div
-              aria-hidden
-              className="relative z-10 flex size-9 items-center justify-center rounded-full bg-background font-semibold text-foreground text-xs shadow-[0_0_0_1px_rgba(15,23,42,0.12)] ring-4 ring-background sm:size-10"
-            >
-              {showPlatformMarker ? (
-                <SocialIcon className="size-4" type={effectiveSocialType} />
-              ) : (
-                item.order + 1
-              )}
-            </div>
-
-            <div className="min-w-0 pb-1">
-              <div className="relative rounded-xl bg-card px-3 pt-3 pb-2 shadow-[0_0_0_1px_rgba(15,23,42,0.09),0_1px_2px_rgba(15,23,42,0.035)] transition-shadow focus-within:shadow-[0_0_0_1px_rgba(15,23,42,0.2),0_2px_8px_rgba(15,23,42,0.04)] sm:px-4 sm:pt-4">
+          <div className="min-w-0" key={item.order}>
+            <div className="overflow-hidden rounded-xl border border-border bg-card transition-[border-color,box-shadow] focus-within:border-foreground/20 focus-within:ring-1 focus-within:ring-foreground/10 focus-within:ring-inset">
+              <div className="px-4 pt-4 sm:px-5 sm:pt-5">
                 <div className="relative">
                   <label
                     className="sr-only"
@@ -527,6 +504,8 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                     </div>
                   )}
                 </div>
+              </div>
+              <div className="px-3 pb-2 sm:px-4">
                 <MediaUploader
                   compact
                   orderId={item.order}
@@ -534,31 +513,31 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                   socialType={effectiveSocialType}
                 />
               </div>
+            </div>
 
-              {isTwitter && (
-                <div className="mt-4 flex items-center gap-2">
+            {isTwitter && (
+              <div className="mt-3 flex items-center gap-2">
+                <Button
+                  className="h-11"
+                  onClick={() => addTweet(item.order)}
+                  variant="ghost"
+                >
+                  <Icon icon={Add01Icon} size={16} />
+                  Add to thread
+                </Button>
+                {content.length > 1 && (
                   <Button
-                    className="h-11"
-                    onClick={() => addTweet(item.order)}
+                    aria-label={`Remove post ${item.order + 1}`}
+                    className="size-11 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeTweet(item.order)}
+                    size="icon"
                     variant="ghost"
                   >
-                    <Icon icon={Add01Icon} size={16} />
-                    Add to thread
+                    <Icon icon={Remove01Icon} size={16} />
                   </Button>
-                  {content.length > 1 && (
-                    <Button
-                      aria-label={`Remove post ${item.order + 1}`}
-                      className="size-11 text-muted-foreground hover:text-destructive"
-                      onClick={() => removeTweet(item.order)}
-                      size="icon"
-                      variant="ghost"
-                    >
-                      <Icon icon={Remove01Icon} size={16} />
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>

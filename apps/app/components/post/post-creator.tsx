@@ -29,6 +29,7 @@ import { ContentModule } from "./content-module";
 import { AlternativeContentSelector } from "./network-selector";
 import { ReviewBanner } from "./review-banner";
 import { SocialIcon } from "./sidebar/social-icon";
+import SocialSelector from "./sidebar/social-selector";
 
 interface PostCreatorProps {
   postId?: string;
@@ -277,7 +278,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
         )}
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-muted/25">
-          <main className="mx-auto min-h-full w-full max-w-[920px] bg-background px-4 py-7 sm:px-10 sm:py-10 sm:shadow-[0_0_0_1px_rgba(15,23,42,0.055)] lg:px-14">
+          <main className="mx-auto min-h-full w-full max-w-[920px] bg-background px-4 py-7 sm:border-border/70 sm:border-x sm:px-10 sm:py-10 lg:px-14">
             {postData.data?.status === "published" && (
               <div className="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-amber-900 ring-1 ring-amber-200/80 dark:bg-amber-950/30 dark:text-amber-100 dark:ring-amber-800">
                 <h3 className="font-medium text-sm">Already published</h3>
@@ -297,6 +298,10 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
                 />
               </div>
             )}
+
+            <div className="mx-auto mb-4 w-full max-w-[740px]">
+              <SocialSelector showPlatformSettings={false} surface="composer" />
+            </div>
 
             <TabsContent className="mt-0" value="global">
               <ContentModule
