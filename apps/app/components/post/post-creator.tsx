@@ -234,53 +234,50 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
         onValueChange={handleTabChange}
         value={activeModuleId}
       >
-        <div className="shrink-0 border-border/60 border-b bg-background">
-          <div className="mx-auto w-full max-w-5xl overflow-x-auto px-3 py-2 sm:px-6">
-            <TabsList
-              className={cn(
-                socialProviders.length < 2 && "hidden",
-                "h-11 w-max justify-start gap-1 bg-transparent p-0"
-              )}
-            >
-              <TabsTrigger
-                className={cn(
-                  "h-11 min-w-fit rounded-lg px-3 text-sm",
-                  singleProviderInDefault && "gap-2"
-                )}
-                value="global"
-              >
-                {singleProviderInDefault ? (
-                  <>
+        {socialProviders.length >= 2 && (
+          <div className="shrink-0 border-border/80 border-b bg-background">
+            <div className="mx-auto w-full max-w-[920px] overflow-x-auto px-3 py-2 sm:px-6">
+              <TabsList className="h-11 w-max justify-start gap-1 bg-transparent p-0">
+                <TabsTrigger
+                  className={cn(
+                    "h-11 min-w-fit rounded-lg px-3 text-sm",
+                    singleProviderInDefault && "gap-2"
+                  )}
+                  value="global"
+                >
+                  {singleProviderInDefault ? (
+                    <>
+                      <SocialIcon
+                        className="size-4"
+                        type={singleProviderInDefault.socialType}
+                      />
+                      {singleProviderInDefault.name}
+                    </>
+                  ) : (
+                    "Global"
+                  )}
+                </TabsTrigger>
+                {alternativeContent.map((content) => (
+                  <TabsTrigger
+                    className="h-11 min-w-fit gap-2 rounded-lg px-3 text-sm"
+                    key={content.socialProvider.socialId}
+                    value={content.socialProvider.socialId}
+                  >
                     <SocialIcon
                       className="size-4"
-                      type={singleProviderInDefault.socialType}
+                      type={content.socialProvider.socialType}
                     />
-                    {singleProviderInDefault.name}
-                  </>
-                ) : (
-                  "Global"
-                )}
-              </TabsTrigger>
-              {alternativeContent.map((content) => (
-                <TabsTrigger
-                  className="h-11 min-w-fit gap-2 rounded-lg px-3 text-sm"
-                  key={content.socialProvider.socialId}
-                  value={content.socialProvider.socialId}
-                >
-                  <SocialIcon
-                    className="size-4"
-                    type={content.socialProvider.socialType}
-                  />
-                  {content.socialProvider.name}
-                </TabsTrigger>
-              ))}
-              <AlternativeContentSelector />
-            </TabsList>
+                    {content.socialProvider.name}
+                  </TabsTrigger>
+                ))}
+                <AlternativeContentSelector />
+              </TabsList>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-muted/25">
+          <main className="mx-auto min-h-full w-full max-w-[920px] bg-background px-4 py-7 sm:px-10 sm:py-10 sm:shadow-[0_0_0_1px_rgba(15,23,42,0.055)] lg:px-14">
             {postData.data?.status === "published" && (
               <div className="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-amber-900 ring-1 ring-amber-200/80 dark:bg-amber-950/30 dark:text-amber-100 dark:ring-amber-800">
                 <h3 className="font-medium text-sm">Already published</h3>
@@ -320,7 +317,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
                 />
               </TabsContent>
             ))}
-          </div>
+          </main>
         </div>
       </Tabs>
     </div>

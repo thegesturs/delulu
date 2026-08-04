@@ -80,6 +80,7 @@ interface MediaUploaderProps {
   socialType: SocialType;
   socialId: string;
   orderId?: number;
+  compact?: boolean;
 }
 
 interface MediaPreviewProps {
@@ -228,6 +229,7 @@ export function MediaUploader({
   socialType,
   socialId,
   orderId,
+  compact = false,
 }: MediaUploaderProps) {
   const { post, setPost, setIsMediaUploading } = useStore((state) => ({
     post: state.post,
@@ -717,7 +719,10 @@ export function MediaUploader({
       {mediaFiles.length === 0 ? (
         <div
           className={cn(
-            "flex min-h-16 flex-wrap items-center gap-1 rounded-lg border border-border/70 border-dashed px-2 py-1 transition-colors",
+            compact
+              ? "flex min-h-14 flex-wrap items-center gap-1 border-border/80 border-t px-1 pt-2"
+              : "flex min-h-24 flex-wrap items-center gap-1 rounded-xl border border-border border-dashed bg-muted/20 px-3 py-3",
+            "transition-colors",
             isDragOver && "border-primary bg-primary/5"
           )}
           {...dragHandlers}
@@ -725,7 +730,7 @@ export function MediaUploader({
           <button
             aria-label={`Add media. ${instruction}`}
             className={cn(
-              "flex h-11 items-center gap-2 rounded-md px-3 font-medium text-muted-foreground text-sm outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
+              "flex h-11 items-center gap-2 rounded-lg px-3 font-medium text-foreground text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
               isDragOver && "bg-primary/10 text-primary"
             )}
             onClick={() => fileInputRef.current?.click()}
@@ -736,7 +741,7 @@ export function MediaUploader({
             Add media
           </button>
           <Button
-            className="h-11 text-muted-foreground"
+            className="h-11 rounded-lg text-foreground active:scale-[0.97]"
             onClick={() => setIsDialogOpen(true)}
             type="button"
             variant="ghost"
@@ -744,7 +749,7 @@ export function MediaUploader({
             <Icon icon={FolderLibraryIcon} size={16} />
             Media library
           </Button>
-          <span className="ml-auto hidden text-muted-foreground text-xs lg:inline">
+          <span className="ml-auto hidden pr-2 text-muted-foreground text-xs lg:inline">
             {instruction}
           </span>
         </div>

@@ -446,22 +446,22 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
-      <div className="relative space-y-8">
+    <div className="mx-auto w-full max-w-[740px]">
+      <div className="relative space-y-6">
         {content.length > 1 && (
           <div
             aria-hidden
-            className="absolute top-5 bottom-16 left-5 w-px bg-border"
+            className="absolute top-5 bottom-14 left-[18px] w-px bg-border"
           />
         )}
         {content.map((item) => (
           <div
-            className="relative grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 sm:gap-5"
+            className="relative grid grid-cols-[2.25rem_minmax(0,1fr)] gap-2.5 sm:grid-cols-[2.5rem_minmax(0,1fr)] sm:gap-4"
             key={item.order}
           >
             <div
               aria-hidden
-              className="relative z-10 flex size-10 items-center justify-center rounded-full bg-muted font-medium text-muted-foreground text-xs ring-4 ring-background"
+              className="relative z-10 flex size-9 items-center justify-center rounded-full bg-background font-semibold text-foreground text-xs shadow-[0_0_0_1px_rgba(15,23,42,0.12)] ring-4 ring-background sm:size-10"
             >
               {showPlatformMarker ? (
                 <SocialIcon className="size-4" type={effectiveSocialType} />
@@ -471,65 +471,69 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
             </div>
 
             <div className="min-w-0 pb-1">
-              <div className="relative">
-                <label
-                  className="sr-only"
-                  htmlFor={`post-content-${socialId}-${item.order}`}
-                >
-                  {content.length > 1
-                    ? `Post ${item.order + 1}`
-                    : "Post content"}
-                </label>
-                <Textarea
-                  className={cn(
-                    "resize-none overflow-hidden rounded-lg border-0 bg-transparent px-2 pt-1 pb-8 text-[17px] leading-7 shadow-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-transparent focus-visible:bg-muted/30 focus-visible:ring-0 md:text-[17px]",
-                    content.length === 1
-                      ? "min-h-[clamp(240px,42vh,520px)]"
-                      : "min-h-36"
-                  )}
-                  id={`post-content-${socialId}-${item.order}`}
-                  onChange={(e) => handleTextChange(e.target.value, item.order)}
-                  placeholder={
-                    isGlobal
-                      ? getDefaultPlaceholder(platformsInDefault)
-                      : socialType === SocialTypes.TWITTER
-                        ? "What's happening?"
-                        : "Write your post…"
-                  }
-                  value={item.text}
-                />
-
-                {(isTwitter ||
-                  (isGlobal &&
-                    getDefaultCharacterLimit(platformsInDefault))) && (
-                  <div
+              <div className="relative rounded-xl bg-card px-3 pt-3 pb-2 shadow-[0_0_0_1px_rgba(15,23,42,0.09),0_1px_2px_rgba(15,23,42,0.035)] transition-shadow focus-within:shadow-[0_0_0_1px_rgba(15,23,42,0.2),0_2px_8px_rgba(15,23,42,0.04)] sm:px-4 sm:pt-4">
+                <div className="relative">
+                  <label
+                    className="sr-only"
+                    htmlFor={`post-content-${socialId}-${item.order}`}
+                  >
+                    {content.length > 1
+                      ? `Post ${item.order + 1}`
+                      : "Post content"}
+                  </label>
+                  <Textarea
                     className={cn(
-                      "absolute right-0 bottom-2 font-medium text-xs tabular-nums",
-                      (() => {
+                      "resize-none overflow-hidden rounded-none border-0 bg-transparent px-0 pt-0 pb-6 text-[17px] leading-7 shadow-none placeholder:text-muted-foreground/70 focus-visible:border-transparent focus-visible:ring-0 md:text-[17px]",
+                      content.length === 1
+                        ? "min-h-[clamp(220px,34vh,360px)]"
+                        : "min-h-36"
+                    )}
+                    id={`post-content-${socialId}-${item.order}`}
+                    onChange={(e) =>
+                      handleTextChange(e.target.value, item.order)
+                    }
+                    placeholder={
+                      isGlobal
+                        ? getDefaultPlaceholder(platformsInDefault)
+                        : socialType === SocialTypes.TWITTER
+                          ? "What's happening?"
+                          : "Write your post…"
+                    }
+                    value={item.text}
+                  />
+
+                  {(isTwitter ||
+                    (isGlobal &&
+                      getDefaultCharacterLimit(platformsInDefault))) && (
+                    <div
+                      className={cn(
+                        "absolute right-0 bottom-3 font-medium text-xs tabular-nums",
+                        (() => {
+                          const limit = isGlobal
+                            ? getDefaultCharacterLimit(platformsInDefault) || 0
+                            : 280;
+                          return limit - item.text.length < 0
+                            ? "text-destructive"
+                            : "text-muted-foreground";
+                        })()
+                      )}
+                    >
+                      {(() => {
                         const limit = isGlobal
                           ? getDefaultCharacterLimit(platformsInDefault) || 0
                           : 280;
-                        return limit - item.text.length < 0
-                          ? "text-destructive"
-                          : "text-muted-foreground";
-                      })()
-                    )}
-                  >
-                    {(() => {
-                      const limit = isGlobal
-                        ? getDefaultCharacterLimit(platformsInDefault) || 0
-                        : 280;
-                      return limit - item.text.length;
-                    })()}
-                  </div>
-                )}
+                        return limit - item.text.length;
+                      })()}
+                    </div>
+                  )}
+                </div>
+                <MediaUploader
+                  compact
+                  orderId={item.order}
+                  socialId={socialId}
+                  socialType={effectiveSocialType}
+                />
               </div>
-
-              <MediaUploader
-                orderId={item.order}
-                socialId={socialId}
-                socialType={effectiveSocialType}
-              />
 
               {isTwitter && (
                 <div className="mt-4 flex items-center gap-2">

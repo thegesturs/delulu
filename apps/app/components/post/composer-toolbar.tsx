@@ -11,11 +11,15 @@ import {
 } from "@delulu/design-system/components/ui/sheet";
 import { SidebarTrigger } from "@delulu/design-system/components/ui/sidebar";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Calendar03Icon, Loading03Icon, Settings01Icon } from "@delulu/icons";
+import {
+  Bookmark01Icon,
+  Calendar03Icon,
+  Loading03Icon,
+  Sent02Icon,
+  Settings01Icon,
+} from "@delulu/icons";
 import { format } from "date-fns";
 import { useState } from "react";
-import { FaBookmark } from "react-icons/fa";
-import { PiPaperPlaneTiltFill } from "react-icons/pi";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePostActions } from "@/hooks/use-post-actions";
 import { useIsMediaUploading, useSelectedSocialProviders } from "@/store/post";
@@ -48,43 +52,42 @@ export function ComposerToolbar({
 
   return (
     <Sheet onOpenChange={setIsPanelOpen} open={isPanelOpen}>
-      <header className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-border/60 border-b bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-5">
-        <div className="flex min-w-0 items-center gap-2">
+      <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-border/80 border-b bg-background px-2 sm:px-5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <SidebarTrigger
             aria-label="Open navigation"
-            className="-ml-1 size-11 shrink-0 text-muted-foreground"
+            className="size-11 shrink-0 rounded-lg text-foreground hover:bg-muted"
           />
           <div className="min-w-0">
-            <h1 className="truncate font-medium text-sm sm:text-base">
+            <h1 className="truncate font-semibold text-[15px] tracking-tight">
               {postId ? "Edit post" : "New post"}
             </h1>
             <p className="hidden truncate text-muted-foreground text-xs sm:block">
-              {isUploading
-                ? "Uploading media…"
-                : "Write once, publish anywhere"}
+              {isUploading ? "Uploading media…" : "Draft across every channel"}
             </p>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <Button
             aria-label="Save draft"
-            className="size-11 px-0 sm:h-9 sm:w-auto sm:px-3"
+            className="size-11 rounded-lg px-0 text-foreground sm:h-9 sm:w-auto sm:px-3"
             disabled={disabled}
             onClick={actions.handleSaveAsDraft}
+            title="Save draft"
             variant="ghost"
           >
             {actions.isProcessing ? (
               <Icon className="animate-spin" icon={Loading03Icon} size={16} />
             ) : (
-              <FaBookmark className="size-3.5" />
+              <Icon icon={Bookmark01Icon} size={17} />
             )}
             <span className="hidden sm:inline">Save draft</span>
           </Button>
 
           <Button
             aria-label={actions.date ? "Schedule post" : "Choose schedule"}
-            className="size-11 px-0 sm:h-9 sm:w-auto sm:px-3"
+            className="hidden h-9 rounded-lg px-3 text-foreground sm:inline-flex"
             disabled={cannotPublish}
             onClick={() => {
               if (actions.date) {
@@ -100,8 +103,8 @@ export function ComposerToolbar({
             }
             variant="outline"
           >
-            <Icon icon={Calendar03Icon} size={16} />
-            <span className="hidden md:inline">
+            <Icon icon={Calendar03Icon} size={17} />
+            <span>
               {actions.date
                 ? format(actions.date, "MMM d, h:mm a")
                 : "Schedule"}
@@ -109,33 +112,34 @@ export function ComposerToolbar({
           </Button>
 
           <Button
-            className="h-11 px-3 sm:h-9 sm:px-4"
+            className="h-10 rounded-lg px-3.5 shadow-none sm:h-9 sm:px-4"
             disabled={cannotPublish}
             onClick={actions.handlePostNow}
           >
             {actions.isProcessing ? (
               <Icon className="animate-spin" icon={Loading03Icon} size={16} />
             ) : (
-              <PiPaperPlaneTiltFill className="size-4" />
+              <Icon icon={Sent02Icon} size={17} />
             )}
-            <span className="hidden sm:inline">Publish</span>
+            <span>Publish</span>
           </Button>
 
           <SheetTrigger asChild>
             <Button
               aria-label="Open post settings and preview"
-              className="size-11 sm:size-9"
+              className="size-11 rounded-lg text-foreground sm:size-9"
               size="icon"
+              title="Post settings and preview"
               variant="ghost"
             >
-              <Icon icon={Settings01Icon} size={18} />
+              <Icon icon={Settings01Icon} size={19} />
             </Button>
           </SheetTrigger>
         </div>
       </header>
 
-      <SheetContent className="w-[min(92vw,460px)] gap-0 p-0 sm:max-w-[460px]">
-        <SheetHeader className="border-border/60 border-b pr-12">
+      <SheetContent className="w-[min(94vw,460px)] gap-0 border-border/80 p-0 sm:max-w-[460px]">
+        <SheetHeader className="border-border/80 border-b pr-12">
           <SheetTitle>Post controls</SheetTitle>
           <SheetDescription>
             Choose accounts, set a time, and preview before publishing.
