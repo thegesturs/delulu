@@ -311,7 +311,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
                 </div>
               )}
 
-              <div className="mx-auto mb-4 w-full max-w-[740px]">
+              <div className="mx-auto mb-4 w-full max-w-[780px]">
                 <SocialSelector
                   showPlatformSettings={false}
                   surface="composer"
@@ -345,7 +345,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
           <div className="border-border/80 border-b px-4 py-4">
             <h2 className="font-semibold text-sm">Post settings</h2>
             <p className="mt-0.5 text-muted-foreground text-xs">
-              Choose a time and publish when ready.
+              Pick a date and time to schedule this post.
             </p>
           </div>
           <div className="min-h-0 flex-1">
@@ -364,7 +364,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
           <SheetHeader className="border-border/80 border-b pr-12">
             <SheetTitle>Post settings</SheetTitle>
             <SheetDescription>
-              Choose a time and publish when ready.
+              Pick a date and time to schedule this post.
             </SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1">
@@ -375,6 +375,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
               }}
               organizationId={postData.data?.workspaceId}
               postId={postId}
+              showPreviewAction
               view="controls"
             />
           </div>

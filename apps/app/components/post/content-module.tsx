@@ -443,7 +443,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[740px]">
+    <div className="mx-auto w-full max-w-[780px]">
       <div className="space-y-4">
         {content.map((item) => (
           <div className="min-w-0" key={item.order}>

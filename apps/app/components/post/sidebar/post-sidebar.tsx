@@ -19,6 +19,7 @@ interface PostSidebarProps {
   organizationId?: string;
   view?: "controls" | "preview";
   onOpenPreview?: () => void;
+  showPreviewAction?: boolean;
 }
 
 export function PostSidebar({
@@ -26,6 +27,7 @@ export function PostSidebar({
   organizationId,
   view = "controls",
   onOpenPreview,
+  showPreviewAction = false,
 }: PostSidebarProps) {
   const socialProviders = useSelectedSocialProviders();
   const [activePreviewPlatform, setActivePreviewPlatform] =
@@ -34,7 +36,10 @@ export function PostSidebar({
   if (view === "controls") {
     return (
       <div className="h-full overflow-y-auto bg-background">
-        <BasicSettings onOpenPreview={onOpenPreview} />
+        <BasicSettings
+          onOpenPreview={onOpenPreview}
+          showPreviewAction={showPreviewAction}
+        />
       </div>
     );
   }
