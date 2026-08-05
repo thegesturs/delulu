@@ -139,7 +139,7 @@ export default function SocialSelector({
     <div
       className={cn(
         "flex flex-col gap-2",
-        surface === "composer" && "rounded-lg border border-border bg-card p-2"
+        surface === "composer" && "border-border/60 border-b px-1 pb-3"
       )}
     >
       <div className="flex items-center justify-between gap-2">

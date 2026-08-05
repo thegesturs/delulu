@@ -2,6 +2,11 @@
 
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Textarea } from "@delulu/design-system/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@delulu/design-system/components/ui/tooltip";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { Add01Icon, Remove01Icon } from "@delulu/icons";
@@ -454,92 +459,109 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
 
   return (
     <div className="mx-auto w-full max-w-[780px]">
-      <div className="space-y-4">
-        {content.map((item) => (
-          <div className="min-w-0" key={item.order}>
-            <div className="overflow-hidden rounded-lg border border-border bg-card transition-[border-color,box-shadow] focus-within:border-foreground/20 focus-within:ring-1 focus-within:ring-foreground/10 focus-within:ring-inset">
-              <div className="px-4 pt-4 sm:px-5 sm:pt-5">
-                <div className="relative">
-                  <label
-                    className="sr-only"
-                    htmlFor={`post-content-${socialId}-${item.order}`}
-                  >
-                    {content.length > 1
-                      ? `Post ${item.order + 1}`
-                      : "Post content"}
-                  </label>
-                  <Textarea
-                    className={cn(
-                      "resize-none overflow-hidden rounded-none border-0 bg-transparent px-0 pt-0 pb-6 text-[17px] leading-7 shadow-none placeholder:text-muted-foreground/70 focus-visible:border-transparent focus-visible:ring-0 md:text-[17px]",
-                      content.length === 1
-                        ? "min-h-[clamp(220px,34vh,360px)]"
-                        : "min-h-36"
-                    )}
-                    id={`post-content-${socialId}-${item.order}`}
-                    onChange={(e) =>
-                      handleTextChange(e.target.value, item.order)
-                    }
-                    placeholder={
-                      isGlobal
-                        ? getDefaultPlaceholder(platformsInDefault)
-                        : socialType === SocialTypes.TWITTER
-                          ? "What's happening?"
-                          : socialType === SocialTypes.THREADS
-                            ? "What's on your mind?"
-                            : "Write your post…"
-                    }
-                    value={item.text}
-                  />
-
-                  {characterLimit && (
-                    <div
-                      className={cn(
-                        "absolute right-0 bottom-3 font-medium text-xs tabular-nums",
-                        characterLimit - item.text.length < 0
-                          ? "text-destructive"
-                          : "text-muted-foreground"
-                      )}
-                    >
-                      {characterLimit - item.text.length}
-                    </div>
+      <div>
+        {content.map((item, index) => (
+          <div
+            className={cn(
+              "min-w-0",
+              index > 0 && "pt-4",
+              index < content.length - 1 && "border-border/60 border-b pb-3"
+            )}
+            key={item.order}
+          >
+            <div className="px-1 pt-2 sm:px-2">
+              <div className="relative">
+                <label
+                  className="sr-only"
+                  htmlFor={`post-content-${socialId}-${item.order}`}
+                >
+                  {content.length > 1
+                    ? `Post ${item.order + 1}`
+                    : "Post content"}
+                </label>
+                <Textarea
+                  className={cn(
+                    "resize-none overflow-hidden rounded-none border-0 bg-transparent px-0 pt-0 pb-6 text-[17px] leading-7 shadow-none placeholder:text-muted-foreground/70 focus-visible:border-transparent focus-visible:ring-0 md:text-[17px]",
+                    content.length === 1
+                      ? "min-h-[clamp(190px,30vh,300px)]"
+                      : "min-h-28"
                   )}
-                </div>
-              </div>
-              <div className="px-3 pb-2 sm:px-4">
-                <MediaUploader
-                  compact
-                  orderId={item.order}
-                  socialId={socialId}
-                  socialType={effectiveSocialType}
+                  id={`post-content-${socialId}-${item.order}`}
+                  onChange={(e) => handleTextChange(e.target.value, item.order)}
+                  placeholder={
+                    isGlobal
+                      ? getDefaultPlaceholder(platformsInDefault)
+                      : socialType === SocialTypes.TWITTER
+                        ? "What's happening?"
+                        : socialType === SocialTypes.THREADS
+                          ? "What's on your mind?"
+                          : "Write your post…"
+                  }
+                  value={item.text}
                 />
+
+                {characterLimit && (
+                  <div
+                    className={cn(
+                      "absolute right-0 bottom-3 font-medium text-xs tabular-nums",
+                      characterLimit - item.text.length < 0
+                        ? "text-destructive"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {characterLimit - item.text.length}
+                  </div>
+                )}
               </div>
             </div>
-
-            {(usesMultiPostLayout || content.length > 1) && (
-              <div className="mt-2 flex items-center gap-1">
-                {usesMultiPostLayout && (
-                  <Button
-                    className="h-11 rounded-md px-2 text-xs sm:h-8 [@media(pointer:coarse)]:h-11"
-                    onClick={() => addThreadPost(item.order)}
-                    variant="ghost"
-                  >
-                    <Icon icon={Add01Icon} size={14} />
-                    Add to thread
-                  </Button>
-                )}
-                {content.length > 1 && (
-                  <Button
-                    aria-label={`Remove post ${item.order + 1}`}
-                    className="size-11 rounded-md text-muted-foreground hover:text-destructive sm:size-8 [@media(pointer:coarse)]:size-11"
-                    onClick={() => removeThreadPost(item.order)}
-                    size="icon"
-                    variant="ghost"
-                  >
-                    <Icon icon={Remove01Icon} size={14} />
-                  </Button>
-                )}
-              </div>
-            )}
+            <MediaUploader
+              compact
+              leadingActions={
+                usesMultiPostLayout || content.length > 1 ? (
+                  <>
+                    {usesMultiPostLayout && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            aria-label="Add another post to thread"
+                            className="size-9 rounded-md text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:size-11"
+                            onClick={() => addThreadPost(item.order)}
+                            size="icon"
+                            variant="ghost"
+                          >
+                            <Icon icon={Add01Icon} size={15} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" sideOffset={6}>
+                          Add to thread
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {content.length > 1 && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            aria-label={`Remove post ${item.order + 1}`}
+                            className="size-9 rounded-md text-muted-foreground hover:text-destructive [@media(pointer:coarse)]:size-11"
+                            onClick={() => removeThreadPost(item.order)}
+                            size="icon"
+                            variant="ghost"
+                          >
+                            <Icon icon={Remove01Icon} size={15} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" sideOffset={6}>
+                          Remove this post
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </>
+                ) : undefined
+              }
+              orderId={item.order}
+              socialId={socialId}
+              socialType={effectiveSocialType}
+            />
           </div>
         ))}
       </div>

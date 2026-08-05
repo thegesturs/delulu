@@ -3,6 +3,11 @@
 import { MEDIA_UPLOADED } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { Button } from "@delulu/design-system/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@delulu/design-system/components/ui/tooltip";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
@@ -11,6 +16,7 @@ import {
   File02Icon,
   FolderLibraryIcon,
   Image01Icon,
+  Upload01Icon,
   VideoIcon,
 } from "@delulu/icons";
 import type { MediaType, SocialType } from "@delulu/validators/post";
@@ -81,6 +87,7 @@ interface MediaUploaderProps {
   socialId: string;
   orderId?: number;
   compact?: boolean;
+  leadingActions?: React.ReactNode;
 }
 
 interface MediaPreviewProps {
@@ -150,18 +157,25 @@ export function MediaPreview({
           </div>
         </div>
       )}
-      <motion.button
-        animate={{ opacity: 1, scale: 1 }}
-        aria-label="Remove media"
-        className="absolute top-1 right-1 z-10 flex size-11 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-border transition-colors hover:bg-destructive hover:text-destructive-foreground"
-        initial={{ opacity: 0, scale: 0.8 }}
-        onClick={() => onRemove(media.id)}
-        type="button"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-      >
-        <Icon icon={Cancel01Icon} size={12} />
-      </motion.button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <motion.button
+            animate={{ opacity: 1, scale: 1 }}
+            aria-label="Remove media"
+            className="absolute top-1 right-1 z-10 flex size-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-border transition-colors hover:bg-destructive hover:text-destructive-foreground [@media(pointer:coarse)]:size-11"
+            initial={{ opacity: 0, scale: 0.8 }}
+            onClick={() => onRemove(media.id)}
+            type="button"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <Icon icon={Cancel01Icon} size={12} />
+          </motion.button>
+        </TooltipTrigger>
+        <TooltipContent side="top" sideOffset={6}>
+          Remove media
+        </TooltipContent>
+      </Tooltip>
       <div className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5 text-foreground">
         {media.mediaType === "IMAGE" ? (
           <Icon icon={Image01Icon} size={12} />
@@ -230,6 +244,7 @@ export function MediaUploader({
   socialId,
   orderId,
   compact = false,
+  leadingActions,
 }: MediaUploaderProps) {
   const { post, setPost, setIsMediaUploading } = useStore((state) => ({
     post: state.post,
@@ -705,8 +720,56 @@ export function MediaUploader({
     onDrop: handleDrop,
   };
 
+  const mediaGrid = mediaFiles.length > 0 && (
+    <AnimatePresence>
+      <motion.div
+        animate={{ opacity: 1, height: "auto" }}
+        className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"
+        exit={{ opacity: 0, height: 0 }}
+        initial={{ opacity: 0, height: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <AnimatePresence>
+          {mediaFiles.map((media) => (
+            <MediaPreview
+              getPreviewAspectRatio={getPreviewAspectRatio}
+              key={media.id}
+              media={media}
+              onRemove={removeFile}
+            />
+          ))}
+        </AnimatePresence>
+
+        {canUploadMore && !compact && (
+          <motion.button
+            animate={{ opacity: 1, scale: 1 }}
+            aria-label="Upload more media"
+            className={cn(
+              "flex items-center justify-center rounded-lg border-2 border-border border-dashed transition-colors hover:border-input hover:bg-muted/50",
+              isDragOver && "border-primary bg-primary/10",
+              getAddButtonAspectRatio()
+            )}
+            initial={{ opacity: 0, scale: 0.8 }}
+            onClick={() => fileInputRef.current?.click()}
+            title={platformHint}
+            type="button"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            {...dragHandlers}
+          >
+            <Icon
+              className="text-muted-foreground"
+              icon={Add01Icon}
+              size={24}
+            />
+          </motion.button>
+        )}
+      </motion.div>
+    </AnimatePresence>
+  );
+
   return (
-    <div className="space-y-3">
+    <div className={compact ? "space-y-1.5" : "space-y-3"}>
       <input
         accept={acceptedMimeTypes.join(",")}
         className="hidden"
@@ -716,12 +779,61 @@ export function MediaUploader({
         type="file"
       />
 
-      {mediaFiles.length === 0 ? (
+      {compact ? (
+        <>
+          {mediaGrid}
+          <div
+            className={cn(
+              "flex min-h-10 items-center border-border/60 border-t px-0.5 pt-1",
+              isDragOver && "bg-primary/5"
+            )}
+            {...dragHandlers}
+          >
+            <div className="flex items-center gap-0.5">{leadingActions}</div>
+            {canUploadMore && (
+              <div className="ml-auto flex items-center gap-0.5">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      aria-label={`Upload from device. ${instruction}`}
+                      className="size-9 rounded-md text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:size-11"
+                      onClick={() => fileInputRef.current?.click()}
+                      size="icon"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <Icon icon={Upload01Icon} size={15} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" sideOffset={6}>
+                    Upload from device
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      aria-label="Choose existing media from library"
+                      className="size-9 rounded-md text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:size-11"
+                      onClick={() => setIsDialogOpen(true)}
+                      size="icon"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <Icon icon={FolderLibraryIcon} size={15} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" sideOffset={6}>
+                    Choose from library
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+          </div>
+        </>
+      ) : mediaFiles.length === 0 ? (
         <div
           className={cn(
-            compact
-              ? "flex min-h-14 flex-wrap items-center gap-1 border-border/80 border-t px-1 pt-2"
-              : "flex min-h-24 flex-wrap items-center gap-1 rounded-lg border border-border border-dashed bg-muted/20 px-3 py-3",
+            "flex min-h-24 flex-wrap items-center gap-1 rounded-lg border border-border border-dashed bg-muted/20 px-3 py-3",
             "transition-colors",
             isDragOver && "border-primary bg-primary/5"
           )}
@@ -756,50 +868,7 @@ export function MediaUploader({
       ) : (
         /* Has media — grid of thumbnails + plus icon to add more */
         <>
-          <AnimatePresence>
-            <motion.div
-              animate={{ opacity: 1, height: "auto" }}
-              className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"
-              exit={{ opacity: 0, height: 0 }}
-              initial={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <AnimatePresence>
-                {mediaFiles.map((media) => (
-                  <MediaPreview
-                    getPreviewAspectRatio={getPreviewAspectRatio}
-                    key={media.id}
-                    media={media}
-                    onRemove={removeFile}
-                  />
-                ))}
-              </AnimatePresence>
-
-              {canUploadMore && (
-                <motion.button
-                  animate={{ opacity: 1, scale: 1 }}
-                  className={cn(
-                    "flex items-center justify-center rounded-lg border-2 border-border border-dashed transition-colors hover:border-input hover:bg-muted/50",
-                    isDragOver && "border-primary bg-primary/10",
-                    getAddButtonAspectRatio()
-                  )}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  onClick={() => fileInputRef.current?.click()}
-                  title={platformHint}
-                  type="button"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  {...dragHandlers}
-                >
-                  <Icon
-                    className="text-muted-foreground"
-                    icon={Add01Icon}
-                    size={24}
-                  />
-                </motion.button>
-              )}
-            </motion.div>
-          </AnimatePresence>
+          {mediaGrid}
 
           {canUploadMore && (
             <Button

@@ -259,6 +259,7 @@ export function VideoContentLayout({
               {/* Show MediaUploader when no video */}
               <Label className="text-sm">Video</Label>
               <MediaUploader
+                compact
                 orderId={orderId}
                 socialId={socialId}
                 socialType={socialType}
