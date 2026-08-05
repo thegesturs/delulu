@@ -11,8 +11,10 @@ import {
   getDefaultCharacterLimit,
   getDefaultPlaceholder,
   getPlatformsInDefault,
+  PLATFORM_CHARACTER_LIMITS,
   shouldDefaultUseVideoLayout,
   shouldShowYouTubeTitle,
+  shouldUseMultiPostLayout,
 } from "@/lib/platform-rules";
 import {
   useIsMediaUploading,
@@ -51,7 +53,6 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   const isMediaUploading = useIsMediaUploading();
 
   const isGlobal = socialType === SocialTypes.DEFAULT;
-  const isTwitter = socialType === SocialTypes.TWITTER;
 
   // Determine which platforms are in default (for intelligent defaults) - memoized
   const platformsInDefault = useMemo(
@@ -73,6 +74,15 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
         : socialType,
     [isGlobal, platformsInDefault, socialType]
   );
+  const usesMultiPostLayout = shouldUseMultiPostLayout(
+    socialType,
+    platformsInDefault
+  );
+  const characterLimit = isGlobal
+    ? getDefaultCharacterLimit(platformsInDefault)
+    : usesMultiPostLayout
+      ? PLATFORM_CHARACTER_LIMITS[socialType]
+      : undefined;
   const content = isGlobal
     ? post.content
     : post.alternativeContent.find(
@@ -109,11 +119,11 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
     [isGlobal, setPost, socialId]
   );
 
-  const addTweet = useCallback(
+  const addThreadPost = useCallback(
     (afterOrder: number) => {
       const newOrder = afterOrder + 1;
 
-      const newTweet = {
+      const newPost = {
         id: "",
         order: newOrder,
         name: isGlobal ? "DEFAULT" : socialId,
@@ -130,7 +140,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
             ...currentContent
               .filter((item) => item.order <= afterOrder)
               .map((item) => ({ ...item })),
-            newTweet,
+            newPost,
             ...currentContent
               .filter((item) => item.order > afterOrder)
               .map((item) => ({ ...item, order: item.order + 1 })),
@@ -149,7 +159,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
               ...currentContent
                 .filter((c) => c.order <= afterOrder)
                 .map((c) => ({ ...c })),
-              newTweet,
+              newPost,
               ...currentContent
                 .filter((c) => c.order > afterOrder)
                 .map((c) => ({ ...c, order: c.order + 1 })),
@@ -162,11 +172,11 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
     [isGlobal, setPost, socialId]
   );
 
-  const removeTweet = useCallback(
+  const removeThreadPost = useCallback(
     (order: number) => {
       const reorder = (items: typeof content) => {
         if (items.length <= 1) {
-          return items; // Don't remove the last tweet
+          return items; // Keep at least one post in the thread
         }
         return items
           .filter((item) => item.order !== order)
@@ -447,7 +457,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
       <div className="space-y-4">
         {content.map((item) => (
           <div className="min-w-0" key={item.order}>
-            <div className="overflow-hidden rounded-xl border border-border bg-card transition-[border-color,box-shadow] focus-within:border-foreground/20 focus-within:ring-1 focus-within:ring-foreground/10 focus-within:ring-inset">
+            <div className="overflow-hidden rounded-lg border border-border bg-card transition-[border-color,box-shadow] focus-within:border-foreground/20 focus-within:ring-1 focus-within:ring-foreground/10 focus-within:ring-inset">
               <div className="px-4 pt-4 sm:px-5 sm:pt-5">
                 <div className="relative">
                   <label
@@ -474,33 +484,23 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                         ? getDefaultPlaceholder(platformsInDefault)
                         : socialType === SocialTypes.TWITTER
                           ? "What's happening?"
-                          : "Write your post…"
+                          : socialType === SocialTypes.THREADS
+                            ? "What's on your mind?"
+                            : "Write your post…"
                     }
                     value={item.text}
                   />
 
-                  {(isTwitter ||
-                    (isGlobal &&
-                      getDefaultCharacterLimit(platformsInDefault))) && (
+                  {characterLimit && (
                     <div
                       className={cn(
                         "absolute right-0 bottom-3 font-medium text-xs tabular-nums",
-                        (() => {
-                          const limit = isGlobal
-                            ? getDefaultCharacterLimit(platformsInDefault) || 0
-                            : 280;
-                          return limit - item.text.length < 0
-                            ? "text-destructive"
-                            : "text-muted-foreground";
-                        })()
+                        characterLimit - item.text.length < 0
+                          ? "text-destructive"
+                          : "text-muted-foreground"
                       )}
                     >
-                      {(() => {
-                        const limit = isGlobal
-                          ? getDefaultCharacterLimit(platformsInDefault) || 0
-                          : 280;
-                        return limit - item.text.length;
-                      })()}
+                      {characterLimit - item.text.length}
                     </div>
                   )}
                 </div>
@@ -515,25 +515,27 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
               </div>
             </div>
 
-            {isTwitter && (
-              <div className="mt-3 flex items-center gap-2">
-                <Button
-                  className="h-11"
-                  onClick={() => addTweet(item.order)}
-                  variant="ghost"
-                >
-                  <Icon icon={Add01Icon} size={16} />
-                  Add to thread
-                </Button>
+            {(usesMultiPostLayout || content.length > 1) && (
+              <div className="mt-2 flex items-center gap-1">
+                {usesMultiPostLayout && (
+                  <Button
+                    className="h-11 rounded-md px-2 text-xs sm:h-8 [@media(pointer:coarse)]:h-11"
+                    onClick={() => addThreadPost(item.order)}
+                    variant="ghost"
+                  >
+                    <Icon icon={Add01Icon} size={14} />
+                    Add to thread
+                  </Button>
+                )}
                 {content.length > 1 && (
                   <Button
                     aria-label={`Remove post ${item.order + 1}`}
-                    className="size-11 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeTweet(item.order)}
+                    className="size-11 rounded-md text-muted-foreground hover:text-destructive sm:size-8 [@media(pointer:coarse)]:size-11"
+                    onClick={() => removeThreadPost(item.order)}
                     size="icon"
                     variant="ghost"
                   >
-                    <Icon icon={Remove01Icon} size={16} />
+                    <Icon icon={Remove01Icon} size={14} />
                   </Button>
                 )}
               </div>

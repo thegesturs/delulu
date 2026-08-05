@@ -178,7 +178,7 @@ export function VideoContentLayout({
               </div>
               <button
                 className={cn(
-                  "group relative mx-auto block w-full max-w-sm overflow-hidden rounded-xl border border-border transition-colors hover:border-foreground/35",
+                  "group relative mx-auto block w-full max-w-sm overflow-hidden rounded-lg border border-border transition-colors hover:border-foreground/35",
                   videoAspectClass,
                   "border-border bg-black"
                 )}
@@ -331,7 +331,7 @@ export function VideoContentLayout({
             </Label>
             <div className="relative">
               <Textarea
-                className="min-h-[clamp(240px,38vh,420px)] resize-none overflow-hidden rounded-xl border-border/80 bg-card px-4 py-3 pr-16 text-[17px] leading-7 shadow-none placeholder:text-muted-foreground/70 focus-visible:border-foreground/25 focus-visible:ring-0 md:text-[17px]"
+                className="min-h-[clamp(240px,38vh,420px)] resize-none overflow-hidden rounded-lg border-border/80 bg-card px-4 py-3 pr-16 text-[17px] leading-7 shadow-none placeholder:text-muted-foreground/70 focus-visible:border-foreground/25 focus-visible:ring-0 md:text-[17px]"
                 id="video-caption"
                 onChange={handleTextChange}
                 placeholder={config.captionPlaceholder}

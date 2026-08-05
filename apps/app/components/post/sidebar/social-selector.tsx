@@ -139,8 +139,7 @@ export default function SocialSelector({
     <div
       className={cn(
         "flex flex-col gap-2",
-        surface === "composer" &&
-          "rounded-xl border border-border bg-card px-3 py-3 sm:px-4"
+        surface === "composer" && "rounded-lg border border-border bg-card p-2"
       )}
     >
       <div className="flex items-center justify-between gap-2">
@@ -154,7 +153,7 @@ export default function SocialSelector({
         </div>
         {accounts.length > 1 && !allSelected && (
           <button
-            className="flex min-h-11 items-center gap-1 rounded-lg px-2 text-muted-foreground text-xs transition-colors hover:bg-muted hover:text-foreground"
+            className="flex min-h-11 items-center gap-1 rounded-md px-2 text-muted-foreground text-xs transition-colors hover:bg-muted hover:text-foreground sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
             onClick={handleSelectAll}
             type="button"
           >
@@ -165,9 +164,14 @@ export default function SocialSelector({
       </div>
 
       {accounts.length === 0 ? (
-        <div className="flex flex-col items-start gap-1 rounded-lg border border-dashed p-3">
+        <div className="flex flex-col items-start gap-1 rounded-md border border-dashed p-2">
           <p className="text-muted-foreground text-xs">No accounts connected</p>
-          <Button asChild className="h-7 px-2 text-xs" size="sm" variant="link">
+          <Button
+            asChild
+            className="h-11 rounded-md px-2 text-xs sm:h-8 [@media(pointer:coarse)]:h-11"
+            size="sm"
+            variant="link"
+          >
             <Link href="/socials">Connect an account →</Link>
           </Button>
         </div>
@@ -260,8 +264,8 @@ function SocialSelectorChip({
         <button
           aria-pressed={selected}
           className={cn(
-            "flex min-h-11 items-center gap-2 rounded-lg border py-1.5 pl-1.5 font-medium text-sm transition-[background-color,border-color,color,box-shadow] active:scale-[0.98]",
-            showGear ? "pr-11" : "pr-3.5",
+            "flex min-h-11 items-center gap-1.5 rounded-md border py-1 pl-1 font-medium text-xs transition-[background-color,border-color,color,box-shadow] active:scale-[0.98] sm:min-h-8 [@media(pointer:coarse)]:min-h-11",
+            showGear ? "pr-11 sm:pr-8" : "pr-2",
             selected
               ? "border-primary/30 bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgb(255_255_255/0.35)] dark:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.04)]"
               : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -271,7 +275,7 @@ function SocialSelectorChip({
         >
           <span
             className={cn(
-              "flex size-6 shrink-0 items-center justify-center rounded-md",
+              "flex size-5 shrink-0 items-center justify-center rounded",
               displayPlatform
                 ? socialBackgroundColors[displayPlatform]
                 : "bg-muted"
@@ -279,7 +283,7 @@ function SocialSelectorChip({
           >
             {displayPlatform && (
               <SocialIcon
-                className="size-3.5 text-white"
+                className="size-3 text-white"
                 type={displayPlatform}
               />
             )}
@@ -289,7 +293,7 @@ function SocialSelectorChip({
         {showGear && (
           <button
             aria-label="Platform settings"
-            className="absolute top-1/2 right-1 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-primary/70 transition-colors after:absolute after:-inset-1 hover:bg-primary/15 hover:text-primary"
+            className="absolute top-1/2 right-0.5 grid size-10 -translate-y-1/2 place-items-center rounded-md text-primary/70 transition-colors after:absolute after:-inset-0.5 hover:bg-primary/15 hover:text-primary sm:size-7 sm:after:inset-0 [@media(pointer:coarse)]:size-11"
             onClick={handleSettingsClick}
             type="button"
           >

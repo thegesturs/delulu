@@ -110,7 +110,7 @@ export function AlternativeContentSelector() {
       <DropdownMenuTrigger asChild>
         <Button
           aria-label="Choose platform-specific content"
-          className="size-11 rounded-lg"
+          className="size-11 rounded-md sm:size-8 [@media(pointer:coarse)]:size-11"
           size="icon"
           variant="ghost"
         >

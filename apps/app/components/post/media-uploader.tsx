@@ -721,7 +721,7 @@ export function MediaUploader({
           className={cn(
             compact
               ? "flex min-h-14 flex-wrap items-center gap-1 border-border/80 border-t px-1 pt-2"
-              : "flex min-h-24 flex-wrap items-center gap-1 rounded-xl border border-border border-dashed bg-muted/20 px-3 py-3",
+              : "flex min-h-24 flex-wrap items-center gap-1 rounded-lg border border-border border-dashed bg-muted/20 px-3 py-3",
             "transition-colors",
             isDragOver && "border-primary bg-primary/5"
           )}

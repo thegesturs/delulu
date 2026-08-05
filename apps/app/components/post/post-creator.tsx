@@ -54,6 +54,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
   const setTime = useStore((state) => state.setTime);
   const appliedDraftRef = useRef<string | null>(null);
+  const loadedPostRef = useRef<string | null>(null);
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
 
@@ -66,6 +67,10 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   // Fetch post data if in edit mode
   const postData = useResourceAtom({
     ...resources.posts.get(workspaceId ?? "", postId ?? ""),
+    enabled: Boolean(workspaceId && postId),
+  });
+  const connectionData = useResourceAtom({
+    ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
     enabled: Boolean(workspaceId && postId),
   });
   const mediaIds = useMemo(
@@ -115,12 +120,16 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
 
   // Load post data into store when fetched
   useEffect(() => {
+    const loadKey = `${workspaceId}:${postId}`;
     if (
       postData.data &&
       postId &&
-      !(mediaResults.isPending || mediaResults.isError)
+      loadedPostRef.current !== loadKey &&
+      !(mediaResults.isPending || mediaResults.isError) &&
+      !(connectionData.isPending || connectionData.isError)
     ) {
-      loadPost(postData.data, mediaById);
+      loadPost(postData.data, mediaById, connectionData.data?.data ?? []);
+      loadedPostRef.current = loadKey;
     }
   }, [
     postData.data,
@@ -129,6 +138,10 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
     mediaById,
     mediaResults.isPending,
     mediaResults.isError,
+    connectionData.data,
+    connectionData.isPending,
+    connectionData.isError,
+    workspaceId,
   ]);
 
   // Start a clean, editable post from a public tool handoff.
@@ -206,7 +219,10 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   }, [alternativeContent, activeModuleId]);
 
   // Show loading state while fetching post data
-  if (postId && (postData.isPending || mediaResults.isPending)) {
+  if (
+    postId &&
+    (postData.isPending || mediaResults.isPending || connectionData.isPending)
+  ) {
     return (
       <div className="flex h-full flex-col">
         <ComposerToolbar actionsDisabled postId={postId} />
@@ -217,7 +233,10 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
     );
   }
 
-  if (postId && (postData.isError || mediaResults.isError)) {
+  if (
+    postId &&
+    (postData.isError || mediaResults.isError || connectionData.isError)
+  ) {
     return (
       <div className="flex h-full flex-col">
         <ComposerToolbar actionsDisabled postId={postId} />
@@ -225,7 +244,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
           <div>
             <h2 className="font-medium">Unable to load post</h2>
             <p className="mt-1 text-muted-foreground text-sm">
-              The post media could not be loaded. Please retry.
+              The post data could not be loaded. Please retry.
             </p>
           </div>
         </div>
@@ -250,10 +269,10 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
           {socialProviders.length >= 2 && (
             <div className="shrink-0 border-border/80 border-b bg-background">
               <div className="mx-auto w-full max-w-[920px] overflow-x-auto px-3 py-2 sm:px-6">
-                <TabsList className="h-11 w-max justify-start gap-1 bg-transparent p-0">
+                <TabsList className="h-11 w-max justify-start gap-1 bg-transparent p-0 sm:h-8 [@media(pointer:coarse)]:h-11">
                   <TabsTrigger
                     className={cn(
-                      "h-11 min-w-fit rounded-lg px-3 text-sm",
+                      "h-11 min-w-fit rounded-md px-2 text-xs sm:h-8 [@media(pointer:coarse)]:h-11",
                       singleProviderInDefault && "gap-2"
                     )}
                     value="global"
@@ -272,7 +291,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
                   </TabsTrigger>
                   {alternativeContent.map((content) => (
                     <TabsTrigger
-                      className="h-11 min-w-fit gap-2 rounded-lg px-3 text-sm"
+                      className="h-11 min-w-fit gap-1.5 rounded-md px-2 text-xs sm:h-8 [@media(pointer:coarse)]:h-11"
                       key={content.socialProvider.socialId}
                       value={content.socialProvider.socialId}
                     >
