@@ -192,8 +192,13 @@ describe("instagramPublisher.publish (Effect DI)", () => {
         .pipe(Effect.provide(Store))
     );
 
+    expect(post.mock.calls[0]?.[0]).toContain(
+      "https://graph.instagram.com/v26.0/profile_1/media?"
+    );
     expect(post.mock.calls[0]?.[0]).toContain(fixture.expectedType);
-    expect(post.mock.calls[1]?.[0]).toContain("/media_publish?");
+    expect(post.mock.calls[1]?.[0]).toContain(
+      "https://graph.instagram.com/v26.0/profile_1/media_publish?"
+    );
     expect(result.platformPostId).toBe("media_1");
   });
 

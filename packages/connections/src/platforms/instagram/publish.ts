@@ -19,7 +19,7 @@ import type {
   PostResult,
   PublishContext,
 } from "../../types";
-import { CAPTION_LIMIT, GRAPH_VERSION, PROVIDER } from "./constants";
+import { CAPTION_LIMIT, PROVIDER, PUBLISH_GRAPH_VERSION } from "./constants";
 
 const POLL_MAX_ATTEMPTS = 60; // 10 minutes at 10s intervals
 const POLL_INTERVAL_MS = 10_000;
@@ -38,7 +38,7 @@ interface IgContainerStatus {
 }
 
 const base = (profileId: string) =>
-  `https://graph.instagram.com/${GRAPH_VERSION}/${profileId}`;
+  `https://graph.instagram.com/${PUBLISH_GRAPH_VERSION}/${profileId}`;
 
 const post = <T>(url: string): Effect.Effect<T, ConnectionError> =>
   Effect.tryPromise({
@@ -196,7 +196,7 @@ const waitForProcessing = (
       return yield* Effect.fail(mediaProcessingTimeout(PROVIDER));
     }
     const status = yield* get<IgContainerStatus>(
-      `https://graph.instagram.com/${GRAPH_VERSION}/${containerId}`,
+      `https://graph.instagram.com/${PUBLISH_GRAPH_VERSION}/${containerId}`,
       { fields: "id,status_code,status", access_token: accessToken }
     );
     if (status.status_code === "FINISHED") {
@@ -229,7 +229,7 @@ const getPermalink = (
   accessToken: string
 ): Effect.Effect<string, ConnectionError> =>
   get<{ permalink: string }>(
-    `https://graph.instagram.com/${GRAPH_VERSION}/${mediaId}`,
+    `https://graph.instagram.com/${PUBLISH_GRAPH_VERSION}/${mediaId}`,
     { fields: "id,permalink", access_token: accessToken }
   ).pipe(Effect.map((r) => r.permalink));
 
