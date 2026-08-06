@@ -1,6 +1,6 @@
 ---
 title: CLI commands
-description: Complete delulu-cli 0.3 command and flag reference.
+description: Complete delulu-cli 0.4 command and flag reference.
 ---
 
 ## Global syntax
@@ -146,11 +146,17 @@ delulu post [caption] \
   [--alt <text>] \
   [--draft | --now | --at <timestamp>] \
   [--privacy <status>] \
+  [--trial-reel [--graduation-strategy <manual|performance>]] \
   [--idempotency-key <key>] \
   [--new] [--no-wait] [--timeout <seconds>]
 ```
 
 Content accepts exactly one source: positional caption, `--file`, or stdin. At least one target is required. Intent defaults to draft. Publish wait defaults to 360 seconds.
+
+`--trial-reel` requires exactly one video and at least one Instagram target. It applies
+Trial Reel settings only to Instagram targets when the post also targets other
+platforms. Graduation defaults to `manual`; use
+`--graduation-strategy performance` for performance-based graduation.
 
 ## `delulu posts`
 

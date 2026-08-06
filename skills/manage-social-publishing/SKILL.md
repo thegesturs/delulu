@@ -1,6 +1,6 @@
 ---
 name: manage-social-publishing
-description: Set up and operate Delulu Social through its agent-first CLI or hosted MCP tools. Use for account authorization, workspace selection, social account connection or removal, paid onboarding, usage checks, media upload or import, drafting, multi-account publishing, scheduling, listing or inspecting posts, editing, deleting, retrying failed targets, review workflows, publishing results, and Instagram DM automations.
+description: Set up and operate Delulu Social through its agent-first CLI or hosted MCP tools. Use for account authorization, workspace selection, social account connection or removal, paid onboarding, usage checks, media upload or import, drafting, multi-account publishing, Instagram Trial Reels, scheduling, listing or inspecting posts, editing, deleting, retrying failed targets, review workflows, publishing results, and Instagram DM automations.
 ---
 
 # Manage Social Publishing
@@ -90,6 +90,7 @@ Prefer the CLI's atomic flow:
 delulu post "Caption" --to linkedin:connection_123 --media video.mp4 --draft
 delulu post "Caption" --to linkedin:connection_123 --at "2026-07-18T10:00:00Z"
 delulu post "Caption" --to linkedin:connection_123 --to x:connection_456 --now
+delulu post "Caption" --to instagram:connection_789 --media video.mp4 --trial-reel --now
 ```
 
 - Default to a draft only when the user has not requested a delivery intent.
@@ -100,6 +101,11 @@ delulu post "Caption" --to linkedin:connection_123 --to x:connection_456 --now
 - Use an absolute schedule timestamp. Confirm the timezone when it is not clear
   from the request or established context, and restate the resolved local time
   and timezone in the result.
+- For an Instagram Trial Reel, provide exactly one video and add `--trial-reel`.
+  Manual graduation is the default; add
+  `--graduation-strategy performance` only when the user wants Instagram to
+  share the reel based on its performance. Trial Reel settings apply only to
+  selected Instagram targets in a multi-account post.
 - With MCP, call `create_post` exactly once using explicit `draft`, `schedule`,
   or `publish_now` intent. Do not call `publish_post_now` after creating with
   `publish_now`; reserve it for an existing prepared post.

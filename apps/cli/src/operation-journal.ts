@@ -89,6 +89,26 @@ const updateJournal = async <T>(
 export const operationFingerprint = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
+export const findOperation = async (input: {
+  readonly command: string;
+  readonly fingerprintValue: unknown;
+  readonly forceNew?: boolean;
+  readonly now?: number;
+}) => {
+  if (input.forceNew) {
+    return undefined;
+  }
+  const now = input.now ?? Date.now();
+  const fingerprint = operationFingerprint(input.fingerprintValue);
+  const existing = (await readJournal()).find(
+    (record) =>
+      now - record.createdAt <= REPLAY_WINDOW_MS &&
+      record.command === input.command &&
+      record.fingerprint === fingerprint
+  );
+  return existing ? { ...existing, replayed: true as const } : undefined;
+};
+
 export const prepareOperation = async (input: {
   readonly command: string;
   readonly fingerprintValue: unknown;

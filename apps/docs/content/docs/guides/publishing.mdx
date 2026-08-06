@@ -34,6 +34,21 @@ delulu post "Live caption" \
 
 Immediate publishing always requires `--now`. The CLI waits up to 360 seconds unless `--no-wait` is supplied.
 
+## Publish an Instagram Trial Reel
+
+```bash
+delulu post "Trial Reel caption" \
+  --to instagram:connection_abc123 \
+  --media ./reel.mp4 \
+  --trial-reel \
+  --now
+```
+
+Trial Reels require exactly one video and an Instagram target. Manual graduation is
+the default. Add `--graduation-strategy performance` when Instagram should
+share the reel based on its performance. In a multi-account post, these
+settings apply only to Instagram targets.
+
 ## Edit without publishing
 
 ```bash
