@@ -21,12 +21,94 @@ export interface PostFlowResult {
   }[];
 }
 
+export interface PostConnectionInput {
+  readonly id: string;
+  readonly platform: string;
+  readonly settings?: {
+    readonly platform: "INSTAGRAM";
+    readonly values: {
+      readonly shareToFeed: true;
+      readonly shareToStory: false;
+      readonly trialReels: true;
+      readonly graduationStrategy: "MANUAL" | "SS_PERFORMANCE";
+    };
+  };
+}
+
+export interface PostMediaInput {
+  readonly id: string;
+  readonly mediaType: string;
+}
+
+const obviousImageExtensions = new Set([
+  "avif",
+  "gif",
+  "heic",
+  "heif",
+  "jpeg",
+  "jpg",
+  "png",
+  "webp",
+]);
+
+const rejectObviousImageSource = (source: string) => {
+  let pathname = source;
+  if (source.startsWith("https://")) {
+    try {
+      pathname = new URL(source).pathname;
+    } catch {
+      return;
+    }
+  }
+  const extension = pathname.split(".").pop()?.toLowerCase();
+  if (extension && obviousImageExtensions.has(extension)) {
+    throw new CliError({
+      code: "TRIAL_REEL_VIDEO_REQUIRED",
+      message: "--trial-reel media must be a video",
+      exitCode: 2,
+    });
+  }
+};
+
+export const validateTrialReelTargets = (
+  trialReel: boolean,
+  accounts: readonly PostAccount[]
+) => {
+  if (
+    trialReel &&
+    !accounts.some((account) => account.platform.toUpperCase() === "INSTAGRAM")
+  ) {
+    throw new CliError({
+      code: "INSTAGRAM_TARGET_REQUIRED",
+      message: "--trial-reel requires at least one Instagram target",
+      exitCode: 2,
+      next: ["delulu accounts"],
+    });
+  }
+};
+
+export const validateTrialReelMedia = (
+  trialReel: boolean,
+  media: PostMediaInput
+) => {
+  if (trialReel && media.mediaType.toUpperCase() !== "VIDEO") {
+    throw new CliError({
+      code: "TRIAL_REEL_VIDEO_REQUIRED",
+      message: "--trial-reel media must be a video",
+      exitCode: 2,
+    });
+  }
+};
+
 export interface PostFlowAdapter {
   readonly listAccounts: () => Promise<readonly PostAccount[]>;
-  readonly addMedia: (source: string, altText?: string) => Promise<string>;
+  readonly addMedia: (
+    source: string,
+    altText?: string
+  ) => Promise<PostMediaInput>;
   readonly create: (input: {
     readonly caption: string;
-    readonly accounts: readonly PostAccount[];
+    readonly connections: readonly PostConnectionInput[];
     readonly mediaIds: readonly string[];
     readonly intent: PostIntent;
     readonly idempotencyKey?: string;
@@ -47,10 +129,57 @@ export interface SubmitPostInput {
   readonly idempotencyKey?: string;
   readonly scheduledAt?: string;
   readonly privacy?: string;
+  readonly trialReel?: boolean;
+  readonly graduationStrategy?: string;
   readonly waitForTerminal?: boolean;
   readonly timeoutMs?: number;
   readonly pollIntervalMs?: number;
 }
+
+export const validateTrialReelOptions = (input: {
+  readonly trialReel?: boolean;
+  readonly graduationStrategy?: string;
+  readonly mediaSources?: readonly string[];
+}): "MANUAL" | "SS_PERFORMANCE" | undefined => {
+  const trialReel = input.trialReel === true;
+  const value = input.graduationStrategy;
+  if (!trialReel) {
+    if (value !== undefined) {
+      throw new CliError({
+        code: "TRIAL_REEL_REQUIRED",
+        message: "--graduation-strategy requires --trial-reel",
+        exitCode: 2,
+      });
+    }
+    return undefined;
+  }
+
+  if (splitValues(input.mediaSources).length !== 1) {
+    throw new CliError({
+      code: "TRIAL_REEL_MEDIA_REQUIRED",
+      message: "--trial-reel requires exactly one video via --media",
+      exitCode: 2,
+    });
+  }
+  rejectObviousImageSource(splitValues(input.mediaSources)[0] as string);
+
+  const normalized = value?.trim().toLowerCase() ?? "manual";
+  if (normalized === "manual") {
+    return "MANUAL";
+  }
+  if (
+    normalized === "performance" ||
+    normalized === "ss-performance" ||
+    normalized === "ss_performance"
+  ) {
+    return "SS_PERFORMANCE";
+  }
+  throw new CliError({
+    code: "INVALID_GRADUATION_STRATEGY",
+    message: "--graduation-strategy must be manual or performance",
+    exitCode: 2,
+  });
+};
 
 export const splitValues = (values: readonly string[] = []) =>
   values
@@ -170,6 +299,8 @@ export const submitPost = async (
   input: SubmitPostInput,
   adapter: PostFlowAdapter
 ): Promise<PostFlowResult> => {
+  const trialReel = input.trialReel === true;
+  const resolvedGraduationStrategy = validateTrialReelOptions(input);
   if (!input.caption.trim()) {
     throw new CliError({
       code: "CONTENT_REQUIRED",
@@ -205,15 +336,37 @@ export const submitPost = async (
     await adapter.listAccounts(),
     input.accountSelectors ?? []
   );
-  const mediaIds = await Promise.all(
+  validateTrialReelTargets(trialReel, accounts);
+  const connections = accounts.map((account): PostConnectionInput => {
+    const connection = { id: account.id, platform: account.platform };
+    if (!trialReel || account.platform.toUpperCase() !== "INSTAGRAM") {
+      return connection;
+    }
+    return {
+      ...connection,
+      settings: {
+        platform: "INSTAGRAM",
+        values: {
+          shareToFeed: true,
+          shareToStory: false,
+          trialReels: true,
+          graduationStrategy: resolvedGraduationStrategy ?? "MANUAL",
+        },
+      },
+    };
+  });
+  const media = await Promise.all(
     splitValues(input.mediaSources).map((source) =>
       adapter.addMedia(source, input.altText)
     )
   );
+  if (media[0]) {
+    validateTrialReelMedia(trialReel, media[0]);
+  }
   const result = await adapter.create({
     caption: input.caption,
-    accounts,
-    mediaIds,
+    connections,
+    mediaIds: media.map((item) => item.id),
     intent: input.intent,
     idempotencyKey: input.idempotencyKey,
     scheduledAt,

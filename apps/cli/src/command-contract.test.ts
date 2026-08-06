@@ -66,4 +66,18 @@ describe("public command output contract", () => {
     expect(pretty.stdout).toContain("status: ok");
     expect(pretty.stdout).not.toContain("\u001b[");
   });
+
+  it("documents Instagram Trial Reel posting options", () => {
+    const result = invokeHelp("--json", "post");
+    expect(result.status, result.stderr).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.data.options).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ flags: "--trial-reel" }),
+        expect.objectContaining({
+          flags: "--graduation-strategy <strategy>",
+        }),
+      ])
+    );
+  });
 });

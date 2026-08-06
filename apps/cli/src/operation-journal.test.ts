@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   completeOperation,
+  findOperation,
   journalPath,
   prepareOperation,
 } from "./operation-journal.js";
@@ -53,6 +54,24 @@ describe("operation journal", () => {
       forceNew: true,
     });
     expect(second.idempotencyKey).not.toBe(first.idempotencyKey);
+  });
+
+  it("finds a completed replay without changing the journal", async () => {
+    const home = await mkdtemp(join(tmpdir(), "delulu-journal-read-"));
+    vi.stubEnv("HOME", home);
+    const input = {
+      command: "post",
+      fingerprintValue: { value: "same" },
+      now: 100,
+    };
+    const first = await prepareOperation(input);
+    await completeOperation(first.operationId, "post_1");
+    const before = await readFile(journalPath(), "utf8");
+
+    const replay = await findOperation({ ...input, now: 200 });
+
+    expect(replay).toMatchObject({ resourceId: "post_1", replayed: true });
+    expect(await readFile(journalPath(), "utf8")).toBe(before);
   });
 
   it("serializes concurrent journal updates without losing operations", async () => {

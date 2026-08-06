@@ -21,7 +21,11 @@ import {
   removeIntegration,
 } from "./integration.js";
 import { login, openBrowser } from "./oauth.js";
-import { completeOperation, prepareOperation } from "./operation-journal.js";
+import {
+  completeOperation,
+  findOperation,
+  prepareOperation,
+} from "./operation-journal.js";
 import { formatError, resolveOutputMode } from "./output.js";
 import {
   canonicalAccountSelector,
@@ -30,6 +34,9 @@ import {
   resolveAccounts,
   splitValues,
   submitPost,
+  validateTrialReelMedia,
+  validateTrialReelOptions,
+  validateTrialReelTargets,
   waitForPostTerminal,
 } from "./post-flow.js";
 import {
@@ -166,6 +173,7 @@ const helpExamples: Readonly<Record<string, readonly string[]>> = {
   post: [
     'delulu post "Caption" --to linkedin --draft',
     'delulu post "Caption" --to linkedin --media video.mp4 --now',
+    'delulu post "Caption" --to instagram --media video.mp4 --trial-reel --now',
   ],
   posts: ["delulu posts --status scheduled"],
   review: ["delulu review <post-id> --approve"],
@@ -1040,6 +1048,11 @@ program
   .option("--now", "Publish immediately")
   .option("--at <timestamp>", "Schedule at an ISO 8601 timestamp")
   .option("--privacy <status>", "Platform privacy setting")
+  .option("--trial-reel", "Publish Instagram video as a Trial Reel")
+  .option(
+    "--graduation-strategy <strategy>",
+    "Trial Reel graduation: manual or performance (default: manual)"
+  )
   .option("--idempotency-key <key>", "Stable retry key")
   .option("--new", "Intentionally create a duplicate")
   .option("--no-wait", "Return after publishing is accepted")
@@ -1063,6 +1076,11 @@ program
           "delulu accounts",
         ]);
       }
+      validateTrialReelOptions({
+        trialReel: Boolean(command.trialReel),
+        graduationStrategy: command.graduationStrategy,
+        mediaSources: command.media,
+      });
       const timeout = positiveNumber(command.timeout, "--timeout");
       const id = await workspaceId();
       const intent = command.now
@@ -1070,17 +1088,63 @@ program
         : command.at
           ? "schedule"
           : "draft";
+      const fingerprintValue = {
+        workspaceId: id,
+        content,
+        to: splitValues(command.to).sort(),
+        media: splitValues(command.media),
+        intent,
+        at: command.at,
+        privacy: command.privacy,
+        trialReel: Boolean(command.trialReel),
+        graduationStrategy: command.graduationStrategy,
+      };
+      const completedReplay = await findOperation({
+        command: "post",
+        fingerprintValue,
+        forceNew: command.new,
+      });
+      if (completedReplay?.resourceId) {
+        const previous = await runEffect(
+          client.posts.get({
+            params: { workspaceId: id, id: completedReplay.resourceId },
+          })
+        );
+        const presented = presentPost(previous, { full: options().full });
+        return {
+          ...presented,
+          summary: {
+            ...presented.summary,
+            replayed: true,
+            operation: completedReplay.operationId,
+          },
+        };
+      }
+      let availableAccounts: readonly PostAccount[] | undefined;
+      let existingTrialReelMedia:
+        | { readonly id: string; readonly mediaType: string }
+        | undefined;
+      if (command.trialReel) {
+        availableAccounts = await listAccounts(client, id);
+        validateTrialReelTargets(
+          true,
+          resolveAccounts(availableAccounts, command.to)
+        );
+        const source = splitValues(command.media)[0] as string;
+        if (source.startsWith("media_")) {
+          const media = await runEffect(
+            client.media.get({ params: { workspaceId: id, id: source } })
+          );
+          existingTrialReelMedia = {
+            id: media.id,
+            mediaType: media.mediaType,
+          };
+          validateTrialReelMedia(true, existingTrialReelMedia);
+        }
+      }
       const operation = await prepareOperation({
         command: "post",
-        fingerprintValue: {
-          workspaceId: id,
-          content,
-          to: splitValues(command.to).sort(),
-          media: splitValues(command.media),
-          intent,
-          at: command.at,
-          privacy: command.privacy,
-        },
+        fingerprintValue,
         forceNew: command.new,
         idempotencyKey: command.idempotencyKey,
       });
@@ -1112,30 +1176,43 @@ program
             intent,
             scheduledAt: command.at,
             privacy: command.privacy,
+            trialReel: Boolean(command.trialReel),
+            graduationStrategy: command.graduationStrategy,
             idempotencyKey: operation.idempotencyKey,
             waitForTerminal: command.wait,
             timeoutMs: timeout * 1000,
           },
           {
-            listAccounts: () => listAccounts(client, id),
-            addMedia: (source, altText) =>
-              addMedia({
+            listAccounts: () =>
+              availableAccounts
+                ? Promise.resolve(availableAccounts)
+                : listAccounts(client, id),
+            addMedia: async (source, altText) => {
+              if (existingTrialReelMedia?.id === source) {
+                return existingTrialReelMedia;
+              }
+              const mediaId = await addMedia({
                 client,
                 workspaceId: id,
                 source,
                 altText,
                 idempotencyKey: `${operation.idempotencyKey}:media:${mediaIndex++}`,
-              }),
+              });
+              if (!command.trialReel) {
+                return { id: mediaId, mediaType: "UNKNOWN" };
+              }
+              const media = await runEffect(
+                client.media.get({ params: { workspaceId: id, id: mediaId } })
+              );
+              return { id: media.id, mediaType: media.mediaType };
+            },
             create: (input) =>
               runEffect(
                 client.posts.create({
                   params: { workspaceId: id },
                   payload: makeSimplePostWrite({
                     caption: input.caption,
-                    connections: input.accounts.map((account) => ({
-                      id: account.id,
-                      platform: account.platform,
-                    })),
+                    connections: input.connections,
                     mediaIds: input.mediaIds,
                     intent: input.intent,
                     idempotencyKey: input.idempotencyKey,

@@ -3,6 +3,7 @@ import {
   type PostFlowAdapter,
   type PostFlowResult,
   submitPost,
+  validateTrialReelOptions,
 } from "./post-flow.js";
 
 const post = (status: string): PostFlowResult => ({
@@ -21,7 +22,7 @@ const adapterFor = (
       username: "swaraj",
     },
   ],
-  addMedia: async () => "media_uploaded123",
+  addMedia: async () => ({ id: "media_uploaded123", mediaType: "VIDEO" }),
   create: async () => post("publishing"),
   get: async () => post("published"),
   sleep: async () => undefined,
@@ -33,7 +34,10 @@ describe("submitPost", () => {
   it("uploads media and publishes with one atomic create call", async () => {
     const create = vi.fn(async () => post("publishing"));
     const get = vi.fn(async () => post("published"));
-    const addMedia = vi.fn(async () => "media_uploaded123");
+    const addMedia = vi.fn(async () => ({
+      id: "media_uploaded123",
+      mediaType: "VIDEO",
+    }));
     const result = await submitPost(
       {
         caption: "Publish once",
@@ -121,7 +125,7 @@ describe("submitPost", () => {
     );
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
-        accounts,
+        connections: accounts.map(({ id, platform }) => ({ id, platform })),
       })
     );
   });
@@ -136,5 +140,199 @@ describe("submitPost", () => {
         adapterFor()
       )
     ).rejects.toMatchObject({ code: "ACCOUNT_REQUIRED", exitCode: 2 });
+  });
+
+  it("adds Trial Reel settings only to selected Instagram targets", async () => {
+    const create = vi.fn(async () => post("draft"));
+    await submitPost(
+      {
+        caption: "Try this reel",
+        accountSelectors: ["instagram", "linkedin"],
+        mediaSources: ["video.mp4"],
+        intent: "draft",
+        trialReel: true,
+        graduationStrategy: "performance",
+      },
+      adapterFor({
+        listAccounts: async () => [
+          {
+            id: "connection_instagram1",
+            platform: "INSTAGRAM",
+            username: "creator",
+          },
+          {
+            id: "connection_linkedin1",
+            platform: "LINKEDIN",
+            username: "swaraj",
+          },
+        ],
+        create,
+      })
+    );
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        connections: [
+          {
+            id: "connection_instagram1",
+            platform: "INSTAGRAM",
+            settings: {
+              platform: "INSTAGRAM",
+              values: {
+                shareToFeed: true,
+                shareToStory: false,
+                trialReels: true,
+                graduationStrategy: "SS_PERFORMANCE",
+              },
+            },
+          },
+          { id: "connection_linkedin1", platform: "LINKEDIN" },
+        ],
+      })
+    );
+  });
+
+  it("rejects Trial Reels without an Instagram target before uploading", async () => {
+    const addMedia = vi.fn(async () => ({
+      id: "media_uploaded123",
+      mediaType: "VIDEO",
+    }));
+    const create = vi.fn(async () => post("draft"));
+
+    await expect(
+      submitPost(
+        {
+          caption: "Wrong platform",
+          accountSelectors: ["linkedin"],
+          mediaSources: ["video.mp4"],
+          intent: "draft",
+          trialReel: true,
+        },
+        adapterFor({ addMedia, create })
+      )
+    ).rejects.toMatchObject({ code: "INSTAGRAM_TARGET_REQUIRED", exitCode: 2 });
+    expect(addMedia).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("requires media for a Trial Reel before API access", async () => {
+    const listAccounts = vi.fn(async () => []);
+
+    await expect(
+      submitPost(
+        {
+          caption: "Missing video",
+          accountSelectors: ["instagram"],
+          intent: "draft",
+          trialReel: true,
+        },
+        adapterFor({ listAccounts })
+      )
+    ).rejects.toMatchObject({ code: "TRIAL_REEL_MEDIA_REQUIRED", exitCode: 2 });
+    expect(listAccounts).not.toHaveBeenCalled();
+  });
+
+  it("requires exactly one media item for a Trial Reel before API access", () => {
+    expect(() =>
+      validateTrialReelOptions({
+        trialReel: true,
+        mediaSources: ["first.mp4", "second.mp4"],
+      })
+    ).toThrow("requires exactly one video");
+  });
+
+  it("rejects non-video Trial Reel media before creating the post", async () => {
+    const addMedia = vi.fn(async () => ({
+      id: "media_uploaded123",
+      mediaType: "IMAGE",
+    }));
+    const create = vi.fn(async () => post("draft"));
+
+    await expect(
+      submitPost(
+        {
+          caption: "Not a video",
+          accountSelectors: ["instagram"],
+          mediaSources: ["image.jpg"],
+          intent: "draft",
+          trialReel: true,
+        },
+        adapterFor({
+          listAccounts: async () => [
+            { id: "connection_instagram1", platform: "INSTAGRAM" },
+          ],
+          addMedia,
+          create,
+        })
+      )
+    ).rejects.toMatchObject({ code: "TRIAL_REEL_VIDEO_REQUIRED", exitCode: 2 });
+    expect(addMedia).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("rejects authoritative non-video metadata before creating the post", async () => {
+    const create = vi.fn(async () => post("draft"));
+
+    await expect(
+      submitPost(
+        {
+          caption: "Not a video",
+          accountSelectors: ["instagram"],
+          mediaSources: ["media_existing123"],
+          intent: "draft",
+          trialReel: true,
+        },
+        adapterFor({
+          listAccounts: async () => [
+            { id: "connection_instagram1", platform: "INSTAGRAM" },
+          ],
+          addMedia: async () => ({
+            id: "media_existing123",
+            mediaType: "IMAGE",
+          }),
+          create,
+        })
+      )
+    ).rejects.toMatchObject({ code: "TRIAL_REEL_VIDEO_REQUIRED", exitCode: 2 });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("rejects a graduation strategy unless Trial Reels are enabled", async () => {
+    const listAccounts = vi.fn(async () => []);
+
+    await expect(
+      submitPost(
+        {
+          caption: "Invalid options",
+          accountSelectors: ["instagram"],
+          intent: "draft",
+          graduationStrategy: "manual",
+        },
+        adapterFor({ listAccounts })
+      )
+    ).rejects.toMatchObject({ code: "TRIAL_REEL_REQUIRED", exitCode: 2 });
+    expect(listAccounts).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unknown Trial Reel graduation strategy before API access", async () => {
+    const listAccounts = vi.fn(async () => []);
+
+    await expect(
+      submitPost(
+        {
+          caption: "Invalid strategy",
+          accountSelectors: ["instagram"],
+          intent: "draft",
+          trialReel: true,
+          graduationStrategy: "later",
+          mediaSources: ["video.mp4"],
+        },
+        adapterFor({ listAccounts })
+      )
+    ).rejects.toMatchObject({
+      code: "INVALID_GRADUATION_STRATEGY",
+      exitCode: 2,
+    });
+    expect(listAccounts).not.toHaveBeenCalled();
   });
 });
