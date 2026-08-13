@@ -60,20 +60,6 @@ export const AgentTaskView = Schema.Struct({
   completedAt: Schema.NullOr(Schema.String),
 });
 
-export const WhatsappAgentConnectionView = Schema.Struct({
-  id: Schema.String,
-  workspaceId: Schema.String,
-  channel: Schema.Literal("whatsapp"),
-  status: Schema.Literals(["onboarding", "active", "failed", "disconnected"]),
-  address: Schema.NullOr(Schema.String),
-  allowedSender: Schema.String,
-  onboardingUrl: Schema.NullOr(Schema.String),
-  onboardingExpiresAt: Schema.NullOr(Schema.String),
-  failureReason: Schema.NullOr(Schema.String),
-  createdAt: Schema.String,
-  updatedAt: Schema.String,
-});
-
 export const AgentWorkspaceView = Schema.Struct({
   id: Schema.String,
   workspaceId: Schema.String,
@@ -84,7 +70,6 @@ export const AgentWorkspaceView = Schema.Struct({
   dailyBudgetMicros: Schema.String,
   maxConcurrentRuns: Schema.Number,
   maxRunSeconds: Schema.Number,
-  whatsappEnabled: Schema.Boolean,
   ritualsEnabled: Schema.Boolean,
   externalWritesEnabled: Schema.Boolean,
   advancedCodeEnabled: Schema.Boolean,
@@ -98,7 +83,13 @@ export const AgentRunView = Schema.Struct({
   id: Schema.String,
   agentWorkspaceId: Schema.String,
   workspaceId: Schema.String,
-  source: Schema.Literals(["web", "whatsapp", "ritual", "migration"]),
+  source: Schema.Literals([
+    "web",
+    "whatsapp",
+    "external",
+    "ritual",
+    "migration",
+  ]),
   chatKey: Schema.String,
   objective: Schema.String,
   status: Schema.Literals([
@@ -134,6 +125,16 @@ export const AgentRunEventView = Schema.Struct({
   content: Schema.String,
   payload: Schema.Record(Schema.String, Schema.Unknown),
   occurredAt: Schema.String,
+});
+
+export const AgentApprovalView = Schema.Struct({
+  id: Schema.String,
+  runId: Schema.String,
+  kind: Schema.String,
+  summary: Schema.String,
+  risk: Schema.Literals(["low", "consequential"]),
+  code: Schema.String,
+  expiresAt: Schema.String,
 });
 
 export const AgentUsageView = Schema.Struct({
@@ -215,7 +216,6 @@ export const AgentGroup = HttpApiGroup.make("agent")
       params: WorkspacePath,
       payload: Schema.Struct({
         runtimeEnabled: Schema.optional(Schema.Boolean),
-        whatsappEnabled: Schema.optional(Schema.Boolean),
         ritualsEnabled: Schema.optional(Schema.Boolean),
         externalWritesEnabled: Schema.optional(Schema.Boolean),
         advancedCodeEnabled: Schema.optional(Schema.Boolean),
@@ -258,21 +258,21 @@ export const AgentGroup = HttpApiGroup.make("agent")
       success: AgentRunView,
       error: Errors,
     }),
-    HttpApiEndpoint.get("getWhatsapp", "/channels/whatsapp", {
-      params: WorkspacePath,
-      success: Schema.NullOr(WhatsappAgentConnectionView),
+    HttpApiEndpoint.post("resolveApproval", "/runs/:id/approval", {
+      params: ResourcePath,
+      payload: Schema.Struct({
+        code: Schema.String,
+        decision: Schema.Literals(["approved", "rejected"]),
+      }),
+      success: Schema.Struct({
+        runId: Schema.String,
+        message: Schema.String,
+      }),
       error: Errors,
     }),
-    HttpApiEndpoint.post("startWhatsapp", "/channels/whatsapp", {
-      params: WorkspacePath,
-      payload: Schema.Struct({ allowedSender: Schema.String }),
-      success: WhatsappAgentConnectionView,
-      error: Errors,
-    }),
-    HttpApiEndpoint.post("claimWhatsappLink", "/channels/whatsapp/link", {
-      params: WorkspacePath,
-      payload: Schema.Struct({ token: Schema.String }),
-      success: WhatsappAgentConnectionView,
+    HttpApiEndpoint.get("listApprovals", "/runs/:id/approvals", {
+      params: ResourcePath,
+      success: Schema.Array(AgentApprovalView),
       error: Errors,
     }),
     HttpApiEndpoint.get("listRituals", "/rituals", {

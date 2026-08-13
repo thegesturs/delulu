@@ -23,7 +23,6 @@ export * from "./cancellation-policy";
 export * from "./clerk";
 export * from "./clerk-admin";
 export * from "./clerk-sync";
-export * from "./communication-gateway";
 export * from "./config";
 export * from "./connections";
 export * from "./crypto";

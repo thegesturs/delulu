@@ -1,5 +1,4 @@
 import {
-  AgentChannelService,
   CalendarWebhookConfig,
   CancellationService,
   EntitlementPolicy,
@@ -33,7 +32,7 @@ const standardHeaders = (
 };
 
 const responseFor = <A>(
-  provider: "meta" | "clerk" | "dodo" | "communications",
+  provider: "meta" | "clerk" | "dodo",
   effect: Effect.Effect<A, unknown>
 ) =>
   effect.pipe(
@@ -89,24 +88,6 @@ export const WebhookRoutes = HttpRouter.use(
     const calendar = yield* CalendarWebhookConfig;
     const cancellations = yield* CancellationService;
     const entitlements = yield* EntitlementPolicy;
-    const agentChannels = yield* AgentChannelService;
-
-    yield* router.add(
-      "POST",
-      "/webhooks/communications",
-      Effect.fn("WebhookRoutes.receiveCommunication")(function* (request) {
-        return yield* request.text.pipe(
-          Effect.flatMap((rawBody) =>
-            agentChannels.ingestWebhook(
-              rawBody,
-              header(request, "x-caspian-signature")
-            )
-          ),
-          (effect) => responseFor("communications", effect)
-        );
-      })
-    );
-
     yield* router.add(
       "GET",
       "/webhooks/meta",

@@ -26,10 +26,10 @@ export const createAgentEffects = defineResourceEffects(({ client }) => ({
       queryKey: workspaceKeys.detail(workspaceId, "agent-events", id),
       effect: () => client.agent.listRunEvents({ params: { workspaceId, id } }),
     }),
-  whatsapp: (workspaceId: string) =>
+  approvals: (workspaceId: string, id: string) =>
     resourceEffect({
-      queryKey: workspaceKeys.resource(workspaceId, "agent-whatsapp"),
-      effect: () => client.agent.getWhatsapp({ params: params(workspaceId) }),
+      queryKey: workspaceKeys.detail(workspaceId, "agent-approvals", id),
+      effect: () => client.agent.listApprovals({ params: { workspaceId, id } }),
     }),
   usage: (workspaceId: string) =>
     resourceEffect({
@@ -52,21 +52,16 @@ export const createAgentEffects = defineResourceEffects(({ client }) => ({
       effect: () =>
         client.agent.createWorkspace({ params: params(workspaceId) }),
     }),
-  startWhatsapp: (workspaceId: string) =>
+  resolveApproval: (workspaceId: string) =>
     mutationEffect({
-      mutationKey: workspaceKeys.resource(workspaceId, "agent-whatsapp"),
-      effect: (payload: EndpointPayload<ApiClient["agent"]["startWhatsapp"]>) =>
-        client.agent.startWhatsapp({ params: params(workspaceId), payload }),
-    }),
-  claimWhatsappLink: (workspaceId: string) =>
-    mutationEffect({
-      mutationKey: workspaceKeys.resource(workspaceId, "agent-whatsapp"),
-      effect: (
-        payload: EndpointPayload<ApiClient["agent"]["claimWhatsappLink"]>
-      ) =>
-        client.agent.claimWhatsappLink({
-          params: params(workspaceId),
-          payload,
+      mutationKey: workspaceKeys.resource(workspaceId, "agent-approvals"),
+      effect: (input: {
+        id: string;
+        payload: EndpointPayload<ApiClient["agent"]["resolveApproval"]>;
+      }) =>
+        client.agent.resolveApproval({
+          params: { workspaceId, id: input.id },
+          payload: input.payload,
         }),
     }),
   runAgent: (workspaceId: string) =>

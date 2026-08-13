@@ -3,7 +3,6 @@ import { PostWrite } from "@delulu/contracts";
 import { makeTokenCipher, TokenCipher, WorkspaceId } from "@delulu/core";
 import {
   AdminService,
-  AgentChannelService,
   AgentWorkspaceService,
   AnalyticsService,
   ApiKeyVerifier,
@@ -25,9 +24,6 @@ import {
   ClerkAdminService,
   ClerkSyncService,
   ClerkTokenVerifier,
-  CommunicationAttachmentProvider,
-  CommunicationGatewayProvider,
-  CommunicationTranscriptionProvider,
   ConnectionStateService,
   ConnectionsService,
   DeploymentConfig,
@@ -81,7 +77,6 @@ import {
   agentRuntimeProviderLayer,
   appOrigins,
   authConfigLayer,
-  communicationGatewayConfigLayer,
   databaseUrl,
   domainConfigLayers,
   type Env,
@@ -159,10 +154,6 @@ export const makeBaseLayer = (
   const AgentWorkspaces = AgentWorkspaceService.layer.pipe(
     Layer.provide([AgentRuntime, Cipher])
   );
-  const CommunicationConfig = communicationGatewayConfigLayer(env);
-  const CommunicationGateway = CommunicationGatewayProvider.layer.pipe(
-    Layer.provide(CommunicationConfig)
-  );
   const WorkspaceFiles = WorkspaceFileService.layer.pipe(
     Layer.provide([R2, QuotaGuard.layer.pipe(Layer.provide(Entitlements))])
   );
@@ -176,90 +167,6 @@ export const makeBaseLayer = (
       Jobs,
       R2,
       QuotaGuard.layer.pipe(Layer.provide(Entitlements)),
-    ])
-  );
-  const VoiceTranscriptions = env.AI
-    ? Layer.succeed(
-        CommunicationTranscriptionProvider,
-        CommunicationTranscriptionProvider.of({
-          transcribe: ({ url }) =>
-            Effect.tryPromise({
-              try: async () => {
-                const response = await fetch(url, {
-                  signal: AbortSignal.timeout(30_000),
-                });
-                if (!response.ok) {
-                  throw new Error(
-                    `Archived voice note returned ${response.status}`
-                  );
-                }
-                const maximumBytes = 10 * 1024 * 1024;
-                const declaredLength = Number(
-                  response.headers.get("content-length") ?? 0
-                );
-                if (declaredLength > maximumBytes) {
-                  throw new Error("Voice note exceeds the 10 MB limit");
-                }
-                if (!response.body) {
-                  throw new Error("Archived voice note had no body");
-                }
-                const reader = response.body.getReader();
-                const chunks: Uint8Array[] = [];
-                let byteLength = 0;
-                while (true) {
-                  const chunk = await reader.read();
-                  if (chunk.done) {
-                    break;
-                  }
-                  byteLength += chunk.value.byteLength;
-                  if (byteLength > maximumBytes) {
-                    await reader.cancel();
-                    throw new Error("Voice note exceeds the 10 MB limit");
-                  }
-                  chunks.push(chunk.value);
-                }
-                const bytes = new Uint8Array(byteLength);
-                let targetOffset = 0;
-                for (const chunk of chunks) {
-                  bytes.set(chunk, targetOffset);
-                  targetOffset += chunk.byteLength;
-                }
-                let binary = "";
-                for (let offset = 0; offset < bytes.length; offset += 0x80_00) {
-                  binary += String.fromCharCode(
-                    ...Array.from(bytes.subarray(offset, offset + 0x80_00))
-                  );
-                }
-                const output = await env.AI!.run(
-                  "@cf/openai/whisper-large-v3-turbo",
-                  { audio: btoa(binary), vad_filter: true }
-                );
-                const decoded = Schema.decodeUnknownSync(
-                  Schema.Struct({ text: Schema.String })
-                )(output);
-                const transcript = decoded.text.trim();
-                if (!transcript) {
-                  throw new Error("Voice-note transcription was empty");
-                }
-                return transcript;
-              },
-              catch: (cause) =>
-                cause instanceof Error
-                  ? cause
-                  : new Error("Voice-note transcription failed"),
-            }),
-        })
-      )
-    : CommunicationTranscriptionProvider.unavailableLayer;
-  const CommunicationAttachments = CommunicationAttachmentProvider.layer.pipe(
-    Layer.provide([Media, VoiceTranscriptions])
-  );
-  const AgentChannels = AgentChannelService.layer.pipe(
-    Layer.provide([
-      CommunicationConfig,
-      CommunicationGateway,
-      CommunicationAttachments,
-      AgentWorkspaces,
     ])
   );
   const AutomationKvBinding = env.AUTOMATION_KV
@@ -430,7 +337,6 @@ export const makeBaseLayer = (
     R2,
     AgentRuntime,
     AgentWorkspaces,
-    AgentChannels,
     WorkspaceFiles,
     Access,
     Posts,
@@ -556,12 +462,10 @@ export class AgentResponseTarget extends WorkerEntrypoint<
     const runId = this.ctx.props.runId;
     const program = Effect.gen(function* () {
       const agents = yield* AgentWorkspaceService;
-      const channels = yield* AgentChannelService;
-      const completed = yield* agents.completeExternalResponse({
+      yield* agents.completeExternalResponse({
         runId,
         response,
       });
-      yield* channels.deliverRunResponse(runId, completed.replyText);
     });
     await Effect.runPromise(
       program.pipe(Effect.provide(makeBaseLayer(this.env)))

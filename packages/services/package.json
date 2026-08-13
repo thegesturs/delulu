@@ -21,7 +21,6 @@
     "@delulu/core": "workspace:*",
     "@delulu/db": "workspace:*",
     "@delulu/payments": "workspace:*",
-    "caspian-sdk": "0.6.1",
     "dodopayments": "2.4.3",
     "effect": "catalog:"
   },

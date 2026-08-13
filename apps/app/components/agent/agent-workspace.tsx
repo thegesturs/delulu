@@ -13,8 +13,7 @@ import { Progress } from "@delulu/design-system/components/ui/progress";
 import { ScrollArea } from "@delulu/design-system/components/ui/scroll-area";
 import { Textarea } from "@delulu/design-system/components/ui/textarea";
 import { cn } from "@delulu/design-system/lib/utils";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
@@ -23,7 +22,6 @@ import {
   useResourceAtom,
   useResourceRegistry,
 } from "@/state/resources";
-import { WhatsappConnection } from "./whatsapp-connection";
 
 const activeStatuses = new Set([
   "queued",
@@ -53,7 +51,6 @@ const percentUsed = (used: string, budget: string) => {
 export function AgentWorkspace() {
   const { resources } = useApiClient();
   const { workspaceId } = useWorkspace();
-  const searchParams = useSearchParams();
   const registry = useResourceRegistry();
   const id = workspaceId ?? "";
   const workspaceResource = resources.agent.workspace(id);
@@ -81,14 +78,13 @@ export function AgentWorkspace() {
     enabled: Boolean(workspaceId && workspace.data),
   });
   const createWorkspace = useMutationAtom(resources.agent.createWorkspace(id));
-  const claimWhatsapp = useMutationAtom(resources.agent.claimWhatsappLink(id));
   const start = useMutationAtom(resources.agent.runAgent(id));
   const interrupt = useMutationAtom(resources.agent.interrupt(id));
+  const resolveApproval = useMutationAtom(resources.agent.resolveApproval(id));
   const updateRitual = useMutationAtom(resources.agent.updateRitual(id));
   const resolveMemory = useMutationAtom(resources.agent.resolveMemory(id));
   const [message, setMessage] = useState("");
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
-  const claimedToken = useRef<string | null>(null);
   const agentRuns = runs.data ?? [];
 
   useEffect(() => {
@@ -97,29 +93,6 @@ export function AgentWorkspace() {
     }
     setSelectedRunId(agentRuns[0]?.id ?? null);
   }, [agentRuns, selectedRunId]);
-
-  useEffect(() => {
-    const token = searchParams.get("token");
-    if (
-      !(workspaceId && token && workspace.data) ||
-      claimedToken.current === token
-    ) {
-      return;
-    }
-    claimedToken.current = token;
-    claimWhatsapp
-      .mutateAsync({ token })
-      .then(() => {
-        toast.success("WhatsApp number linked");
-        window.history.replaceState({}, "", "/agent");
-      })
-      .catch((error) => {
-        claimedToken.current = null;
-        toast.error(
-          error instanceof Error ? error.message : "Could not link WhatsApp"
-        );
-      });
-  }, [claimWhatsapp, searchParams, workspace.data, workspaceId]);
 
   const runResource = resources.agent.run(id, selectedRunId ?? "");
   const eventsResource = resources.agent.events(id, selectedRunId ?? "");
@@ -133,11 +106,19 @@ export function AgentWorkspace() {
     enabled: Boolean(workspaceId && selectedRunId),
     staleTime: 1000,
   });
+  const approvals = useResourceAtom({
+    ...resources.agent.approvals(id, selectedRunId ?? ""),
+    enabled: Boolean(
+      workspaceId && selectedRunId && run.data?.status === "waiting_approval"
+    ),
+    staleTime: 1000,
+  });
   const selectedRun =
     run.data ?? agentRuns.find((item) => item.id === selectedRunId) ?? null;
   const isActive = Boolean(
     selectedRun && activeStatuses.has(selectedRun.status)
   );
+  const pendingApprovals = approvals.data ?? [];
 
   useEffect(() => {
     if (!isActive) {
@@ -181,6 +162,32 @@ export function AgentWorkspace() {
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not start the agent"
+      );
+    }
+  };
+
+  const decideApproval = async (
+    runId: string,
+    code: string,
+    decision: "approved" | "rejected"
+  ) => {
+    try {
+      const result = await resolveApproval.mutateAsync({
+        id: runId,
+        payload: { code, decision },
+      });
+      toast.success(result.message);
+      await Promise.all([
+        run.refetch(),
+        runs.refetch(),
+        events.refetch(),
+        approvals.refetch(),
+      ]);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : `Could not ${decision === "approved" ? "approve" : "reject"} the action`
       );
     }
   };
@@ -272,8 +279,6 @@ export function AgentWorkspace() {
         </Card>
       </div>
 
-      <WhatsappConnection />
-
       <div className="grid min-h-[680px] gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
         <Card className="min-h-0 gap-0 overflow-hidden py-0">
           <div className="flex min-h-16 items-center justify-between gap-3 border-b px-5 py-3">
@@ -319,9 +324,48 @@ export function AgentWorkspace() {
                     </div>
                   ) : null}
                   {selectedRun.status === "waiting_approval" ? (
-                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
-                      This run prepared an external action. Use the code shown
-                      below from your verified WhatsApp conversation.
+                    <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
+                      <p>
+                        This run prepared an external action. Review the agent
+                        output, then approve or reject it here.
+                      </p>
+                      {pendingApprovals.map((approval) => (
+                        <div
+                          className="flex flex-wrap items-center gap-2"
+                          key={approval.id}
+                        >
+                          <span className="mr-auto font-medium">
+                            {approval.summary}
+                          </span>
+                          <Button
+                            disabled={resolveApproval.isPending}
+                            onClick={() =>
+                              decideApproval(
+                                selectedRun.id,
+                                approval.code,
+                                "approved"
+                              )
+                            }
+                            type="button"
+                          >
+                            Approve action
+                          </Button>
+                          <Button
+                            disabled={resolveApproval.isPending}
+                            onClick={() =>
+                              decideApproval(
+                                selectedRun.id,
+                                approval.code,
+                                "rejected"
+                              )
+                            }
+                            type="button"
+                            variant="outline"
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   ) : null}
                   {!isActive && selectedRun.output ? (

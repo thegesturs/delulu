@@ -2,7 +2,6 @@ import { Api } from "@delulu/contracts";
 import type { TokenCipher } from "@delulu/core";
 import type {
   AdminService,
-  AgentChannelService,
   AgentRuntimeProvider,
   AgentWorkspaceService,
   AnalyticsService,
@@ -101,7 +100,6 @@ export type AppServices =
   | AdminService
   | AgentRuntimeProvider
   | AgentWorkspaceService
-  | AgentChannelService
   | WorkspaceFileService
   | AnalyticsService
   | AutomationService

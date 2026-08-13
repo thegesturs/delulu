@@ -1,7 +1,6 @@
 import { Api, ConflictError } from "@delulu/contracts";
 import { CurrentAuth } from "@delulu/core";
 import {
-  AgentChannelService,
   AgentWorkspaceService,
   WorkspaceAccessService,
   WorkspaceFileService,
@@ -15,7 +14,6 @@ export const AgentHandlers = HttpApiBuilder.group(
   "agent",
   Effect.fnUntraced(function* (handlers) {
     const agents = yield* AgentWorkspaceService;
-    const channels = yield* AgentChannelService;
     const workspaces = yield* WorkspaceAccessService;
     const access = (
       workspaceId: string,
@@ -139,37 +137,27 @@ export const AgentHandlers = HttpApiBuilder.group(
           );
         })
       )
-      .handle("getWhatsapp", ({ params }) =>
+      .handle("resolveApproval", ({ params, payload }) =>
+        Effect.gen(function* () {
+          const context = yield* access(params.workspaceId, "computer:write");
+          return yield* agents.resolveApproval({
+            workspaceId: context.workspace.workspaceId,
+            userId: context.auth.userId,
+            runId: params.id,
+            senderAddress: `web:${context.auth.userId}`,
+            code: payload.code,
+            decision: payload.decision,
+          });
+        })
+      )
+      .handle("listApprovals", ({ params }) =>
         Effect.gen(function* () {
           const context = yield* access(params.workspaceId, "computer:read");
-          return yield* channels.getWhatsapp(
+          return yield* agents.listApprovals(
             context.workspace.workspaceId,
-            context.auth.userId
+            context.auth.userId,
+            params.id
           );
-        })
-      )
-      .handle("startWhatsapp", ({ params, payload }) =>
-        Effect.gen(function* () {
-          const context = yield* access(params.workspaceId, "computer:write");
-          yield* agents.create({
-            workspaceId: context.workspace.workspaceId,
-            userId: context.auth.userId,
-          });
-          return yield* channels.startWhatsapp({
-            workspaceId: context.workspace.workspaceId,
-            userId: context.auth.userId,
-            allowedSender: payload.allowedSender,
-          });
-        })
-      )
-      .handle("claimWhatsappLink", ({ params, payload }) =>
-        Effect.gen(function* () {
-          const context = yield* access(params.workspaceId, "computer:write");
-          return yield* channels.claimWhatsappLink({
-            workspaceId: context.workspace.workspaceId,
-            userId: context.auth.userId,
-            token: payload.token,
-          });
         })
       )
       .handle("listRituals", ({ params }) =>

@@ -1604,9 +1604,6 @@ importers:
       '@delulu/payments':
         specifier: workspace:*
         version: link:../payments
-      caspian-sdk:
-        specifier: 0.6.1
-        version: 0.6.1
       dodopayments:
         specifier: 2.4.3
         version: 2.4.3
@@ -10820,10 +10817,6 @@ packages:
   case-sensitive-paths-webpack-plugin@2.4.0:
     resolution: {integrity: sha512-roIFONhcxog0JSSWbvVAh3OocukmSgpqOH6YpMkCvav/ySIV3JKg4Dc8vYtQjYi/UxpNE36r/9v+VqTQqgkYmw==}
     engines: {node: '>=4'}
-
-  caspian-sdk@0.6.1:
-    resolution: {integrity: sha512-1IampbvMu4OprtxKdasqyHck9Dj1+p4ASqnurpCZDKoqrmG0H8e2wG/vzJ9FtskIH3ytVr+Tz9JiLJhB78/v6g==}
-    engines: {node: '>=18'}
 
   ccount@2.0.1:
     resolution: {integrity: sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg==}
@@ -30141,8 +30134,6 @@ snapshots:
   caniuse-lite@1.0.30001731: {}
 
   case-sensitive-paths-webpack-plugin@2.4.0: {}
-
-  caspian-sdk@0.6.1: {}
 
   ccount@2.0.1: {}
 

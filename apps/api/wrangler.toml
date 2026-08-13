@@ -38,9 +38,6 @@ class_name = "JobExecutor"
 tag = "jobs-v1"
 new_sqlite_classes = ["JobExecutor"]
 
-[ai]
-binding = "AI"
-
 [vars]
 AS_ISSUER = "https://api.delulu.social"
 API_RESOURCE = "https://api.delulu.social"
@@ -54,8 +51,6 @@ ENVIRONMENT = "production"
 CLERK_ISSUER = "https://clerk.delulu.social"
 R2_BUCKET_NAME = "delulu-social"
 R2_PUBLIC_BASE_URL = "https://media.delulu.social"
-CASPIAN_BASE_URL = "https://api.trycaspianai.com"
-CASPIAN_WEBHOOK_URL = "https://api.delulu.social/webhooks/communications"
 TWITTER_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/twitter"
 LINKEDIN_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/linkedin"
 TIKTOK_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/tiktok"
@@ -75,7 +70,6 @@ CAL_RETENTION_EVENT_SLUG = "retention"
 #   CONNECTION_STATE_SECRET
 #   CLERK_SECRET_KEY
 #   R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
-#   CASPIAN_API_KEY, CASPIAN_WEBHOOK_SECRET (optional; enables WhatsApp agent messages)
 #   ENCRYPTION_SECRET
 #   SCHEDULER_SECRET (remote self-hosted API ingress, when configured)
 #   META_APP_SECRET / META_VERIFY_TOKEN

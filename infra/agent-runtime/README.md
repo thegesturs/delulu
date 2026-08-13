@@ -30,7 +30,10 @@ External turns are capped at four model steps, a 32k-token input window, and 4k 
 
 The Workshop Worker exposes `ExternalMessageGateway` to the Delulu API only through a service binding with `{ "source": "delulu" }` props. Bind the API Worker back to itself as `AGENT_RUNTIME_BRIDGE` with entrypoint `AgentRuntimeBridge` so persistent response targets survive Worker restarts. After the runtime exists, redeploy `apps/api` so its `AGENT_RUNTIME` binding resolves.
 
-The API Worker also requires `CASPIAN_API_KEY` and `CASPIAN_WEBHOOK_SECRET`; Caspian must deliver signed events to `/webhooks/communications`. R2 credentials remain on the API Worker so inbound attachments are copied into Delulu storage before the durable agent receives their canonical URLs. The API Worker's `AI` binding transcribes archived voice notes up to 10 MB with Workers AI before their transcript is submitted to the runtime.
+External channels are optional Delulu-owned adapters. They authenticate provider
+events, resolve the Delulu user and workspace, normalize the message, and submit
+it through the runtime's trusted service-binding gateway. The runtime itself
+does not provide turnkey bidirectional messaging connectors.
 
 The ordinary Delulu Worker contains no machine-provider SDK or secret. A full Linux runner is an independently deployed, default-disabled administrative fallback.
 

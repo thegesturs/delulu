@@ -11,7 +11,6 @@ import {
   AgentRuntimeProvider,
   AuthConfig,
   ClerkAdminConfig,
-  CommunicationGatewayConfig,
   ConnectionStateConfig,
   PostHogConfig,
   R2Config,
@@ -22,13 +21,6 @@ import type { JobNamespace } from "./job-runtime";
 /** Cloudflare Hyperdrive binding (Postgres connection pooler). */
 export interface Hyperdrive {
   readonly connectionString: string;
-}
-
-export interface WorkersAiBinding {
-  readonly run: (
-    model: string,
-    input: Readonly<Record<string, unknown>>
-  ) => Promise<unknown>;
 }
 
 export interface AgentRuntimeBridgeBinding {
@@ -104,7 +96,6 @@ export interface Env {
   readonly SCHEDULER_PAUSED?: string;
   readonly DATABASE_URL?: string;
   readonly HYPERDRIVE?: Hyperdrive;
-  readonly AI?: WorkersAiBinding;
   readonly DELULU_DEPLOYMENT_MODE?: "hosted" | "self_hosted";
   readonly DELULU_REGISTRATION_ENABLED?: string;
   readonly DELULU_VERSION?: string;
@@ -126,10 +117,6 @@ export interface Env {
   readonly R2_BUCKET_NAME?: string;
   readonly R2_PUBLIC_BASE_URL?: string;
   readonly ENCRYPTION_SECRET?: string;
-  readonly CASPIAN_API_KEY?: string;
-  readonly CASPIAN_BASE_URL?: string;
-  readonly CASPIAN_WEBHOOK_URL?: string;
-  readonly CASPIAN_WEBHOOK_SECRET?: string;
   readonly SQS_INGRESS_URL?: string;
   readonly SQS_INGRESS_SECRET?: string;
   readonly EDGE_CACHE_KV?: KeyValueCacheBinding;
@@ -247,18 +234,6 @@ export const domainConfigLayers = (env: Env) =>
       })
     ),
   ] as const;
-
-export const communicationGatewayConfigLayer = (env: Env) =>
-  Layer.succeed(
-    CommunicationGatewayConfig,
-    CommunicationGatewayConfig.of({
-      apiKey: env.CASPIAN_API_KEY ?? "",
-      baseUrl: env.CASPIAN_BASE_URL ?? "https://api.trycaspianai.com",
-      webhookUrl: env.CASPIAN_WEBHOOK_URL ?? "",
-      webhookSecret: env.CASPIAN_WEBHOOK_SECRET ?? "",
-      appBaseUrl: env.APP_BASE_URL ?? "http://localhost:3000",
-    })
-  );
 
 export const agentRuntimeProviderLayer = (env: Env) => {
   const bridge = env.AGENT_RUNTIME_BRIDGE;

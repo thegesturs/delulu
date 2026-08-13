@@ -161,7 +161,8 @@ export const agentMemoryRequiresConfirmation = (proposal: {
 
 export const deriveAgentRoute = (input: {
   readonly workspaceId: string;
-  readonly channel: "whatsapp" | "web" | "ritual";
+  readonly channel: "external" | "web" | "ritual";
+  readonly adapterId?: string;
   readonly connectionId?: string;
   readonly conversationId?: string;
   readonly threadId?: string;
@@ -169,15 +170,15 @@ export const deriveAgentRoute = (input: {
 }) => {
   const gadgetKey = `workspace:${input.workspaceId}`;
   switch (input.channel) {
-    case "whatsapp":
-      if (!(input.connectionId && input.conversationId)) {
+    case "external":
+      if (!(input.adapterId && input.connectionId && input.conversationId)) {
         throw new Error(
-          "WhatsApp routing requires connection and conversation IDs"
+          "External routing requires adapter, connection, and conversation IDs"
         );
       }
       return {
         gadgetKey,
-        chatKey: `whatsapp:${input.connectionId}:${input.conversationId}`,
+        chatKey: `external:${input.adapterId}:${input.connectionId}:${input.conversationId}`,
       };
     case "web":
       if (!input.threadId) {

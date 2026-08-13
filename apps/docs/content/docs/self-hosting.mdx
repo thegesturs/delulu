@@ -24,16 +24,10 @@ Rare Linux, native-binary, or full-browser tasks belong in a separately
 deployed, default-disabled administrative runner with workspace-scoped
 credentials, hard runtime and idle limits, and explicit artifact export.
 
-WhatsApp control is optional. Set `CASPIAN_API_KEY`, a random
-`CASPIAN_WEBHOOK_SECRET`, and `CASPIAN_WEBHOOK_URL` pointing to the public API
-route `/webhooks/communications`. Voice-note control additionally requires a
-Cloudflare Workers AI binding named `AI`; audio is archived to R2 before
-transcription. The operator must activate billing for the
-paid channel, and each user completes the hosted business-number onboarding
-from the Agent page. Inbound messages are signature-verified, deduplicated, and
-accepted only from the phone number that user approved. Consequential actions
-produce short-lived, single-use approval codes bound to that sender and
-workspace; `APPROVE <code>` and `REJECT <code>` resolve them.
+Content HQ currently ships with its authenticated web conversation surface.
+External communication channels are separate provider adapters that normalize
+messages into the runtime's trusted service-binding gateway. No third-party
+communication gateway credential is required by the core deployment.
 
 ## Install
 

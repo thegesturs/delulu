@@ -12,13 +12,14 @@ describe("agent runtime protocol", () => {
     expect(
       deriveAgentRoute({
         workspaceId: "workspace_123",
-        channel: "whatsapp",
+        channel: "external",
+        adapterId: "channel-adapter",
         connectionId: "channel_456",
         conversationId: "conversation_789",
       })
     ).toEqual({
       gadgetKey: "workspace:workspace_123",
-      chatKey: "whatsapp:channel_456:conversation_789",
+      chatKey: "external:channel-adapter:channel_456:conversation_789",
     });
   });
 
@@ -40,7 +41,7 @@ describe("agent runtime protocol", () => {
         callerEmail: "owner@example.com",
         displayName: "Owner",
         gadgetKey: "workspace:workspace_123",
-        chatKey: "whatsapp:channel_456:conversation_789",
+        chatKey: "external:channel-adapter:channel_456:conversation_789",
         messageKey: "message_123",
         gadgetTitle: "Content HQ",
         prompt: "Draft a launch post",
@@ -69,12 +70,12 @@ describe("agent runtime protocol", () => {
       first: {
         accepted: true,
         chatPath:
-          "/workspace/workspace%3Aworkspace_123/chat/whatsapp%3Achannel_456%3Aconversation_789",
+          "/workspace/workspace%3Aworkspace_123/chat/external%3Achannel-adapter%3Achannel_456%3Aconversation_789",
       },
       duplicate: {
         accepted: true,
         chatPath:
-          "/workspace/workspace%3Aworkspace_123/chat/whatsapp%3Achannel_456%3Aconversation_789",
+          "/workspace/workspace%3Aworkspace_123/chat/external%3Achannel-adapter%3Achannel_456%3Aconversation_789",
       },
     });
     expect(replies).toEqual(["Draft ready"]);

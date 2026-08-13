@@ -1,4 +1,5 @@
 import {
+  type AgentApprovalView,
   type AgentMemoryView,
   type AgentRitualView,
   type AgentRunEventView,
@@ -38,6 +39,7 @@ type RunView = typeof AgentRunView.Type;
 type EventView = typeof AgentRunEventView.Type;
 type RitualView = typeof AgentRitualView.Type;
 type MemoryView = typeof AgentMemoryView.Type;
+type ApprovalView = typeof AgentApprovalView.Type;
 type UsageView = typeof AgentUsageView.Type;
 
 const iso = (value: unknown): string =>
@@ -61,7 +63,6 @@ const workspaceView = (row: Row): WorkspaceView => ({
   dailyBudgetMicros: String(row.dailyBudgetMicros),
   maxConcurrentRuns: Number(row.maxConcurrentRuns),
   maxRunSeconds: Number(row.maxRunSeconds),
-  whatsappEnabled: Boolean(row.whatsappEnabled),
   ritualsEnabled: Boolean(row.ritualsEnabled),
   externalWritesEnabled: Boolean(row.externalWritesEnabled),
   advancedCodeEnabled: Boolean(row.advancedCodeEnabled),
@@ -135,7 +136,7 @@ const memoryView = (row: Row): MemoryView => ({
 
 const SELECT_WORKSPACE = `id, workspace_id, runtime_gadget_key, runtime_path, state, access_tier,
   trial_turns_remaining, monthly_budget_micros, daily_budget_micros,
-  max_concurrent_runs, max_run_seconds, whatsapp_enabled, rituals_enabled,
+  max_concurrent_runs, max_run_seconds, rituals_enabled,
   external_writes_enabled, advanced_code_enabled, last_activity_at, created_at,
   updated_at`;
 
@@ -203,7 +204,6 @@ export class AgentWorkspaceService extends Context.Service<
       readonly workspaceId: WorkspaceId;
       readonly userId: UserId;
       readonly runtimeEnabled?: boolean;
-      readonly whatsappEnabled?: boolean;
       readonly ritualsEnabled?: boolean;
       readonly externalWritesEnabled?: boolean;
       readonly advancedCodeEnabled?: boolean;
@@ -218,7 +218,8 @@ export class AgentWorkspaceService extends Context.Service<
       readonly billingOwnerUserId: UserId;
       readonly message: string;
       readonly idempotencyKey: string;
-      readonly source: "web" | "whatsapp" | "ritual";
+      readonly source: "web" | "external" | "ritual";
+      readonly adapterId?: string;
       readonly threadId?: string;
       readonly connectionId?: string;
       readonly conversationId?: string;
@@ -257,6 +258,7 @@ export class AgentWorkspaceService extends Context.Service<
     readonly resolveApproval: (input: {
       readonly workspaceId: WorkspaceId;
       readonly userId: UserId;
+      readonly runId: string;
       readonly senderAddress: string;
       readonly code: string;
       readonly decision: "approved" | "rejected";
@@ -298,6 +300,11 @@ export class AgentWorkspaceService extends Context.Service<
       workspaceId: WorkspaceId,
       userId: UserId
     ) => Effect.Effect<readonly MemoryView[]>;
+    readonly listApprovals: (
+      workspaceId: WorkspaceId,
+      userId: UserId,
+      runId: string
+    ) => Effect.Effect<readonly ApprovalView[], NotFoundError>;
     readonly resolveMemory: (input: {
       readonly workspaceId: WorkspaceId;
       readonly userId: UserId;
@@ -420,7 +427,6 @@ export class AgentWorkspaceService extends Context.Service<
           readonly workspaceId: WorkspaceId;
           readonly userId: UserId;
           readonly runtimeEnabled?: boolean;
-          readonly whatsappEnabled?: boolean;
           readonly ritualsEnabled?: boolean;
           readonly externalWritesEnabled?: boolean;
           readonly advancedCodeEnabled?: boolean;
@@ -428,7 +434,6 @@ export class AgentWorkspaceService extends Context.Service<
           const rows = yield* sql<Row>`UPDATE agent_workspaces SET
           state = CASE WHEN ${input.runtimeEnabled ?? null}::boolean IS NULL
             THEN state WHEN ${input.runtimeEnabled ?? null} THEN 'active' ELSE 'disabled' END,
-          whatsapp_enabled = COALESCE(${input.whatsappEnabled ?? null}, whatsapp_enabled),
           rituals_enabled = COALESCE(${input.ritualsEnabled ?? null}, rituals_enabled),
           external_writes_enabled = COALESCE(${input.externalWritesEnabled ?? null}, external_writes_enabled),
           advanced_code_enabled = COALESCE(${input.advancedCodeEnabled ?? null}, advanced_code_enabled)
@@ -543,7 +548,8 @@ export class AgentWorkspaceService extends Context.Service<
         readonly billingOwnerUserId: UserId;
         readonly message: string;
         readonly idempotencyKey: string;
-        readonly source: "web" | "whatsapp" | "ritual";
+        readonly source: "web" | "external" | "ritual";
+        readonly adapterId?: string;
         readonly threadId?: string;
         readonly connectionId?: string;
         readonly conversationId?: string;
@@ -566,7 +572,6 @@ export class AgentWorkspaceService extends Context.Service<
         }
         if (
           workspace.state !== "active" ||
-          (input.source === "whatsapp" && !workspace.whatsappEnabled) ||
           (input.source === "ritual" && !workspace.ritualsEnabled)
         ) {
           return yield* new ConflictError({
@@ -580,6 +585,7 @@ export class AgentWorkspaceService extends Context.Service<
         const route = deriveAgentRoute({
           workspaceId: input.workspaceId,
           channel: input.source,
+          adapterId: input.adapterId,
           threadId: input.threadId,
           connectionId: input.connectionId,
           conversationId: input.conversationId,
@@ -680,12 +686,6 @@ export class AgentWorkspaceService extends Context.Service<
                 (id, run_id, sequence, type, role, content)
                 VALUES (${makeId(AgentRunEventId)}, ${id}, 1,
                   'message.submitted', 'user', ${input.message})`;
-              if (input.source === "whatsapp" && input.sourceMessageKey) {
-                yield* sql`UPDATE agent_channel_messages SET agent_run_id = ${id},
-                  status = 'running', error = NULL
-                  WHERE gateway_message_id = ${input.sourceMessageKey}
-                    AND direction = 'inbound' AND status = 'queued'`;
-              }
               yield* sql`INSERT INTO agent_usage_ledger
                 (id, billing_owner_user_id, agent_workspace_id, run_id,
                   entry_type, idempotency_key, cost_micros)
@@ -898,24 +898,22 @@ export class AgentWorkspaceService extends Context.Service<
           WHERE idempotency_key = ${`run:${input.runId}:reservation`}
           ON CONFLICT (idempotency_key) DO NOTHING`.pipe(Effect.orDie);
 
-              const senderAddress =
-                input.senderAddress ??
-                nullableString(
-                  (yield* sql<Row>`SELECT sender_address FROM agent_channel_messages
-            WHERE agent_run_id = ${input.runId} ORDER BY created_at DESC LIMIT 1`.pipe(
-                    Effect.orDie
-                  ))[0]?.senderAddress
-                );
+              const senderAddress = input.senderAddress ?? null;
               const approvalLines: string[] = [];
               for (const action of actions) {
                 const code = approvalCode();
                 const codeHash = yield* hashAgentApprovalCode(code);
+                const encryptedCode = yield* cipher
+                  .encrypt(code)
+                  .pipe(Effect.orDie);
                 yield* sql`INSERT INTO agent_action_approvals
             (id, run_id, user_id, workspace_id, runtime_action_id, kind, summary,
-              risk, code_hash, code_hint, sender_address, expires_at)
+              risk, code_hash, code_hint, code_ciphertext, code_cipher_version,
+              sender_address, expires_at)
             VALUES (${makeId(AgentApprovalId)}, ${input.runId}, ${String(row.userId)},
               ${String(row.workspaceId)}, ${action.id}, ${action.kind}, ${action.summary},
               ${action.risk}, ${codeHash}, ${code.slice(-2)},
+              ${encryptedCode.ciphertext}, ${encryptedCode.cipherVersion},
               ${senderAddress}, now() + interval '15 minutes')
             ON CONFLICT (user_id, workspace_id, runtime_action_id) DO NOTHING`.pipe(
                   Effect.orDie
@@ -968,11 +966,53 @@ export class AgentWorkspaceService extends Context.Service<
           .pipe(Effect.orDie);
       });
 
+      const listApprovals = Effect.fn("AgentWorkspaceService.listApprovals")(
+        function* (workspaceId: WorkspaceId, userId: UserId, runId: string) {
+          const run = yield* sql<Row>`SELECT id FROM agent_runs
+            WHERE id = ${runId} AND workspace_id = ${workspaceId}
+              AND user_id = ${userId} LIMIT 1`.pipe(Effect.orDie);
+          if (!run[0]) {
+            return yield* new NotFoundError({
+              message: "Agent run was not found",
+              resource: "agent-run",
+            });
+          }
+          const rows = yield* sql<Row>`SELECT id, run_id, kind, summary, risk,
+              code_ciphertext, code_cipher_version, expires_at
+            FROM agent_action_approvals
+            WHERE run_id = ${runId} AND workspace_id = ${workspaceId}
+              AND user_id = ${userId} AND status = 'pending'
+              AND expires_at > now() AND code_ciphertext IS NOT NULL
+              AND code_cipher_version = 'v1'
+            ORDER BY created_at ASC`.pipe(Effect.orDie);
+          return yield* Effect.forEach(rows, (row) =>
+            cipher
+              .decrypt({
+                ciphertext: String(row.codeCiphertext),
+                cipherVersion: "v1",
+              })
+              .pipe(
+                Effect.orDie,
+                Effect.map((code) => ({
+                  id: String(row.id),
+                  runId: String(row.runId),
+                  kind: String(row.kind),
+                  summary: String(row.summary),
+                  risk: row.risk as ApprovalView["risk"],
+                  code,
+                  expiresAt: iso(row.expiresAt),
+                }))
+              )
+          );
+        }
+      );
+
       const resolveApproval = Effect.fn(
         "AgentWorkspaceService.resolveApproval"
       )(function* (input: {
         readonly workspaceId: WorkspaceId;
         readonly userId: UserId;
+        readonly runId: string;
         readonly senderAddress: string;
         readonly code: string;
         readonly decision: "approved" | "rejected";
@@ -995,6 +1035,7 @@ export class AgentWorkspaceService extends Context.Service<
         const rows = yield* sql<Row>`UPDATE agent_action_approvals SET
             status = ${input.decision}, resolved_at = now()
             WHERE workspace_id = ${input.workspaceId} AND user_id = ${input.userId}
+              AND run_id = ${input.runId}
               AND code_hash = ${codeHash} AND status = 'pending'
               AND expires_at > now()
               AND (sender_address IS NULL OR sender_address = ${input.senderAddress})
@@ -1225,6 +1266,7 @@ export class AgentWorkspaceService extends Context.Service<
         interrupt,
         completeExternalResponse,
         resolveApproval,
+        listApprovals,
         usage,
         listRituals,
         createRitual,
