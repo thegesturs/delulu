@@ -26,6 +26,13 @@ META_APP_SECRET=""
 META_VERIFY_TOKEN=""
 CAL_WEBHOOK_SECRET=""
 
+# WhatsApp gateway. The webhook URL must be publicly reachable and the secret
+# should be a random value shared only with the gateway.
+CASPIAN_API_KEY=""
+CASPIAN_BASE_URL="https://api.trycaspianai.com"
+CASPIAN_WEBHOOK_URL="https://your-api-tunnel.example.com/webhooks/communications"
+CASPIAN_WEBHOOK_SECRET=""
+
 # OAuth callbacks are separate from webhooks and must also return through the
 # public API tunnel during local development.
 TWITTER_CALLBACK_URL="https://your-api-tunnel.example.com/v1/connections/callback/twitter"
@@ -42,3 +49,4 @@ THREADS_CALLBACK_URL="https://your-api-tunnel.example.com/v1/connections/callbac
 # https://your-api-tunnel.example.com/webhooks/dodo
 # https://your-api-tunnel.example.com/webhooks/meta
 # https://your-api-tunnel.example.com/webhooks/cal
+# https://your-api-tunnel.example.com/webhooks/communications

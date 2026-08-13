@@ -15,13 +15,13 @@
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
-    "@daytona/sdk": "0.203.0",
     "@delulu/analytics": "workspace:*",
     "@delulu/connections": "workspace:*",
     "@delulu/contracts": "workspace:*",
     "@delulu/core": "workspace:*",
     "@delulu/db": "workspace:*",
     "@delulu/payments": "workspace:*",
+    "caspian-sdk": "0.6.1",
     "dodopayments": "2.4.3",
     "effect": "catalog:"
   },

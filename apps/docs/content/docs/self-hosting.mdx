@@ -18,11 +18,22 @@ The current release requires operator-owned Clerk and Cloudflare R2 projects. Ge
 
 Optional integrations remain inactive when their credentials are absent.
 
-Persistent agent computers are optional. Set `DAYTONA_API_KEY` to enable them;
-`DAYTONA_API_URL`, `DAYTONA_TARGET`, `DAYTONA_SNAPSHOT`, and
-`AGENT_COMPUTER_AUTO_PAUSE_MINUTES` tune the execution environment. Without an
-API key, workspace file storage remains available and computer operations return
-a typed provider-unavailable response.
+Content HQ requires the independently deployed durable agent runtime described
+in `infra/agent-runtime`. The normal API carries no full-machine SDK or secret.
+Rare Linux, native-binary, or full-browser tasks belong in a separately
+deployed, default-disabled administrative runner with workspace-scoped
+credentials, hard runtime and idle limits, and explicit artifact export.
+
+WhatsApp control is optional. Set `CASPIAN_API_KEY`, a random
+`CASPIAN_WEBHOOK_SECRET`, and `CASPIAN_WEBHOOK_URL` pointing to the public API
+route `/webhooks/communications`. Voice-note control additionally requires a
+Cloudflare Workers AI binding named `AI`; audio is archived to R2 before
+transcription. The operator must activate billing for the
+paid channel, and each user completes the hosted business-number onboarding
+from the Agent page. Inbound messages are signature-verified, deduplicated, and
+accepted only from the phone number that user approved. Consequential actions
+produce short-lived, single-use approval codes bound to that sender and
+workspace; `APPROVE <code>` and `REJECT <code>` resolve them.
 
 ## Install
 
@@ -66,11 +77,11 @@ docker compose up -d --build --wait
 - `postgres`: authoritative state in a persistent volume.
 - `proxy`: optional automatic TLS termination with Caddy.
 
-Agent computer metadata, task history, file paths, and file versions live in
-PostgreSQL. Computer filesystems live in the configured execution provider and
-auto-pause when idle. Durable user files live as private R2 objects and are
-downloaded through one-hour signed URLs; a file marked `private` is visible only
-to its owner, while a `workspace` file follows workspace membership and scopes.
+Agent workspace metadata, run history, approvals, memory and rituals live in
+PostgreSQL. Durable chat state lives in the independently deployed runtime.
+User files live as private R2 objects and are downloaded through one-hour signed
+URLs; a file marked `private` is visible only to its owner, while a `workspace`
+file follows workspace membership and scopes.
 
 ## Backup and restore
 

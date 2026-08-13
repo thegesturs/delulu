@@ -1,10 +1,10 @@
 import { Api } from "@delulu/contracts";
 import { CurrentAuth, emptyPooledUsage } from "@delulu/core";
 import {
+  AgentRuntimeProvider,
   AnalyticsService,
   BillingService,
   DeploymentConfig,
-  ExecutionWorkspaceConfig,
   IdentityService,
   MembershipService,
   MessagingService,
@@ -38,14 +38,14 @@ export const InstanceHandlers = HttpApiBuilder.group(
   "instance",
   Effect.fnUntraced(function* (handlers) {
     const deployment = yield* DeploymentConfig;
-    const execution = yield* ExecutionWorkspaceConfig;
+    const runtime = yield* AgentRuntimeProvider;
     const r2 = yield* R2Service;
     return handlers.handle("capabilities", () =>
       Effect.succeed({
         deploymentMode: deployment.mode,
         billingEnabled: deployment.mode === "hosted",
         registrationEnabled: deployment.registrationEnabled,
-        agentComputerEnabled: Boolean(execution.apiKey),
+        agentComputerEnabled: runtime.configured,
         workspaceFilesEnabled: r2.configured,
         version: deployment.version,
       })

@@ -1,7 +1,10 @@
-import { makeTokenCipher, TokenCipher } from "@delulu/core";
+import { WorkerEntrypoint } from "cloudflare:workers";
+import { PostWrite } from "@delulu/contracts";
+import { makeTokenCipher, TokenCipher, WorkspaceId } from "@delulu/core";
 import {
   AdminService,
-  AgentComputerService,
+  AgentChannelService,
+  AgentWorkspaceService,
   AnalyticsService,
   ApiKeyVerifier,
   AsTokenService,
@@ -22,17 +25,19 @@ import {
   ClerkAdminService,
   ClerkSyncService,
   ClerkTokenVerifier,
+  CommunicationAttachmentProvider,
+  CommunicationGatewayProvider,
+  CommunicationTranscriptionProvider,
   ConnectionStateService,
   ConnectionsService,
-  DaytonaExecutionWorkspace,
   DeploymentConfig,
   DmDispatchService,
   EntitlementPolicy,
-  ExecutionWorkspaceConfig,
   IdentityService,
   JobIntent,
   JobService,
   LifecycleService,
+  MaintenanceScheduler,
   MediaService,
   MembershipService,
   MessagingService,
@@ -65,6 +70,7 @@ import {
   Redacted,
   Schema,
 } from "effect";
+import { SqlClient } from "effect/unstable/sql";
 import { type AppServices, buildWebHandler } from "./app";
 import {
   AutomationProviderLive,
@@ -72,13 +78,14 @@ import {
 } from "./automation-providers";
 import { DurableJobObject, type JobState } from "./durable-job";
 import {
+  agentRuntimeProviderLayer,
   appOrigins,
   authConfigLayer,
+  communicationGatewayConfigLayer,
   databaseUrl,
   domainConfigLayers,
   type Env,
   type ExecutionContext,
-  executionWorkspaceConfigLayer,
   postHogConfigLayer,
 } from "./env";
 import { executeJob, failJob } from "./execute-job";
@@ -148,12 +155,13 @@ export const makeBaseLayer = (
     TokenCipher.of(makeTokenCipher(env.ENCRYPTION_SECRET ?? ""))
   );
   const R2 = R2Service.layer.pipe(Layer.provide(R2Config));
-  const ExecutionConfig = executionWorkspaceConfigLayer(env);
-  const Execution = DaytonaExecutionWorkspace.pipe(
-    Layer.provide(ExecutionConfig)
+  const AgentRuntime = agentRuntimeProviderLayer(env);
+  const AgentWorkspaces = AgentWorkspaceService.layer.pipe(
+    Layer.provide([AgentRuntime, Cipher])
   );
-  const AgentComputers = AgentComputerService.layer.pipe(
-    Layer.provide(Execution)
+  const CommunicationConfig = communicationGatewayConfigLayer(env);
+  const CommunicationGateway = CommunicationGatewayProvider.layer.pipe(
+    Layer.provide(CommunicationConfig)
   );
   const WorkspaceFiles = WorkspaceFileService.layer.pipe(
     Layer.provide([R2, QuotaGuard.layer.pipe(Layer.provide(Entitlements))])
@@ -168,6 +176,90 @@ export const makeBaseLayer = (
       Jobs,
       R2,
       QuotaGuard.layer.pipe(Layer.provide(Entitlements)),
+    ])
+  );
+  const VoiceTranscriptions = env.AI
+    ? Layer.succeed(
+        CommunicationTranscriptionProvider,
+        CommunicationTranscriptionProvider.of({
+          transcribe: ({ url }) =>
+            Effect.tryPromise({
+              try: async () => {
+                const response = await fetch(url, {
+                  signal: AbortSignal.timeout(30_000),
+                });
+                if (!response.ok) {
+                  throw new Error(
+                    `Archived voice note returned ${response.status}`
+                  );
+                }
+                const maximumBytes = 10 * 1024 * 1024;
+                const declaredLength = Number(
+                  response.headers.get("content-length") ?? 0
+                );
+                if (declaredLength > maximumBytes) {
+                  throw new Error("Voice note exceeds the 10 MB limit");
+                }
+                if (!response.body) {
+                  throw new Error("Archived voice note had no body");
+                }
+                const reader = response.body.getReader();
+                const chunks: Uint8Array[] = [];
+                let byteLength = 0;
+                while (true) {
+                  const chunk = await reader.read();
+                  if (chunk.done) {
+                    break;
+                  }
+                  byteLength += chunk.value.byteLength;
+                  if (byteLength > maximumBytes) {
+                    await reader.cancel();
+                    throw new Error("Voice note exceeds the 10 MB limit");
+                  }
+                  chunks.push(chunk.value);
+                }
+                const bytes = new Uint8Array(byteLength);
+                let targetOffset = 0;
+                for (const chunk of chunks) {
+                  bytes.set(chunk, targetOffset);
+                  targetOffset += chunk.byteLength;
+                }
+                let binary = "";
+                for (let offset = 0; offset < bytes.length; offset += 0x80_00) {
+                  binary += String.fromCharCode(
+                    ...Array.from(bytes.subarray(offset, offset + 0x80_00))
+                  );
+                }
+                const output = await env.AI!.run(
+                  "@cf/openai/whisper-large-v3-turbo",
+                  { audio: btoa(binary), vad_filter: true }
+                );
+                const decoded = Schema.decodeUnknownSync(
+                  Schema.Struct({ text: Schema.String })
+                )(output);
+                const transcript = decoded.text.trim();
+                if (!transcript) {
+                  throw new Error("Voice-note transcription was empty");
+                }
+                return transcript;
+              },
+              catch: (cause) =>
+                cause instanceof Error
+                  ? cause
+                  : new Error("Voice-note transcription failed"),
+            }),
+        })
+      )
+    : CommunicationTranscriptionProvider.unavailableLayer;
+  const CommunicationAttachments = CommunicationAttachmentProvider.layer.pipe(
+    Layer.provide([Media, VoiceTranscriptions])
+  );
+  const AgentChannels = AgentChannelService.layer.pipe(
+    Layer.provide([
+      CommunicationConfig,
+      CommunicationGateway,
+      CommunicationAttachments,
+      AgentWorkspaces,
     ])
   );
   const AutomationKvBinding = env.AUTOMATION_KV
@@ -229,6 +321,7 @@ export const makeBaseLayer = (
     Layer.provide([Telemetry, Jobs])
   );
   const BillingReconcile = BillingReconciliation.layer;
+  const Maintenance = MaintenanceScheduler.layer;
   const Transcriptions = TranscriptionService.layer;
   const TranscriptionCheckoutConfigLayer = Layer.succeed(
     TranscriptionCheckoutConfig,
@@ -335,9 +428,9 @@ export const makeBaseLayer = (
     ClerkAdmin,
     ConnectionState,
     R2,
-    ExecutionConfig,
-    Execution,
-    AgentComputers,
+    AgentRuntime,
+    AgentWorkspaces,
+    AgentChannels,
     WorkspaceFiles,
     Access,
     Posts,
@@ -356,6 +449,7 @@ export const makeBaseLayer = (
     BillingTransfers,
     BillingWebhooks,
     BillingReconcile,
+    Maintenance,
     Transcriptions,
     TranscriptionCheckout,
     Setup,
@@ -372,6 +466,313 @@ export const makeBaseLayer = (
     Layer.orDie
   );
 };
+
+interface AgentResponseTargetStub {
+  readonly onGadgetResponse: (
+    response: import("@delulu/services").AgentRuntimeResponse
+  ) => Promise<void>;
+}
+
+interface AgentResponseTargetExports {
+  readonly AgentResponseTarget: (options: {
+    readonly props: { readonly runId: string };
+  }) => AgentResponseTargetStub;
+}
+
+/** Trusted self-binding entrypoint that creates a persistent callback target. */
+export class AgentRuntimeBridge extends WorkerEntrypoint<Env> {
+  async ensureExternalUser(input: {
+    readonly email: string;
+    readonly displayName: string;
+  }): Promise<void> {
+    if (!this.env.AGENT_RUNTIME) {
+      throw new Error("Agent runtime binding is not configured");
+    }
+    await this.env.AGENT_RUNTIME.ensureExternalUser(input);
+  }
+
+  async submitExternalMessage(input: {
+    readonly correlationId: string;
+    readonly callerEmail: string;
+    readonly displayName: string;
+    readonly gadgetKey: string;
+    readonly chatKey: string;
+    readonly messageKey: string;
+    readonly gadgetTitle: string;
+    readonly prompt: string;
+  }) {
+    if (!this.env.AGENT_RUNTIME) {
+      throw new Error("Agent runtime binding is not configured");
+    }
+    const workerExports = this.ctx
+      .exports as unknown as AgentResponseTargetExports;
+    const chatGatewayRpcTarget = workerExports.AgentResponseTarget({
+      props: { runId: input.correlationId },
+    });
+    return this.env.AGENT_RUNTIME.submitExternalMessage({
+      callerEmail: input.callerEmail,
+      gadgetKey: input.gadgetKey,
+      chatKey: input.chatKey,
+      messageKey: input.messageKey,
+      gadgetTitle: input.gadgetTitle,
+      prompt: input.prompt,
+      chatGatewayRpcTarget,
+    });
+  }
+
+  async interruptExternalRun(input: {
+    readonly callerEmail: string;
+    readonly gadgetKey: string;
+    readonly chatKey: string;
+    readonly messageKey: string;
+  }): Promise<void> {
+    if (!this.env.AGENT_RUNTIME) {
+      throw new Error("Agent runtime binding is not configured");
+    }
+    await this.env.AGENT_RUNTIME.interruptExternalRun(input);
+  }
+
+  async resolveExternalAction(input: {
+    readonly callerEmail: string;
+    readonly gadgetKey: string;
+    readonly actionId: string;
+    readonly decision: "approved" | "rejected";
+  }): Promise<void> {
+    if (!this.env.AGENT_RUNTIME) {
+      throw new Error("Agent runtime binding is not configured");
+    }
+    await this.env.AGENT_RUNTIME.resolveExternalAction(input);
+  }
+}
+
+/** At-least-once runtime completion callback; database claims make delivery idempotent. */
+export class AgentResponseTarget extends WorkerEntrypoint<
+  Env,
+  { readonly runId: string }
+> {
+  async onGadgetResponse(
+    response: import("@delulu/services").AgentRuntimeResponse
+  ): Promise<void> {
+    const runId = this.ctx.props.runId;
+    const program = Effect.gen(function* () {
+      const agents = yield* AgentWorkspaceService;
+      const channels = yield* AgentChannelService;
+      const completed = yield* agents.completeExternalResponse({
+        runId,
+        response,
+      });
+      yield* channels.deliverRunResponse(runId, completed.replyText);
+    });
+    await Effect.runPromise(
+      program.pipe(Effect.provide(makeBaseLayer(this.env)))
+    );
+  }
+}
+
+type ContentAction =
+  | {
+      readonly kind: "create_draft";
+      readonly workspaceId: string;
+      readonly value: unknown;
+    }
+  | {
+      readonly kind: "update_draft";
+      readonly workspaceId: string;
+      readonly postId: string;
+      readonly value: unknown;
+    }
+  | {
+      readonly kind: "schedule";
+      readonly workspaceId: string;
+      readonly postId: string;
+      readonly value: unknown;
+    }
+  | {
+      readonly kind: "publish";
+      readonly workspaceId: string;
+      readonly postId: string;
+    };
+
+/** Tenant-authorized capability used only by the Content Gatekeeper binding. */
+export class AgentContentBridge extends WorkerEntrypoint<Env> {
+  async getContentContext(input: {
+    readonly callerEmail: string;
+    readonly workspaceId: string;
+  }) {
+    const program = Effect.gen(function* () {
+      const sql = yield* SqlClient.SqlClient;
+      const posts = yield* PostService;
+      const workspaceId = yield* Schema.decodeUnknownEffect(WorkspaceId)(
+        input.workspaceId
+      );
+      const members = yield* sql<{
+        memberId: string;
+        role: "owner" | "admin" | "editor" | "viewer";
+        workspaceName: string;
+      }>`SELECT wm.id AS member_id, wm.role, w.name AS workspace_name
+          FROM users u
+          JOIN workspace_members wm ON wm.user_id = u.id
+          JOIN workspaces w ON w.id = wm.workspace_id
+          WHERE lower(u.email) = ${input.callerEmail.trim().toLowerCase()}
+            AND wm.workspace_id = ${input.workspaceId}
+            AND u.identity_deleted_at IS NULL LIMIT 1`;
+      const member = members[0];
+      if (!member) {
+        throw new Error("Content HQ workspace access denied");
+      }
+      const [connections, memories, files, recentPosts] = yield* Effect.all([
+        sql<Record<string, unknown>>`SELECT id, platform, username, display_name
+          FROM connections WHERE workspace_id = ${input.workspaceId}
+          ORDER BY created_at DESC`,
+        sql<Record<string, unknown>>`SELECT id, category, value, provenance,
+          confidence, status, requires_confirmation, updated_at
+          FROM agent_memories WHERE workspace_id = ${input.workspaceId}
+            AND status != 'rejected' ORDER BY updated_at DESC LIMIT 100`,
+        sql<Record<string, unknown>>`SELECT wf.id, wf.filename, wf.logical_path,
+          wfv.mime_type, COALESCE(wfv.size_bytes, 0)::text AS size_bytes
+          FROM workspace_files wf LEFT JOIN workspace_file_versions wfv
+            ON wfv.id = wf.current_version_id
+          WHERE wf.workspace_id = ${input.workspaceId} AND wf.deleted_at IS NULL
+            AND wf.status = 'available' ORDER BY wf.updated_at DESC LIMIT 100`,
+        posts.list({
+          workspaceId,
+          limit: 50,
+          offset: 0,
+        }),
+      ]);
+      return {
+        workspace: {
+          id: input.workspaceId,
+          name: member.workspaceName,
+          role: member.role,
+        },
+        connections: connections.map((connection) => ({
+          id: String(connection.id),
+          platform: String(connection.platform),
+          username:
+            connection.username == null ? null : String(connection.username),
+          displayName:
+            connection.displayName == null
+              ? null
+              : String(connection.displayName),
+        })),
+        recentPosts: recentPosts.data,
+        memories,
+        files: files.map((file) => ({
+          id: String(file.id),
+          filename: String(file.filename),
+          logicalPath: String(file.logicalPath),
+          mimeType: file.mimeType == null ? null : String(file.mimeType),
+          sizeBytes: String(file.sizeBytes),
+        })),
+      };
+    });
+    return Effect.runPromise(
+      program.pipe(Effect.provide(makeBaseLayer(this.env)))
+    );
+  }
+
+  async executeContentAction(input: {
+    readonly callerEmail: string;
+    readonly action: ContentAction;
+    readonly idempotencyKey: string;
+  }) {
+    const program = Effect.gen(function* () {
+      const sql = yield* SqlClient.SqlClient;
+      const posts = yield* PostService;
+      const workspaceId = yield* Schema.decodeUnknownEffect(WorkspaceId)(
+        input.action.workspaceId
+      );
+      const members = yield* sql<{
+        memberId: string;
+        role: "owner" | "admin" | "editor" | "viewer";
+      }>`SELECT wm.id AS member_id, wm.role FROM users u
+          JOIN workspace_members wm ON wm.user_id = u.id
+          WHERE lower(u.email) = ${input.callerEmail.trim().toLowerCase()}
+            AND wm.workspace_id = ${input.action.workspaceId}
+            AND u.identity_deleted_at IS NULL LIMIT 1`;
+      const actor = members[0];
+      if (!actor || actor.role === "viewer") {
+        throw new Error("Content HQ write access denied");
+      }
+      const claimed = yield* sql<{
+        idempotencyKey: string;
+      }>`INSERT INTO agent_external_effects
+        (idempotency_key, caller_email, workspace_id, action_kind, status)
+        VALUES (${input.idempotencyKey}, ${input.callerEmail.toLowerCase()},
+          ${input.action.workspaceId}, ${input.action.kind}, 'executing')
+        ON CONFLICT (idempotency_key) DO UPDATE SET
+          status = 'executing', error = NULL, started_at = now()
+        WHERE agent_external_effects.status = 'failed'
+          OR agent_external_effects.updated_at < now() - interval '5 minutes'
+        RETURNING idempotency_key`;
+      if (!claimed[0]) {
+        const existing = yield* sql<{
+          status: string;
+          result: unknown;
+        }>`SELECT status, result
+          FROM agent_external_effects WHERE idempotency_key = ${input.idempotencyKey}`;
+        if (existing[0]?.status === "completed") {
+          return existing[0].result;
+        }
+        throw new Error("Content action is already executing");
+      }
+
+      const postActor = { memberId: actor.memberId, role: actor.role };
+      const execution = yield* Effect.gen(function* () {
+        if (input.action.kind === "publish") {
+          return yield* posts.publishNow({
+            workspaceId,
+            postId: input.action.postId,
+            actor: postActor,
+          });
+        }
+        const decoded = yield* Schema.decodeUnknownEffect(PostWrite)(
+          input.action.value
+        );
+        const value =
+          input.action.kind === "create_draft"
+            ? {
+                ...decoded,
+                intent: "draft" as const,
+                source: "automation" as const,
+                externalSubmissionId: input.idempotencyKey,
+              }
+            : input.action.kind === "schedule"
+              ? {
+                  ...decoded,
+                  intent: "schedule" as const,
+                  source: "automation" as const,
+                }
+              : decoded;
+        return input.action.kind === "create_draft"
+          ? yield* posts.create({
+              workspaceId,
+              actor: postActor,
+              value,
+            })
+          : yield* posts.update({
+              workspaceId,
+              postId: input.action.postId,
+              actor: postActor,
+              value,
+            });
+      }).pipe(Effect.result);
+      if (execution._tag === "Failure") {
+        yield* sql`UPDATE agent_external_effects SET status = 'failed'
+          WHERE idempotency_key = ${input.idempotencyKey}`;
+        return yield* Effect.fail(execution.failure);
+      }
+      yield* sql`UPDATE agent_external_effects SET status = 'completed',
+        result = ${JSON.stringify(execution.success)}::jsonb, completed_at = now()
+        WHERE idempotency_key = ${input.idempotencyKey}`;
+      return execution.success;
+    });
+    return Effect.runPromise(
+      program.pipe(Effect.provide(makeBaseLayer(this.env)))
+    );
+  }
+}
 
 type WebHandler = (request: Request) => Promise<Response>;
 
@@ -417,7 +818,6 @@ export class JobExecutor extends DurableJobObject {
     });
   }
 }
-
 export default {
   async fetch(
     request: Request,

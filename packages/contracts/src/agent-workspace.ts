@@ -60,30 +60,286 @@ export const AgentTaskView = Schema.Struct({
   completedAt: Schema.NullOr(Schema.String),
 });
 
+export const WhatsappAgentConnectionView = Schema.Struct({
+  id: Schema.String,
+  workspaceId: Schema.String,
+  channel: Schema.Literal("whatsapp"),
+  status: Schema.Literals(["onboarding", "active", "failed", "disconnected"]),
+  address: Schema.NullOr(Schema.String),
+  allowedSender: Schema.String,
+  onboardingUrl: Schema.NullOr(Schema.String),
+  onboardingExpiresAt: Schema.NullOr(Schema.String),
+  failureReason: Schema.NullOr(Schema.String),
+  createdAt: Schema.String,
+  updatedAt: Schema.String,
+});
+
+export const AgentWorkspaceView = Schema.Struct({
+  id: Schema.String,
+  workspaceId: Schema.String,
+  state: Schema.Literals(["active", "disabled"]),
+  accessTier: Schema.Literals(["trial", "beta", "addon", "community"]),
+  trialTurnsRemaining: Schema.Number,
+  monthlyBudgetMicros: Schema.String,
+  dailyBudgetMicros: Schema.String,
+  maxConcurrentRuns: Schema.Number,
+  maxRunSeconds: Schema.Number,
+  whatsappEnabled: Schema.Boolean,
+  ritualsEnabled: Schema.Boolean,
+  externalWritesEnabled: Schema.Boolean,
+  advancedCodeEnabled: Schema.Boolean,
+  runtimePath: Schema.NullOr(Schema.String),
+  lastActivityAt: Schema.String,
+  createdAt: Schema.String,
+  updatedAt: Schema.String,
+});
+
+export const AgentRunView = Schema.Struct({
+  id: Schema.String,
+  agentWorkspaceId: Schema.String,
+  workspaceId: Schema.String,
+  source: Schema.Literals(["web", "whatsapp", "ritual", "migration"]),
+  chatKey: Schema.String,
+  objective: Schema.String,
+  status: Schema.Literals([
+    "queued",
+    "submitted",
+    "running",
+    "waiting_approval",
+    "completed",
+    "interrupting",
+    "interrupted",
+    "failed",
+    "timed_out",
+  ]),
+  runtimeChatPath: Schema.NullOr(Schema.String),
+  output: Schema.String,
+  provider: Schema.NullOr(Schema.String),
+  model: Schema.NullOr(Schema.String),
+  inputTokens: Schema.String,
+  outputTokens: Schema.String,
+  cachedInputTokens: Schema.String,
+  costMicros: Schema.String,
+  error: Schema.NullOr(Schema.String),
+  createdAt: Schema.String,
+  completedAt: Schema.NullOr(Schema.String),
+});
+
+export const AgentRunEventView = Schema.Struct({
+  id: Schema.String,
+  runId: Schema.String,
+  sequence: Schema.Number,
+  type: Schema.String,
+  role: Schema.Literals(["system", "user", "assistant", "tool"]),
+  content: Schema.String,
+  payload: Schema.Record(Schema.String, Schema.Unknown),
+  occurredAt: Schema.String,
+});
+
+export const AgentUsageView = Schema.Struct({
+  accessTier: Schema.Literals(["trial", "beta", "addon", "community"]),
+  trialTurnsRemaining: Schema.Number,
+  dailyUsedMicros: Schema.String,
+  dailyBudgetMicros: Schema.String,
+  monthlyUsedMicros: Schema.String,
+  monthlyBudgetMicros: Schema.String,
+  activeRuns: Schema.Number,
+  maxConcurrentRuns: Schema.Number,
+});
+
+export const AgentRitualView = Schema.Struct({
+  id: Schema.String,
+  workspaceId: Schema.String,
+  kind: Schema.Literals([
+    "morning_brief",
+    "draft_ideas",
+    "daily_performance",
+    "weekly_plan",
+    "custom",
+  ]),
+  name: Schema.String,
+  prompt: Schema.String,
+  timezone: Schema.String,
+  schedule: Schema.Record(Schema.String, Schema.Unknown),
+  deliveryChannels: Schema.Array(Schema.String),
+  enabled: Schema.Boolean,
+  perRunBudgetMicros: Schema.String,
+  lastRunAt: Schema.NullOr(Schema.String),
+  nextRunAt: Schema.NullOr(Schema.String),
+  createdAt: Schema.String,
+  updatedAt: Schema.String,
+});
+
+export const AgentMemoryView = Schema.Struct({
+  id: Schema.String,
+  workspaceId: Schema.String,
+  category: Schema.Literals([
+    "voice",
+    "audience",
+    "goal",
+    "preference",
+    "rejected_pattern",
+    "platform_insight",
+    "brand_fact",
+  ]),
+  value: Schema.Unknown,
+  provenance: Schema.String,
+  confidence: Schema.Number,
+  status: Schema.Literals(["proposed", "confirmed", "rejected"]),
+  requiresConfirmation: Schema.Boolean,
+  createdAt: Schema.String,
+  updatedAt: Schema.String,
+});
+
+const RitualKind = Schema.Literals([
+  "morning_brief",
+  "draft_ideas",
+  "daily_performance",
+  "weekly_plan",
+  "custom",
+]);
+
+export const AgentGroup = HttpApiGroup.make("agent")
+  .add(
+    HttpApiEndpoint.get("getWorkspace", "/workspace", {
+      params: WorkspacePath,
+      success: Schema.NullOr(AgentWorkspaceView),
+      error: Errors,
+    }),
+    HttpApiEndpoint.post("createWorkspace", "/workspace", {
+      params: WorkspacePath,
+      success: AgentWorkspaceView,
+      error: Errors,
+    }),
+    HttpApiEndpoint.patch("updateWorkspace", "/workspace", {
+      params: WorkspacePath,
+      payload: Schema.Struct({
+        runtimeEnabled: Schema.optional(Schema.Boolean),
+        whatsappEnabled: Schema.optional(Schema.Boolean),
+        ritualsEnabled: Schema.optional(Schema.Boolean),
+        externalWritesEnabled: Schema.optional(Schema.Boolean),
+        advancedCodeEnabled: Schema.optional(Schema.Boolean),
+      }),
+      success: AgentWorkspaceView,
+      error: Errors,
+    }),
+    HttpApiEndpoint.delete("deleteWorkspace", "/workspace", {
+      params: WorkspacePath,
+      success: Schema.Struct({ deleted: Schema.Boolean }),
+      error: Errors,
+    }),
+    HttpApiEndpoint.get("listRuns", "/runs", {
+      params: WorkspacePath,
+      success: Schema.Array(AgentRunView),
+      error: Errors,
+    }),
+    HttpApiEndpoint.post("run", "/runs", {
+      params: WorkspacePath,
+      payload: Schema.Struct({
+        message: Schema.String,
+        idempotencyKey: Schema.String,
+        threadId: Schema.optional(Schema.String),
+      }),
+      success: AgentRunView,
+      error: Errors,
+    }),
+    HttpApiEndpoint.get("getRun", "/runs/:id", {
+      params: ResourcePath,
+      success: AgentRunView,
+      error: Errors,
+    }),
+    HttpApiEndpoint.get("listRunEvents", "/runs/:id/events", {
+      params: ResourcePath,
+      success: Schema.Array(AgentRunEventView),
+      error: Errors,
+    }),
+    HttpApiEndpoint.post("interruptRun", "/runs/:id/interrupt", {
+      params: ResourcePath,
+      success: AgentRunView,
+      error: Errors,
+    }),
+    HttpApiEndpoint.get("getWhatsapp", "/channels/whatsapp", {
+      params: WorkspacePath,
+      success: Schema.NullOr(WhatsappAgentConnectionView),
+      error: Errors,
+    }),
+    HttpApiEndpoint.post("startWhatsapp", "/channels/whatsapp", {
+      params: WorkspacePath,
+      payload: Schema.Struct({ allowedSender: Schema.String }),
+      success: WhatsappAgentConnectionView,
+      error: Errors,
+    }),
+    HttpApiEndpoint.post("claimWhatsappLink", "/channels/whatsapp/link", {
+      params: WorkspacePath,
+      payload: Schema.Struct({ token: Schema.String }),
+      success: WhatsappAgentConnectionView,
+      error: Errors,
+    }),
+    HttpApiEndpoint.get("listRituals", "/rituals", {
+      params: WorkspacePath,
+      success: Schema.Array(AgentRitualView),
+      error: Errors,
+    }),
+    HttpApiEndpoint.post("createRitual", "/rituals", {
+      params: WorkspacePath,
+      payload: Schema.Struct({
+        kind: RitualKind,
+        name: Schema.String,
+        prompt: Schema.String,
+        timezone: Schema.String,
+        schedule: Schema.Record(Schema.String, Schema.Unknown),
+        deliveryChannels: Schema.optional(Schema.Array(Schema.String)),
+      }),
+      success: AgentRitualView,
+      error: Errors,
+    }),
+    HttpApiEndpoint.patch("updateRitual", "/rituals/:id", {
+      params: ResourcePath,
+      payload: Schema.Struct({
+        name: Schema.optional(Schema.String),
+        prompt: Schema.optional(Schema.String),
+        timezone: Schema.optional(Schema.String),
+        schedule: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
+        deliveryChannels: Schema.optional(Schema.Array(Schema.String)),
+        enabled: Schema.optional(Schema.Boolean),
+      }),
+      success: AgentRitualView,
+      error: Errors,
+    }),
+    HttpApiEndpoint.get("usage", "/usage", {
+      params: WorkspacePath,
+      success: AgentUsageView,
+      error: Errors,
+    }),
+    HttpApiEndpoint.get("listMemories", "/memories", {
+      params: WorkspacePath,
+      success: Schema.Array(AgentMemoryView),
+      error: Errors,
+    }),
+    HttpApiEndpoint.patch("resolveMemory", "/memories/:id", {
+      params: ResourcePath,
+      payload: Schema.Struct({
+        status: Schema.Literals(["confirmed", "rejected"]),
+      }),
+      success: AgentMemoryView,
+      error: Errors,
+    })
+  )
+  .middleware(Authentication)
+  .prefix("/v1/workspaces/:workspaceId/agent")
+  .annotate(OpenApi.Title, "Agent workspace");
+
 export const AgentComputerGroup = HttpApiGroup.make("agentComputer")
   .add(
     HttpApiEndpoint.get("get", "/", {
       params: WorkspacePath,
-      success: Schema.NullOr(AgentComputerView),
+      success: Schema.NullOr(AgentWorkspaceView),
       error: Errors,
     }),
     HttpApiEndpoint.post("enable", "/", {
       params: WorkspacePath,
-      payload: Schema.Struct({
-        networkPolicy: Schema.optional(AgentNetworkPolicy),
-        approvedDomains: Schema.optional(Schema.Array(Schema.String)),
-      }),
-      success: AgentComputerView,
-      error: Errors,
-    }),
-    HttpApiEndpoint.post("resume", "/resume", {
-      params: WorkspacePath,
-      success: AgentComputerView,
-      error: Errors,
-    }),
-    HttpApiEndpoint.post("pause", "/pause", {
-      params: WorkspacePath,
-      success: AgentComputerView,
+      payload: Schema.Struct({}),
+      success: AgentWorkspaceView,
       error: Errors,
     }),
     HttpApiEndpoint.delete("remove", "/", {
@@ -91,21 +347,34 @@ export const AgentComputerGroup = HttpApiGroup.make("agentComputer")
       success: Schema.Struct({ deleted: Schema.Boolean }),
       error: Errors,
     }),
-    HttpApiEndpoint.get("listTasks", "/tasks", {
+    HttpApiEndpoint.get("listTasks", "/runs", {
       params: WorkspacePath,
-      success: Schema.Array(AgentTaskView),
+      success: Schema.Array(AgentRunView),
       error: Errors,
     }),
-    HttpApiEndpoint.post("runTask", "/tasks", {
+    HttpApiEndpoint.post("runAgent", "/runs", {
       params: WorkspacePath,
       payload: Schema.Struct({
-        objective: Schema.String,
-        command: Schema.String,
-        workingDirectory: Schema.optional(Schema.String),
+        message: Schema.String,
         idempotencyKey: Schema.String,
-        timeoutSeconds: Schema.optional(Schema.Number),
+        threadId: Schema.optional(Schema.String),
       }),
-      success: AgentTaskView,
+      success: AgentRunView,
+      error: Errors,
+    }),
+    HttpApiEndpoint.get("getRun", "/runs/:id", {
+      params: ResourcePath,
+      success: AgentRunView,
+      error: Errors,
+    }),
+    HttpApiEndpoint.get("listRunEvents", "/runs/:id/events", {
+      params: ResourcePath,
+      success: Schema.Array(AgentRunEventView),
+      error: Errors,
+    }),
+    HttpApiEndpoint.post("interruptRun", "/runs/:id/interrupt", {
+      params: ResourcePath,
+      success: AgentRunView,
       error: Errors,
     })
   )
