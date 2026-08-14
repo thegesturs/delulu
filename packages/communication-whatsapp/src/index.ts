@@ -156,6 +156,31 @@ const providerError = (
     ...(input?.status === undefined ? {} : { status: input.status }),
   });
 
+export interface WhatsAppChallengeInput {
+  readonly mode: string | null;
+  readonly token: string | null;
+  readonly challenge: string | null;
+}
+
+/** Verify Meta's one-time webhook subscription challenge without API credentials. */
+export const verifyWhatsAppChallenge = Effect.fn(
+  "WhatsAppProvider.verifyChallenge"
+)(function* (verifyToken: string, input: WhatsAppChallengeInput) {
+  if (
+    verifyToken.length > 0 &&
+    input.mode === "subscribe" &&
+    input.token === verifyToken &&
+    input.challenge !== null
+  ) {
+    return input.challenge;
+  }
+  return yield* providerError(
+    "verify_challenge",
+    "invalid_challenge",
+    "WhatsApp webhook verification failed"
+  );
+});
+
 const decodeHex = (value: string): Uint8Array | null => {
   if (
     !(value.length > 0 && value.length % 2 === 0 && HEX_PATTERN.test(value))
@@ -231,6 +256,116 @@ const normalizeMessage = (
     ...(message.context?.id ? { replyToMessageKey: message.context.id } : {}),
   };
 };
+
+export const verifyWhatsAppSignature = Effect.fn(
+  "WhatsAppProvider.verifySignature"
+)((appSecret: string, rawBody: string, signatureHeader: string | null) =>
+  Effect.gen(function* () {
+    if (
+      !(appSecret.length > 0 && signatureHeader?.startsWith(SIGNATURE_PREFIX))
+    ) {
+      return yield* providerError(
+        "verify_signature",
+        "invalid_signature",
+        "WhatsApp webhook signature is missing"
+      );
+    }
+    const signature = decodeHex(signatureHeader.slice(SIGNATURE_PREFIX.length));
+    if (signature === null) {
+      return yield* providerError(
+        "verify_signature",
+        "invalid_signature",
+        "WhatsApp webhook signature is malformed"
+      );
+    }
+    const key = yield* Effect.tryPromise({
+      try: () =>
+        crypto.subtle.importKey(
+          "raw",
+          new TextEncoder().encode(appSecret),
+          { name: "HMAC", hash: "SHA-256" },
+          false,
+          ["verify"]
+        ),
+      catch: () =>
+        providerError(
+          "verify_signature",
+          "invalid_signature",
+          "WhatsApp webhook signature could not be verified"
+        ),
+    });
+    const valid = yield* Effect.tryPromise({
+      try: () =>
+        crypto.subtle.verify(
+          "HMAC",
+          key,
+          signature,
+          new TextEncoder().encode(rawBody)
+        ),
+      catch: () =>
+        providerError(
+          "verify_signature",
+          "invalid_signature",
+          "WhatsApp webhook signature could not be verified"
+        ),
+    });
+    if (!valid) {
+      return yield* providerError(
+        "verify_signature",
+        "invalid_signature",
+        "WhatsApp webhook signature is invalid"
+      );
+    }
+  })
+);
+
+export const decodeWhatsAppWebhook = Effect.fn(
+  "WhatsAppProvider.decodeWebhook"
+)((phoneNumberId: string, rawBody: string) =>
+  Schema.decodeUnknownEffect(Schema.fromJsonString(WhatsAppWebhookPayload))(
+    rawBody
+  ).pipe(
+    Effect.mapError(() =>
+      providerError(
+        "decode_webhook",
+        "invalid_payload",
+        "WhatsApp webhook payload is invalid"
+      )
+    ),
+    Effect.flatMap((payload) => {
+      const changes = payload.entry.flatMap((entry) => entry.changes);
+      if (
+        !phoneNumberId ||
+        changes.some(
+          (change) =>
+            change.field === "messages" &&
+            change.value.metadata.phone_number_id !== phoneNumberId
+        )
+      ) {
+        return Effect.fail(
+          providerError(
+            "decode_webhook",
+            "invalid_payload",
+            "WhatsApp webhook phone number does not match this provider"
+          )
+        );
+      }
+      return Effect.succeed(
+        changes.flatMap((change) => {
+          if (change.field !== "messages") {
+            return [];
+          }
+          return (change.value.messages ?? [])
+            .map((message) => normalizeMessage(message, change.value))
+            .filter(
+              (message): message is CommunicationInboundMessage =>
+                message !== undefined
+            );
+        })
+      );
+    })
+  )
+);
 
 const bodyMessage = (body: unknown): string => {
   if (
@@ -335,88 +470,15 @@ export const makeWhatsAppProvider = (
   });
 
   const verifyChallenge = Effect.fn("WhatsAppProvider.verifyChallenge")(
-    (input: {
-      readonly mode: string | null;
-      readonly token: string | null;
-      readonly challenge: string | null;
-    }) =>
-      requireConfiguration(
-        "verify_challenge",
-        input.mode === "subscribe" &&
-          input.token === config.verifyToken &&
-          input.challenge !== null
-          ? Effect.succeed(input.challenge)
-          : Effect.fail(
-              providerError(
-                "verify_challenge",
-                "invalid_challenge",
-                "WhatsApp webhook verification failed"
-              )
-            )
-      )
+    (input: WhatsAppChallengeInput) =>
+      verifyWhatsAppChallenge(config.verifyToken, input)
   );
 
   const verifySignature = Effect.fn("WhatsAppProvider.verifySignature")(
     (rawBody: string, signatureHeader: string | null) =>
       requireConfiguration(
         "verify_signature",
-        Effect.gen(function* () {
-          if (!signatureHeader?.startsWith(SIGNATURE_PREFIX)) {
-            return yield* providerError(
-              "verify_signature",
-              "invalid_signature",
-              "WhatsApp webhook signature is missing"
-            );
-          }
-          const signature = decodeHex(
-            signatureHeader.slice(SIGNATURE_PREFIX.length)
-          );
-          if (signature === null) {
-            return yield* providerError(
-              "verify_signature",
-              "invalid_signature",
-              "WhatsApp webhook signature is malformed"
-            );
-          }
-          const key = yield* Effect.tryPromise({
-            try: () =>
-              crypto.subtle.importKey(
-                "raw",
-                new TextEncoder().encode(config.appSecret),
-                { name: "HMAC", hash: "SHA-256" },
-                false,
-                ["verify"]
-              ),
-            catch: () =>
-              providerError(
-                "verify_signature",
-                "invalid_signature",
-                "WhatsApp webhook signature could not be verified"
-              ),
-          });
-          const valid = yield* Effect.tryPromise({
-            try: () =>
-              crypto.subtle.verify(
-                "HMAC",
-                key,
-                signature,
-                new TextEncoder().encode(rawBody)
-              ),
-            catch: () =>
-              providerError(
-                "verify_signature",
-                "invalid_signature",
-                "WhatsApp webhook signature could not be verified"
-              ),
-          });
-          if (!valid) {
-            return yield* providerError(
-              "verify_signature",
-              "invalid_signature",
-              "WhatsApp webhook signature is invalid"
-            );
-          }
-        })
+        verifyWhatsAppSignature(config.appSecret, rawBody, signatureHeader)
       )
   );
 
@@ -424,48 +486,7 @@ export const makeWhatsAppProvider = (
     (rawBody: string) =>
       requireConfiguration(
         "decode_webhook",
-        Schema.decodeUnknownEffect(
-          Schema.fromJsonString(WhatsAppWebhookPayload)
-        )(rawBody).pipe(
-          Effect.mapError(() =>
-            providerError(
-              "decode_webhook",
-              "invalid_payload",
-              "WhatsApp webhook payload is invalid"
-            )
-          ),
-          Effect.flatMap((payload) => {
-            const changes = payload.entry.flatMap((entry) => entry.changes);
-            if (
-              changes.some(
-                (change) =>
-                  change.field === "messages" &&
-                  change.value.metadata.phone_number_id !== config.phoneNumberId
-              )
-            ) {
-              return Effect.fail(
-                providerError(
-                  "decode_webhook",
-                  "invalid_payload",
-                  "WhatsApp webhook phone number does not match this provider"
-                )
-              );
-            }
-            return Effect.succeed(
-              changes.flatMap((change) => {
-                if (change.field !== "messages") {
-                  return [];
-                }
-                return (change.value.messages ?? [])
-                  .map((message) => normalizeMessage(message, change.value))
-                  .filter(
-                    (message): message is CommunicationInboundMessage =>
-                      message !== undefined
-                  );
-              })
-            );
-          })
-        )
+        decodeWhatsAppWebhook(config.phoneNumberId, rawBody)
       )
   );
 

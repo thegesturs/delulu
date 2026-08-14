@@ -1,0 +1,4 @@
+name = "delulu-whatsapp-staging"
+main = "src/index.ts"
+compatibility_date = "2026-08-14"
+workers_dev = true

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { describe, expect, it, vi } from "vitest";
-import { makeWhatsAppProvider } from "./index";
+import { makeWhatsAppProvider, verifyWhatsAppChallenge } from "./index";
 
 const config = {
   accessToken: "test-token",
@@ -67,6 +67,33 @@ const sign = async (body: string) => {
 };
 
 describe("WhatsApp webhook handling", () => {
+  it("verifies a subscription challenge before the account is fully configured", async () => {
+    await expect(
+      Effect.runPromise(
+        verifyWhatsAppChallenge("verify-me", {
+          mode: "subscribe",
+          token: "verify-me",
+          challenge: "challenge-value",
+        })
+      )
+    ).resolves.toBe("challenge-value");
+  });
+
+  it("rejects a standalone challenge with the wrong token", async () => {
+    await expect(
+      Effect.runPromise(
+        verifyWhatsAppChallenge("verify-me", {
+          mode: "subscribe",
+          token: "wrong-token",
+          challenge: "challenge-value",
+        })
+      )
+    ).rejects.toMatchObject({
+      operation: "verify_challenge",
+      reason: "invalid_challenge",
+    });
+  });
+
   it("verifies the subscription challenge", async () => {
     const provider = makeWhatsAppProvider(config);
     await expect(
