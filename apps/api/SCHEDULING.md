@@ -39,7 +39,11 @@ migration refuses to retire a populated queue before the transfer completes.
    consumer. Drain in-flight publication and inspect uncertain targets.
 2. Apply additive migration 0014 only. Configure a strong `SCHEDULER_SECRET` on
    the Worker, and deploy the new Worker with `JOBS`/`jobs-v1`; keep mutations
-   paused while the one-time transfer runs.
+   paused while the one-time transfer runs. Use `wrangler deploy` for this first
+   deployment: `wrangler versions upload` rejects an unapplied DO migration
+   (Cloudflare error 10211). Branch preview uploads can resume after `jobs-v1`
+   has been applied to their target Worker. Do not make PR builds deploy directly
+   to the production Worker to bypass this restriction.
 3. Run `packages/services/scripts/migrate-scheduler.ts --old-workers-stopped`
    using `tsx`, with `DATABASE_URL`, `SCHEDULER_URL`, and `SCHEDULER_SECRET`.
    It transfers pending jobs transactionally and seeds existing message,
@@ -61,5 +65,7 @@ has no background timers. Configure this Worker in `self_hosted` deployment mode
 before starting the Compose API. Never point it at the hosted production Worker.
 
 Historical SQL migrations and the frozen pre-cutover data-import tool describe
-the previous schema; they are not runtime schedulers. This document does not
+the previous schema; they are not runtime schedulers. The import integration
+suite creates an isolated schema at migration 13, verifies the complete import,
+and checks that newer schemas are rejected before truncation. This document does not
 claim that manually configured live `pg_cron` entries have been inspected.

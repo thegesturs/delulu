@@ -15,7 +15,7 @@ export const DatabaseUrl = Config.redacted("DATABASE_URL").pipe(
 /** Only `verify`/`report` need the secret — no plaintext token in the pipeline (§4.3). */
 export const EncryptionSecret = Config.redacted("ENCRYPTION_SECRET");
 
-/** Migration head the loader asserts before truncating (bump when a migration is added). */
+/** Frozen pre-cutover schema. Later schemas retire tables required by this importer. */
 export const EXPECTED_MIGRATION_HEAD = 13;
 
 /** Output directory for the run manifest and report artifacts. */
