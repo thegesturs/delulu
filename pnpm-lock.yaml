@@ -788,7 +788,7 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
-  apps/whatsapp-staging:
+  apps/staging:
     dependencies:
       '@delulu/communication-whatsapp':
         specifier: workspace:*
