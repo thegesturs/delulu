@@ -88,6 +88,7 @@ import { jobTransportLayer, makeJobRuntime, sendIntent } from "./job-runtime";
 import { LiveInsightsProviderLive } from "./live-insights";
 
 import { messagingProvidersLayer } from "./messaging-providers";
+import { handleProviderIngress } from "./provider-ingress";
 
 /**
  * Build the per-request service environment from the Worker `env`. Rate limiting
@@ -744,6 +745,10 @@ export default {
         Schema.decodeUnknownSync(JobIntent)(await request.json())
       );
       return new Response(null, { status: 204 });
+    }
+    const ingress = await handleProviderIngress(request, env);
+    if (ingress) {
+      return ingress;
     }
     return handleRequest(request, env, ctx);
   },

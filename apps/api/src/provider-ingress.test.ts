@@ -1,20 +1,45 @@
 import { describe, expect, it } from "vitest";
-import worker, { type Env } from "./index";
+import { type Env, handleProviderIngress } from "./provider-ingress";
 
 const env = {
   WHATSAPP_VERIFY_TOKEN: "verify-me",
 } satisfies Env;
 
 const request = (path: string, init?: RequestInit) =>
-  worker.fetch(new Request(`https://staging.example${path}`, init), env);
+  handleProviderIngress(
+    new Request(`https://api.example${path}`, init),
+    env
+  ).then((response) => {
+    if (!response) {
+      throw new Error("Expected an ingress response");
+    }
+    return response;
+  });
 
-describe("WhatsApp staging webhook", () => {
-  it("returns a health response without exposing configuration", async () => {
-    const response = await request("/health");
+describe("shared provider ingress", () => {
+  it("passes ordinary API routes to the application", async () => {
+    expect(
+      await handleProviderIngress(
+        new Request("https://api.example/v1/workspaces"),
+        env
+      )
+    ).toBeNull();
+  });
+  it("leaves the existing readiness contract to the application", async () => {
+    expect(
+      await handleProviderIngress(
+        new Request("https://api.example/health"),
+        env
+      )
+    ).toBeNull();
+  });
+
+  it("returns a liveness response without exposing configuration", async () => {
+    const response = await request("/live");
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
-      service: "whatsapp-webhook",
+      service: "delulu-api",
       status: "ok",
     });
   });
@@ -37,14 +62,14 @@ describe("WhatsApp staging webhook", () => {
   });
 
   it("fails closed when the verification secret is missing", async () => {
-    const response = await worker.fetch(
+    const response = await handleProviderIngress(
       new Request(
         "https://staging.example/v1/providers/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=verify-me&hub.challenge=123456"
       ),
       {}
     );
 
-    expect(response.status).toBe(503);
+    expect(response?.status).toBe(503);
   });
 
   it("does not acknowledge inbound messages before agent ingress is connected", async () => {

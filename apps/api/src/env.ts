@@ -94,6 +94,9 @@ export interface Env {
   readonly SCHEDULER_URL?: string;
   readonly SCHEDULER_SECRET?: string;
   readonly SCHEDULER_PAUSED?: string;
+  readonly WHATSAPP_VERIFY_TOKEN?: string;
+  readonly WHATSAPP_APP_SECRET?: string;
+  readonly WHATSAPP_ACCESS_TOKEN?: string;
   readonly DATABASE_URL?: string;
   readonly HYPERDRIVE?: Hyperdrive;
   readonly DELULU_DEPLOYMENT_MODE?: "hosted" | "self_hosted";

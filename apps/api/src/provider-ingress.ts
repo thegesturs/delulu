@@ -48,20 +48,23 @@ const handleChallenge = async (url: URL, env: Env): Promise<Response> => {
     : textResponse("Forbidden", 403);
 };
 
-const fetch = async (request: Request, env: Env): Promise<Response> => {
+export const handleProviderIngress = async (
+  request: Request,
+  env: Env
+): Promise<Response | null> => {
   const url = new URL(request.url);
-  if (request.method === "GET" && url.pathname === "/health") {
-    return jsonResponse({ service: "whatsapp-webhook", status: "ok" });
+  if (request.method === "GET" && url.pathname === "/live") {
+    return jsonResponse({ service: "delulu-api", status: "ok" });
   }
   if (url.pathname !== WEBHOOK_PATH) {
-    return textResponse("Not found", 404);
+    return null;
   }
   if (request.method === "GET") {
     return handleChallenge(url, env);
   }
   if (request.method === "POST") {
     return new Response(
-      JSON.stringify({ error: "Agent ingress is not connected in staging" }),
+      JSON.stringify({ error: "Agent ingress is not connected" }),
       {
         status: 503,
         headers: {
@@ -75,5 +78,3 @@ const fetch = async (request: Request, env: Env): Promise<Response> => {
   }
   return textResponse("Method not allowed", 405);
 };
-
-export default { fetch };

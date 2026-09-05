@@ -1,2 +1,0 @@
-# Copy this file to .dev.vars for local testing. Never commit real values.
-WHATSAPP_VERIFY_TOKEN=
