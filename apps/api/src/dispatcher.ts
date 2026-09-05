@@ -170,3 +170,20 @@ const dispatchProgram = (env: Env) =>
 
 export const dispatchDueJobs = (env: Env, layer: Layer.Layer<AppServices>) =>
   Effect.runPromise(dispatchProgram(env).pipe(Effect.provide(layer)));
+
+/** Include expired leases so dispatch failures retain their recovery deadline. */
+export const nextJobDeadline = <E>(
+  layer: Layer.Layer<SqlClient.SqlClient, E>
+) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    const rows = yield* sql<{ deadline: string | null }>`
+      SELECT (EXTRACT(EPOCH FROM MIN(
+        CASE WHEN status = 'pending' THEN run_at
+          ELSE GREATEST(run_at, locked_until + interval '1 millisecond') END
+      )) * 1000)::text AS deadline
+      FROM jobs
+      WHERE (status = 'pending' AND attempts < max_attempts)
+        OR (status IN ('leased', 'dispatched') AND locked_until IS NOT NULL)`;
+    return rows[0]?.deadline == null ? null : Number(rows[0].deadline);
+  }).pipe(Effect.provide(layer), Effect.runPromise);

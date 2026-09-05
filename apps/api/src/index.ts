@@ -62,12 +62,18 @@ import {
 } from "@delulu/services";
 import { PgClient } from "@effect/sql-pg";
 import { Effect, String as EffectString, Layer, Redacted } from "effect";
+import {
+  AlarmScheduler,
+  type AlarmState,
+  ensureSchedulers,
+  notifyScheduler,
+} from "./alarm-scheduler";
 import { type AppServices, buildWebHandler } from "./app";
 import {
   AutomationProviderLive,
   PaymentWebhookSinkLive,
 } from "./automation-providers";
-import { dispatchDueJobs } from "./dispatcher";
+import { dispatchDueJobs, nextJobDeadline } from "./dispatcher";
 import {
   appOrigins,
   authConfigLayer,
@@ -472,18 +478,49 @@ const runRecoveryCampaign = (env: Env): Promise<void> => {
   }).pipe(Effect.provide(makePgLayer(env)), Effect.runPromise);
 };
 
+/** Separate named objects isolate publishing from maintenance and campaigns. */
+export class Scheduler extends AlarmScheduler {
+  constructor(state: AlarmState, env: Env) {
+    super(state, async (lane) => {
+      switch (lane) {
+        case "dispatch": {
+          await dispatchDueJobs(env, makeBaseLayer(env));
+          return nextJobDeadline(makePgLayer(env));
+        }
+        case "maintenance":
+          await runMaintenance(makeBaseLayer(env));
+          // Maintenance can enqueue jobs without an incoming HTTP mutation.
+          if (env.SCHEDULER) {
+            await notifyScheduler(env.SCHEDULER, "dispatch", true);
+          }
+          return null;
+        case "recovery":
+          await runRecoveryCampaign(env);
+          return null;
+        default:
+          throw new Error("Unknown scheduler lane");
+      }
+    });
+  }
+}
+
 export default {
-  fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    return handleRequest(request, env, ctx);
-  },
-  scheduled(_controller: unknown, env: Env, ctx: ExecutionContext): void {
-    const layer = makeBaseLayer(env);
-    ctx.waitUntil(
-      Promise.all([
-        dispatchDueJobs(env, layer),
-        runMaintenance(layer),
-        runRecoveryCampaign(env),
-      ]).then(() => undefined)
-    );
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext
+  ): Promise<Response> {
+    // Deployment health probes bootstrap all lanes. Unrelated mutations must
+    // remain available when a maintenance or recovery object is unavailable.
+    const mutation = !["GET", "HEAD", "OPTIONS"].includes(request.method);
+    if (env.SCHEDULER && new URL(request.url).pathname === "/health") {
+      await ensureSchedulers(env.SCHEDULER);
+    }
+    const response = await handleRequest(request, env, ctx);
+    if (env.SCHEDULER && mutation) {
+      // Post-commit notification: a lost notification is repaired by the alarm.
+      ctx.waitUntil(notifyScheduler(env.SCHEDULER, "dispatch", true));
+    }
+    return response;
   },
 };

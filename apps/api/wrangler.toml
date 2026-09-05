@@ -28,7 +28,15 @@ persist = true
 head_sampling_rate = 1
 
 [triggers]
-crons = ["* * * * *"]
+crons = []
+
+[[durable_objects.bindings]]
+name = "SCHEDULER"
+class_name = "Scheduler"
+
+[[migrations]]
+tag = "scheduler-v1"
+new_sqlite_classes = ["Scheduler"]
 
 [vars]
 AS_ISSUER = "https://api.delulu.social"

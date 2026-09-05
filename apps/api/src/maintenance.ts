@@ -12,7 +12,7 @@ import type { AppServices } from "./app";
 const AUTOMATION_KV_BATCH_SIZE = 200;
 const MAX_AUTOMATION_KV_BATCHES = 10;
 
-/** Bounded, replay-safe maintenance invoked by the Worker cron. */
+/** Bounded, replay-safe maintenance invoked by a Durable Object alarm or the self-hosted timer. */
 const maintenanceProgram = Effect.gen(function* () {
   const billing = yield* BillingReconciliation;
   const automationKv = yield* AutomationKvRepairJob;

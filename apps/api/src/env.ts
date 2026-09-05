@@ -11,6 +11,7 @@ import {
   R2Config,
 } from "@delulu/services";
 import { Layer } from "effect";
+import type { SchedulerNamespace } from "./alarm-scheduler";
 
 /** Cloudflare Hyperdrive binding (Postgres connection pooler). */
 export interface Hyperdrive {
@@ -23,6 +24,7 @@ export interface Hyperdrive {
  * `DATABASE_URL` and the in-memory rate limiter.
  */
 export interface Env {
+  readonly SCHEDULER?: SchedulerNamespace;
   readonly DATABASE_URL?: string;
   readonly HYPERDRIVE?: Hyperdrive;
   readonly DELULU_DEPLOYMENT_MODE?: "hosted" | "self_hosted";
