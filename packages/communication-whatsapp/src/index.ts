@@ -455,8 +455,8 @@ export const makeWhatsAppProvider = (
         {
           status: response.status,
           retryable:
-            input.operation !== "send" &&
-            (response.status === 429 || response.status >= 500),
+            response.status === 429 ||
+            (input.operation !== "send" && response.status >= 500),
           deliveryState:
             input.operation === "send"
               ? ambiguousSend

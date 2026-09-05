@@ -94,6 +94,15 @@ export interface Env {
   readonly SCHEDULER_URL?: string;
   readonly SCHEDULER_SECRET?: string;
   readonly SCHEDULER_PAUSED?: string;
+  readonly WHATSAPP_INGRESS_ENABLED?: string;
+  readonly WHATSAPP_PHONE_NUMBER_ID?: string;
+  readonly WHATSAPP_TEST_SENDER?: string;
+  readonly WHATSAPP_TEST_EMAIL?: string;
+  readonly WHATSAPP_CONVERSATIONS?: {
+    getByName(
+      name: string
+    ): import("./whatsapp-conversation").ConversationBinding;
+  };
   readonly WHATSAPP_VERIFY_TOKEN?: string;
   readonly WHATSAPP_APP_SECRET?: string;
   readonly WHATSAPP_ACCESS_TOKEN?: string;

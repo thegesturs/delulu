@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { cp, mkdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -14,6 +14,7 @@ const patchFiles = [
   join(root, "patches", "0002-content-account-provisioning.patch"),
   join(root, "patches", "0003-disable-password-auth.patch"),
   join(root, "patches", "0004-external-model-policy.patch"),
+  join(root, "patches", "0005-openrouter-routing.patch"),
 ];
 
 const run = (command, args, cwd = root) => {
@@ -49,6 +50,25 @@ export const check = () => {
   }
 };
 
+export const validatePrepared = async () => {
+  check();
+  const revision = await readFile(
+    join(buildRoot, "DELULU_RUNTIME_REVISION"),
+    "utf8"
+  );
+  if (revision.trim() !== PINNED_REVISION) {
+    throw new Error("Prepared runtime revision is stale; prepare it again.");
+  }
+  // Reverse checks prove every current patch is actually present, including reuse.
+  for (const patchFile of patchFiles) {
+    run(
+      "git",
+      ["apply", "--recount", "--reverse", "--check", patchFile],
+      buildRoot
+    );
+  }
+};
+
 export const prepare = async () => {
   check();
   await rm(buildRoot, { recursive: true, force: true });
@@ -79,8 +99,32 @@ export const prepare = async () => {
       "worker-configuration.d.ts"
     )
   );
+  // An independent repository prevents git apply silently skipping paths
+  // relative to the enclosing product repository.
+  run("git", ["init", "--quiet"], buildRoot);
   for (const patchFile of patchFiles) {
-    run("git", ["apply", "--recount", patchFile], buildRoot);
+    run("git", ["apply", "--recount", "--verbose", patchFile], buildRoot);
+  }
+  const gateway = await readFile(
+    join(
+      buildRoot,
+      "packages/workshop-backend/src/external-message-gateway.ts"
+    ),
+    "utf8"
+  );
+  const models = await readFile(
+    join(buildRoot, "packages/workshop-backend/src/ai-models.ts"),
+    "utf8"
+  );
+  if (
+    !(
+      gateway.includes("ensureExternalUser") &&
+      models.includes("gwConfig.quickModel !== undefined")
+    )
+  ) {
+    throw new Error(
+      "Required runtime patches were not applied; refusing to deploy."
+    );
   }
   await writeFile(
     join(buildRoot, "DELULU_RUNTIME_REVISION"),
@@ -103,7 +147,10 @@ const build = async () => {
   run("corepack", ["pnpm", "--pm-on-fail=ignore", "run", "build"], buildRoot);
 };
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   const command = process.argv[2] ?? "check";
   if (command === "check") {
     check();

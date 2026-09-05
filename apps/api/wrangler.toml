@@ -2,8 +2,12 @@
 # existing secrets, Hyperdrive, KV, and rate-limit bindings stay attached.
 name = "delulu-api-next"
 main = "src/index.ts"
-compatibility_date = "2026-07-15"
-compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
+compatibility_date = "2026-08-14"
+compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env", "allow_irrevocable_stub_storage"]
+
+[[migrations]]
+tag = "v1-whatsapp-conversation"
+new_sqlite_classes = ["WhatsAppConversation"]
 
 # Local `wrangler dev` server. Wrangler's default 8787 is frequently taken by
 # other local services, so pin the dev port here. The app reaches this via
@@ -164,6 +168,12 @@ AS_ISSUER = "https://delulu-staging.whizzy.workers.dev"
 API_RESOURCE = "https://delulu-staging.whizzy.workers.dev"
 APP_BASE_URL = "http://localhost:3000"
 DODO_PAYMENTS_ENVIRONMENT = "test_mode"
+WHATSAPP_INGRESS_ENABLED = "true"
+WHATSAPP_PHONE_NUMBER_ID = "1235417779664941"
+
+[[env.staging.durable_objects.bindings]]
+name = "WHATSAPP_CONVERSATIONS"
+class_name = "WhatsAppConversation"
 
 [env.staging.triggers]
 crons = []

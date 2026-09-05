@@ -23,7 +23,6 @@ diff --git a/packages/workshop-backend/src/user.ts b/packages/workshop-backend/s
 +        .createExternalAccount(identity);
 +    let description = await account.describe();
 +    if (this.#hasAccountForVendor(vendorId)) {
-+      account[Symbol.dispose]();
 +      return;
 +    }
 +    let accountId = this.storage.nextAccountId.get();

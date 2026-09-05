@@ -11,8 +11,9 @@
   "passwordLogin": false,
   "aiGateway": {
     "name": "delulu-agent-models",
-    "routineModel": "luna",
-    "defaultModel": "terra",
-    "escalationModel": "sol"
+    "provider": "openrouter",
+    "routineModel": "gpt-5.6-luna",
+    "defaultModel": "gpt-5.6-luna",
+    "escalationModel": "gpt-5.6-sol"
   }
 }

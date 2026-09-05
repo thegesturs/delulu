@@ -88,7 +88,9 @@ index e1699ad..cb4a956 100644
 +            id: String(action.id),
 +            kind: action.type === "bindHook"
 +              ? "enable_ritual"
-+              : action.description.actionKind?.tag ?? "external_write",
++              : "actionKind" in action.description
++                ? action.description.actionKind?.tag ?? "external_write"
++                : "external_write",
 +            summary: `${action.description.title}\n\n${action.description.description}`,
 +            risk: "consequential" as const,
 +          })),

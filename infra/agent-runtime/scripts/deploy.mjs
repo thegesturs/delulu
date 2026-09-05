@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { validatePrepared } from "./runtime.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const buildRoot = join(root, ".build", "cloudflare-os");
@@ -45,6 +46,7 @@ const run = (args, cwd = root) => {
 if (!process.argv.includes("--reuse-build")) {
   run(["install:runtime"]);
 }
+await validatePrepared();
 
 const common = {
   account_id: config.accountId,
@@ -129,7 +131,10 @@ const workshopConfig = {
     CF_AI_GATEWAY: config.aiGateway.name,
     CF_AI_GATEWAY_ACCOUNT_ID: config.accountId,
     CF_AI_GATEWAY_PROVIDERS: "openai",
-    EXTERNAL_DEFAULT_MODEL: "gpt-5.6-terra",
+    OPENAI_VIA_OPENROUTER:
+      config.aiGateway.provider === "openrouter" ? "true" : "false",
+    EXTERNAL_DEFAULT_MODEL: config.aiGateway.defaultModel,
+    EXTERNAL_QUICK_MODEL: config.aiGateway.routineModel,
   },
   ai: { binding: "WORKERS_AI" },
   browser: { binding: "BROWSER", remote: true },

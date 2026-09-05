@@ -1,10 +1,41 @@
-import { verifyWhatsAppChallenge } from "@delulu/communication-whatsapp";
+import {
+  decodeWhatsAppWebhook,
+  verifyWhatsAppChallenge,
+  verifyWhatsAppSignature,
+} from "@delulu/communication-whatsapp";
 import { Effect } from "effect";
+import { conversationName } from "./channel-routing";
+import type { Env } from "./env";
+
+export type { Env } from "./env";
 
 const WEBHOOK_PATH = "/v1/providers/whatsapp/webhook";
 
-export interface Env {
-  readonly WHATSAPP_VERIFY_TOKEN?: string;
+async function readWebhookBody(request: Request): Promise<string | null> {
+  const reader = request.body?.getReader();
+  if (!reader) {
+    return "";
+  }
+  const decoder = new TextDecoder();
+  let size = 0;
+  let body = "";
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) {
+        break;
+      }
+      size += chunk.value.byteLength;
+      if (size > 256_000) {
+        await reader.cancel();
+        return null;
+      }
+      body += decoder.decode(chunk.value, { stream: true });
+    }
+    return body + decoder.decode();
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 const textResponse = (body: string, status: number) =>
@@ -63,6 +94,56 @@ export const handleProviderIngress = async (
     return handleChallenge(url, env);
   }
   if (request.method === "POST") {
+    if (
+      env.WHATSAPP_INGRESS_ENABLED === "true" &&
+      env.WHATSAPP_CONVERSATIONS &&
+      env.WHATSAPP_PHONE_NUMBER_ID &&
+      env.WHATSAPP_APP_SECRET &&
+      env.WHATSAPP_TEST_SENDER &&
+      env.WHATSAPP_TEST_EMAIL
+    ) {
+      const raw = await readWebhookBody(request);
+      if (raw === null) {
+        return textResponse("Payload too large", 413);
+      }
+      const verified = await Effect.runPromise(
+        verifyWhatsAppSignature(
+          env.WHATSAPP_APP_SECRET,
+          raw,
+          request.headers.get("x-hub-signature-256")
+        ).pipe(Effect.match({ onSuccess: () => true, onFailure: () => false }))
+      );
+      if (!verified) {
+        return textResponse("Forbidden", 403);
+      }
+      const messages = await Effect.runPromise(
+        decodeWhatsAppWebhook(env.WHATSAPP_PHONE_NUMBER_ID, raw).pipe(
+          Effect.match({ onSuccess: (value) => value, onFailure: () => null })
+        )
+      );
+      if (!messages) {
+        return textResponse("Invalid webhook", 400);
+      }
+      try {
+        for (const message of messages) {
+          if (message.sender.id !== env.WHATSAPP_TEST_SENDER) {
+            continue;
+          }
+          await env.WHATSAPP_CONVERSATIONS.getByName(
+            conversationName(env.WHATSAPP_PHONE_NUMBER_ID, message.sender.id)
+          ).enqueue({
+            id: message.messageKey,
+            sender: message.sender.id,
+            text:
+              message.text?.trim() ||
+              "The user sent an attachment. Explain that this staging test currently supports text only and ask them to type their message.",
+          });
+        }
+        return jsonResponse({ accepted: true });
+      } catch {
+        return textResponse("Channel temporarily unavailable", 503);
+      }
+    }
     return new Response(
       JSON.stringify({ error: "Agent ingress is not connected" }),
       {

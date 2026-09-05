@@ -90,6 +90,11 @@ import { LiveInsightsProviderLive } from "./live-insights";
 import { messagingProvidersLayer } from "./messaging-providers";
 import { handleProviderIngress } from "./provider-ingress";
 
+export {
+  WhatsAppConversation,
+  WhatsAppResponseTarget,
+} from "./whatsapp-conversation";
+
 /**
  * Build the per-request service environment from the Worker `env`. Rate limiting
  * uses the Cloudflare bindings when present, else an in-memory limiter (local
