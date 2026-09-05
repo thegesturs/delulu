@@ -42,8 +42,5 @@ FROM runtime AS api
 EXPOSE 8787
 CMD ["pnpm", "--filter=@delulu/http-api", "start:node"]
 
-FROM runtime AS publisher
-CMD ["pnpm", "--filter=@delulu/worker", "start"]
-
 FROM runtime AS migrate
 CMD ["pnpm", "--filter=@delulu/db", "pg:migrate"]

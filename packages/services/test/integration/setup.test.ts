@@ -21,7 +21,6 @@ const Pg = PgClient.layer({
 
 const Deployment = DeploymentConfig.layer({
   mode: "hosted",
-  publishTransport: "postgres",
   registrationEnabled: true,
   version: "test",
   communityApiRatePerMinute: 120,

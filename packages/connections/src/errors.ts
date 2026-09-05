@@ -53,7 +53,13 @@ export class ProviderApiError extends Schema.TaggedErrorClass<ProviderApiError>(
   }
 ) {}
 
+export class PublishContinuation extends Schema.TaggedErrorClass<PublishContinuation>()(
+  "PublishContinuation",
+  { ...fields("PUBLISH_CONTINUATION", true), resumeAt: Schema.Number }
+) {}
+
 export type ConnectionError =
+  | PublishContinuation
   | RateLimitedError
   | NetworkConnectionError
   | TokenExpiredError

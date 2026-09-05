@@ -18,6 +18,7 @@ import {
   profileNotFound,
   publishRejected,
 } from "../../errors";
+import { inspectMedia, readMediaRange } from "../../remote-media";
 import { ConnectionStore } from "../../services/connection-store";
 import { ensureFreshToken } from "../../services/token-service";
 import type {
@@ -97,20 +98,6 @@ const getProfile = (
 
 // ── Media download + upload ───────────────────────────────────────────────────
 
-const downloadFile = (
-  fileUrl: string
-): Effect.Effect<{ buffer: Buffer; mimeType: string }, ConnectionError> =>
-  Effect.tryPromise({
-    try: () =>
-      axios({ method: "get", url: fileUrl, responseType: "arraybuffer" }).then(
-        (response) => ({
-          buffer: Buffer.from(response.data),
-          mimeType: getMimeType(fileUrl),
-        })
-      ),
-    catch: (e) => fromUnknownHttp(PROVIDER, e),
-  });
-
 const oneShotUpload = (
   client: Client,
   buffer: Buffer,
@@ -166,16 +153,17 @@ const initializeChunkedUpload = (
 const uploadChunks = (
   client: Client,
   mediaId: string,
-  fileBuffer: Buffer,
+  fileUrl: string,
+  fileSize: number,
   mimeType: string
 ): Effect.Effect<void, ConnectionError> => {
-  const totalChunks = Math.ceil(fileBuffer.length / CHUNK_SIZE);
+  const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
 
   const uploadAllChunks = async (): Promise<void> => {
     for (let i = 0; i < totalChunks; i++) {
       const start = i * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, fileBuffer.length);
-      const chunk = fileBuffer.slice(start, end);
+      const end = Math.min(start + CHUNK_SIZE, fileSize);
+      const chunk = Buffer.from(await readMediaRange(fileUrl, start, end - 1));
 
       await client.media.appendUpload(mediaId, {
         media: chunk.toString("base64"),
@@ -246,24 +234,32 @@ const uploadMediaToTwitter = (
   client: Client
 ): Effect.Effect<string, ConnectionError> =>
   Effect.gen(function* () {
-    const { buffer, mimeType } = yield* downloadFile(fileUrl);
+    const { size } = yield* Effect.tryPromise({
+      try: () => inspectMedia(fileUrl),
+      catch: (e) => fromUnknownHttp(PROVIDER, e),
+    });
+    const mimeType = getMimeType(fileUrl);
     const mediaCategory = getMediaCategory(mimeType);
     const isSmallImage =
       mimeType.startsWith("image/") &&
       mimeType !== "image/gif" &&
-      buffer.length <= 5 * 1024 * 1024;
+      size <= 5 * 1024 * 1024;
 
     if (isSmallImage) {
-      return yield* oneShotUpload(client, buffer, mediaCategory);
+      const bytes = yield* Effect.tryPromise({
+        try: () => readMediaRange(fileUrl, 0, size - 1),
+        catch: (e) => fromUnknownHttp(PROVIDER, e),
+      });
+      return yield* oneShotUpload(client, Buffer.from(bytes), mediaCategory);
     }
 
     const mediaId = yield* initializeChunkedUpload(
       client,
-      buffer.length,
+      size,
       mimeType,
       mediaCategory
     );
-    yield* uploadChunks(client, mediaId, buffer, mimeType);
+    yield* uploadChunks(client, mediaId, fileUrl, size, mimeType);
     const { processingRequired } = yield* finalizeUpload(client, mediaId);
     if (processingRequired) {
       yield* waitForProcessing(client, mediaId);
@@ -287,7 +283,7 @@ const uploadTweetMedia = (
     validMediaUrls.map((item) =>
       uploadMediaToTwitter(item.url as string, client)
     ),
-    { concurrency: "unbounded" }
+    { concurrency: 1 }
   );
 };
 

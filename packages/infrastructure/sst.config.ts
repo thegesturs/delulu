@@ -31,44 +31,11 @@ export default $config({
     const CLERK_SECRET_KEY = new sst.Secret("CLERK_SECRET_KEY");
     const DODO_PAYMENTS_API_KEY = new sst.Secret("DODO_PAYMENTS_API_KEY");
     const POSTGRES_DATABASE_URL = new sst.Secret("POSTGRES_DATABASE_URL");
-    const ENCRYPTION_SECRET = new sst.Secret("ENCRYPTION_SECRET");
     // YouTube trimmer (marketing /tools). The container image is built + pushed
     // to ECR by `sst deploy` (awsx.ecr.Image below) — no manual docker/ECR steps.
     // Auth secret is the shared bearer the web route sends so the public Function
     // URL can't be abused directly.
     const YOUTUBE_TRIMMER_AUTH = new sst.Secret("YoutubeTrimmerAuthSecret");
-
-    // Primary publishing lane. Existing logical names remain stable so the
-    // cutover updates resources in place instead of replacing the queue.
-    const postgresDeadLetterQueue = new sst.aws.Queue("PostgresSocialPostsDLQ");
-    const postgresQueue = new sst.aws.Queue("PostgresSocialPostsQueue", {
-      visibilityTimeout: "60 minutes",
-      dlq: { queue: postgresDeadLetterQueue.arn, retry: 5 },
-    });
-    const postgresTrigger = new sst.aws.Function("PostgresTriggerSqsFunction", {
-      handler: "src/trigger-postgres-sqs.handler",
-      url: true,
-      link: [postgresQueue, SECRET_KEY],
-      environment: { QUEUE_URL: postgresQueue.url },
-    });
-    postgresQueue.subscribe(
-      {
-        handler: "src/postgres-social-post-worker.handler",
-        timeout: "10 minutes",
-        memory: "1024 MB",
-        link: [POSTGRES_DATABASE_URL, ENCRYPTION_SECRET],
-        environment: {
-          DATABASE_URL: POSTGRES_DATABASE_URL.value,
-          ENCRYPTION_SECRET: ENCRYPTION_SECRET.value,
-        },
-        copyFiles: [{ from: "../worker/.env.prod", to: ".env.prod" }],
-        nodejs: {
-          install: ["googleapis"],
-          esbuild: { external: ["googleapis"] },
-        },
-      },
-      { batch: { size: 1 } }
-    );
 
     // ============================================================================
     // TRANSCRIPTION FUNCTION (Sorted extension)
@@ -183,7 +150,6 @@ export default $config({
     });
 
     return {
-      PostgresSocialPostsApiEndpoint: postgresTrigger.url,
       TranscriptionApiEndpoint: transcriptionFunction.url,
       YoutubeTrimmerApiEndpoint: trimmerUrl.functionUrl,
     };

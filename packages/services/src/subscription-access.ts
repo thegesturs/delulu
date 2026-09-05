@@ -7,10 +7,6 @@ export const stopBilledWorkspaceWork = Effect.fn("stopBilledWorkspaceWork")(
     const sql = yield* SqlClient.SqlClient;
     yield* sql`UPDATE automations SET enabled = false WHERE workspace_id IN (
     SELECT id FROM workspaces WHERE billing_owner_user_id = ${billingOwnerUserId})`;
-    yield* sql`UPDATE jobs SET status = 'failed', locked_until = NULL,
-    last_error = 'Subscription ended' WHERE status IN ('pending','leased')
-    AND workspace_id IN (SELECT id FROM workspaces
-      WHERE billing_owner_user_id = ${billingOwnerUserId})`;
     yield* sql`UPDATE posts SET status = 'failed' WHERE status IN ('scheduled','publishing')
     AND workspace_id IN (SELECT id FROM workspaces
       WHERE billing_owner_user_id = ${billingOwnerUserId})`;

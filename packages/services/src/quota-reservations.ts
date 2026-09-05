@@ -8,6 +8,7 @@ import { getPlanLimits } from "@delulu/payments/plans";
 import { Context, DateTime, Effect, Layer } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { AuthConfig } from "./config";
+import { JobService } from "./jobs";
 
 const limitFor = (plan: string, resource: PooledQuotaResource): number => {
   const limits = getPlanLimits(plan);
@@ -71,7 +72,6 @@ export class PooledQuotaReservations extends Context.Service<
       id: string
     ) => Effect.Effect<void, BillingStateError | BillingConcurrencyError>;
     readonly release: (id: string) => Effect.Effect<void, BillingStateError>;
-    readonly expire: () => Effect.Effect<number>;
   }
 >()("@delulu/services/PooledQuotaReservations") {
   static readonly layer = Layer.effect(
@@ -79,6 +79,7 @@ export class PooledQuotaReservations extends Context.Service<
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       const config = yield* AuthConfig;
+      const jobs = yield* JobService;
 
       const reserve = Effect.fn("PooledQuotaReservations.reserve")(
         function* (input: {
@@ -206,6 +207,15 @@ export class PooledQuotaReservations extends Context.Service<
                 VALUES (${input.id}, ${input.billingOwnerUserId}, ${input.workspaceId},
                   ${input.resource}, ${input.amount}, ${input.idempotencyKey},
                   ${DateTime.toDateUtc(expiresAt)})`;
+                yield* jobs.enqueue({
+                  workspaceId: input.workspaceId,
+                  payload: {
+                    _tag: "ExpireReservation",
+                    reservationId: input.id,
+                  },
+                  runAt: DateTime.toDateUtc(expiresAt),
+                  idempotencyKey: `expire-reservation:${input.id}`,
+                });
                 return {
                   id: input.id,
                   resource: input.resource,
@@ -299,15 +309,7 @@ export class PooledQuotaReservations extends Context.Service<
         }
       });
 
-      const expire = Effect.fn("PooledQuotaReservations.expire")(function* () {
-        const rows = yield* sql<{ count: string }>`WITH expired AS (
-          UPDATE quota_reservations SET status = 'expired'
-          WHERE status = 'pending' AND expires_at <= now() RETURNING 1
-        ) SELECT count(*)::text AS count FROM expired`.pipe(Effect.orDie);
-        return Number(rows[0]?.count ?? 0);
-      });
-
-      return PooledQuotaReservations.of({ reserve, commit, release, expire });
+      return PooledQuotaReservations.of({ reserve, commit, release });
     })
   );
 }

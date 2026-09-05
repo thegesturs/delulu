@@ -95,6 +95,10 @@ beforeAll(async () => {
   const base = makeBaseLayer(
     {
       DATABASE_URL,
+      JOBS: {
+        idFromName: (key) => key,
+        get: () => ({ fetch: async () => new Response(null, { status: 204 }) }),
+      },
       AS_ISSUER: ISSUER,
       API_RESOURCE: ISSUER,
       APP_BASE_URL: "http://localhost:3000",

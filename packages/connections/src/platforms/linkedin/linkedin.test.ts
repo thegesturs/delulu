@@ -178,9 +178,15 @@ describe("LinkedIn current API contract", () => {
     });
     const get = vi
       .spyOn(axios, "get")
-      .mockResolvedValueOnce({ data: Buffer.from("document") })
       .mockResolvedValueOnce({ data: { status: "AVAILABLE" } });
-    vi.spyOn(axios, "put").mockResolvedValue({ status: 201 });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url) =>
+        String(url).includes("uploads.linkedin.test")
+          ? new Response(null, { status: 201 })
+          : new Response("media", { headers: { "content-length": "5" } })
+      )
+    );
     const post = vi
       .spyOn(axios, "post")
       .mockResolvedValueOnce({
@@ -223,7 +229,7 @@ describe("LinkedIn current API contract", () => {
         .pipe(Effect.provide(Store))
     );
 
-    expect(get.mock.calls[1]?.[0]).toBe(
+    expect(get.mock.calls[0]?.[0]).toBe(
       "https://api.linkedin.com/rest/documents/urn%3Ali%3Adocument%3Adoc_1"
     );
     expect(post.mock.calls[1]?.[0]).toBe("https://api.linkedin.com/rest/posts");
@@ -242,7 +248,14 @@ describe("LinkedIn current API contract", () => {
       updateSocialProvider: () => Effect.void,
     });
     vi.spyOn(axios, "get").mockResolvedValue({ data: Buffer.from("image") });
-    vi.spyOn(axios, "put").mockResolvedValue({ status: 201 });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url) =>
+        String(url).includes("uploads.linkedin.test")
+          ? new Response(null, { status: 201 })
+          : new Response("media", { headers: { "content-length": "5" } })
+      )
+    );
     const post = vi
       .spyOn(axios, "post")
       .mockResolvedValueOnce({

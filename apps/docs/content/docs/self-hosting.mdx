@@ -3,7 +3,7 @@ title: Self-hosting
 description: Install, operate, back up, and upgrade the supported Community deployment.
 ---
 
-The Community deployment runs the authenticated app, typed Node API, PostgreSQL publisher, migrations, and database with Docker Compose. It does not require a subscription.
+The Community deployment runs the authenticated app, typed Node API, migrations, and database with Docker Compose, plus a dedicated Cloudflare Worker for Durable Object execution. It does not require a subscription.
 
 The current release requires operator-owned Clerk and Cloudflare R2 projects. Generic OIDC and S3-compatible storage are planned portability work, not current capabilities.
 
@@ -38,7 +38,7 @@ Configure Clerk for `APP_BASE_URL` and configure every enabled social provider w
 
 Generate `AS_SIGNING_KEY_BASE64` once using the command in the environment template, store it in a secrets manager, and include it in backups. Replacing it invalidates agent OAuth access and refresh tokens.
 
-`DELULU_DEPLOYMENT_MODE=self_hosted` enables Community entitlements and disables payment operations. `DELULU_PUBLISH_TRANSPORT=postgres` keeps scheduled publication inside the Compose deployment. Authorization, reviews, retries, operation identity, and safety limits remain active.
+`DELULU_DEPLOYMENT_MODE=self_hosted` enables Community entitlements and disables payment operations. `SCHEDULER_URL` and `SCHEDULER_SECRET` connect the Node API to a dedicated scheduler Worker. Configure that Worker with the same database, encryption key, media storage, and provider credentials as this installation. Authorization, reviews, retries, operation identity, and safety limits remain active.
 
 `GET /v1/instance` is the authoritative capability response. Clients must use it instead of inferring behavior from environment variables.
 
@@ -55,7 +55,7 @@ docker compose up -d --build --wait
 
 - `app`: authenticated Next.js interface.
 - `api`: typed Node API and leader-elected maintenance loop.
-- `publisher`: PostgreSQL-backed due-job leasing and publication.
+- Cloudflare `JobExecutor`: durable deadlines, retries, and direct publication.
 - `migrate`: one-shot schema migration before application services start.
 - `postgres`: authoritative state in a persistent volume.
 - `proxy`: optional automatic TLS termination with Caddy.
@@ -71,7 +71,7 @@ docker compose exec -T postgres pg_dump -U delulu -d delulu -Fc > delulu.dump
 Restore into a stopped or fresh application database:
 
 ```bash
-docker compose stop app api publisher
+docker compose stop app api
 docker compose exec -T postgres dropdb -U delulu --if-exists delulu
 docker compose exec -T postgres createdb -U delulu delulu
 docker compose exec -T postgres pg_restore -U delulu -d delulu --clean --if-exists < delulu.dump
@@ -86,12 +86,12 @@ R2 objects are not included in the database backup. Enable bucket versioning or 
 2. Check out the desired release tag or commit.
 3. Run `docker compose build --pull`.
 4. Run `docker compose up -d --wait`; migrations must finish before app services start.
-5. Verify `/v1/instance`, schedule a test post, and inspect `docker compose logs --since=15m api publisher`.
+5. Verify `/v1/instance`, schedule a test post, and inspect `docker compose logs --since=15m api`.
 
 Only roll application images back after checking migration compatibility. Restore the matching database backup when a migration is not backward-compatible.
 
 ## Operations
 
-Use `docker compose ps` for health and `docker compose logs --since=15m api publisher` for runtime failures. Keep the agent OAuth signing key stable across upgrades and restores.
+Use `docker compose ps` for health and `docker compose logs --since=15m api` for runtime failures. Keep the agent OAuth signing key stable across upgrades and restores.
 
 Changing `ENCRYPTION_SECRET` without re-encrypting stored tokens makes existing connections unreadable. Rotate Clerk, R2, social-provider, and encryption credentials using each provider's procedure.

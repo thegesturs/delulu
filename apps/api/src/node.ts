@@ -7,10 +7,11 @@ import { Readable } from "node:stream";
 import { buildWebHandler } from "./app";
 import { appOrigins, type Env } from "./env";
 import { makeBaseLayer } from "./index";
-import { runMaintenanceAsLeader } from "./maintenance";
 
 const required = [
   "DATABASE_URL",
+  "SCHEDULER_URL",
+  "SCHEDULER_SECRET",
   "CLERK_ISSUER",
   "CLERK_JWT_KEY",
   "CLERK_SECRET_KEY",
@@ -71,28 +72,8 @@ const server = createServer(async (request, response) => {
   }
 });
 
-let maintenanceRun: Promise<boolean> | undefined;
-const startMaintenance = () => {
-  if (maintenanceRun) {
-    return;
-  }
-  maintenanceRun = runMaintenanceAsLeader(layer)
-    .catch((error) => {
-      console.error(error);
-      return false;
-    })
-    .finally(() => {
-      maintenanceRun = undefined;
-    });
-};
-const maintenance = setInterval(() => {
-  startMaintenance();
-}, 60_000);
-maintenance.unref();
-
 const shutdown = async (signal: string) => {
   console.log(`Received ${signal}; shutting down`);
-  clearInterval(maintenance);
   server.closeIdleConnections();
   await new Promise<void>((resolve) => {
     const force = setTimeout(() => {
@@ -106,7 +87,6 @@ const shutdown = async (signal: string) => {
       resolve();
     });
   });
-  await maintenanceRun;
   await dispose();
   process.exitCode = 0;
 };
@@ -115,5 +95,4 @@ process.once("SIGTERM", () => shutdown("SIGTERM").catch(console.error));
 
 server.listen(Number(process.env.PORT ?? 8787), "0.0.0.0", () => {
   console.log(`Delulu API listening on :${process.env.PORT ?? "8787"}`);
-  startMaintenance();
 });

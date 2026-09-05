@@ -14,6 +14,7 @@ import {
   profileNotFound,
   publishRejected,
 } from "../../errors";
+import { inspectMedia, readMediaRange } from "../../remote-media";
 import { ConnectionStore } from "../../services/connection-store";
 import { ensureFreshToken } from "../../services/token-service";
 import type {
@@ -27,7 +28,6 @@ import {
   MAX_VIDEO_BYTES,
   MIN_VIDEO_BYTES,
   PROVIDER,
-  VIDEO_CHUNK_BYTES,
   VIDEO_POLL_INTERVAL_MS,
   VIDEO_POLL_MAX_ATTEMPTS,
 } from "./constants";
@@ -76,6 +76,32 @@ const binaryHeaders = (accessToken: string) => ({
   "Content-Type": "application/octet-stream",
 });
 
+const streamMedia = async (
+  sourceUrl: string,
+  uploadUrl: string,
+  accessToken: string
+) => {
+  const source = await fetch(sourceUrl);
+  if (!(source.ok && source.body)) {
+    throw new Error("Media download failed");
+  }
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      ...binaryHeaders(accessToken),
+      ...(source.headers.get("content-length")
+        ? { "content-length": source.headers.get("content-length")! }
+        : {}),
+    },
+    body: source.body,
+    duplex: "half",
+  } as RequestInit);
+  if (!response.ok) {
+    throw new Error(`Media upload returned ${response.status}`);
+  }
+  await response.body?.cancel();
+};
+
 const ownerUrn = (profileId: string, isOrg: boolean) =>
   isOrg ? `urn:li:organization:${profileId}` : `urn:li:person:${profileId}`;
 
@@ -107,13 +133,6 @@ const uploadImageToLinkedIn = (
   accessToken: string
 ): Effect.Effect<string, ConnectionError> =>
   Effect.gen(function* () {
-    // Step 1: Download the image as a buffer.
-    const download = yield* Effect.tryPromise({
-      try: () => axios.get(imageUrl, { responseType: "arraybuffer" }),
-      catch: () => invalidMedia(PROVIDER, "Failed to download image"),
-    });
-    const imageBuffer = download.data;
-
     // Step 2: Register upload with LinkedIn.
     const registerRes = yield* Effect.tryPromise({
       try: () =>
@@ -133,10 +152,7 @@ const uploadImageToLinkedIn = (
 
     // Step 3: Upload the image binary to LinkedIn.
     yield* Effect.tryPromise({
-      try: () =>
-        axios.put(uploadUrl, imageBuffer, {
-          headers: binaryHeaders(accessToken),
-        }),
+      try: () => streamMedia(imageUrl, uploadUrl, accessToken),
       catch: () => mediaProcessingError(PROVIDER, "Image upload failed"),
     });
 
@@ -152,18 +168,13 @@ const uploadDocumentToLinkedIn = (
   isOrg = false
 ): Effect.Effect<string, ConnectionError> =>
   Effect.gen(function* () {
-    const download = yield* Effect.tryPromise({
-      try: () => axios.get(documentUrl, { responseType: "arraybuffer" }),
-      catch: () => invalidMedia(PROVIDER, "Failed to download document"),
+    const document = yield* Effect.tryPromise({
+      try: () => inspectMedia(documentUrl),
+      catch: (e) => fromUnknownHttp(PROVIDER, e),
     });
-    const docBuffer = Buffer.from(download.data);
-
-    if (docBuffer.length > MAX_DOCUMENT_BYTES) {
+    if (document.size > MAX_DOCUMENT_BYTES) {
       return yield* Effect.fail(
-        invalidMedia(
-          PROVIDER,
-          `Document file too large: ${(docBuffer.length / 1024 / 1024).toFixed(2)}MB (maximum 100MB)`
-        )
+        invalidMedia(PROVIDER, "Document exceeds 100MB")
       );
     }
 
@@ -184,10 +195,7 @@ const uploadDocumentToLinkedIn = (
     const documentUrn = registerRes.data.value.document;
 
     yield* Effect.tryPromise({
-      try: () =>
-        axios.put(uploadUrl, docBuffer, {
-          headers: binaryHeaders(accessToken),
-        }),
+      try: () => streamMedia(documentUrl, uploadUrl, accessToken),
       catch: () => mediaProcessingError(PROVIDER, "Document upload failed"),
     });
 
@@ -239,10 +247,8 @@ const waitForDocumentProcessing = (
 // ── Video upload ──────────────────────────────────────────────────────────────
 
 const validateVideoForLinkedIn = (
-  videoBuffer: Buffer
+  fileSizeBytes: number
 ): Effect.Effect<void, ConnectionError> => {
-  const fileSizeBytes = videoBuffer.length;
-
   if (fileSizeBytes < MIN_VIDEO_BYTES) {
     return Effect.fail(
       invalidMedia(
@@ -265,14 +271,6 @@ const validateVideoForLinkedIn = (
   return Effect.void;
 };
 
-const chunkBuffer = (buffer: Buffer, chunkSize: number): Buffer[] => {
-  const chunks: Buffer[] = [];
-  for (let i = 0; i < buffer.length; i += chunkSize) {
-    chunks.push(buffer.subarray(i, i + chunkSize));
-  }
-  return chunks;
-};
-
 const uploadVideoToLinkedIn = (
   videoUrl: string,
   profileId: string,
@@ -280,16 +278,11 @@ const uploadVideoToLinkedIn = (
   isOrg = false
 ): Effect.Effect<string, ConnectionError> =>
   Effect.gen(function* () {
-    // Step 1: Download the video as a buffer.
-    const download = yield* Effect.tryPromise({
-      try: () => axios.get(videoUrl, { responseType: "arraybuffer" }),
-      catch: () => invalidMedia(PROVIDER, "Failed to download video"),
+    const source = yield* Effect.tryPromise({
+      try: () => inspectMedia(videoUrl),
+      catch: (e) => fromUnknownHttp(PROVIDER, e),
     });
-    const videoBuffer = Buffer.from(download.data);
-
-    // Validate video specifications.
-    yield* validateVideoForLinkedIn(videoBuffer);
-
+    yield* validateVideoForLinkedIn(source.size);
     const owner = ownerUrn(profileId, isOrg);
 
     // Step 2: Register upload with LinkedIn.
@@ -300,7 +293,7 @@ const uploadVideoToLinkedIn = (
           {
             initializeUploadRequest: {
               owner,
-              fileSizeBytes: videoBuffer.length,
+              fileSizeBytes: source.size,
               uploadCaptions: false,
               uploadThumbnail: false,
             },
@@ -311,7 +304,11 @@ const uploadVideoToLinkedIn = (
     });
 
     const uploadInstructions = registerRes.data.value
-      .uploadInstructions as Array<{ uploadUrl?: string }>;
+      .uploadInstructions as Array<{
+      uploadUrl?: string;
+      firstByte: number;
+      lastByte: number;
+    }>;
     const assetUrn = registerRes.data.value.video as string;
     const uploadToken = registerRes.data.value.uploadToken;
 
@@ -321,39 +318,32 @@ const uploadVideoToLinkedIn = (
       );
     }
 
-    // Step 3: Upload video in chunks (4MB each).
-    const chunks = chunkBuffer(videoBuffer, VIDEO_CHUNK_BYTES);
-
-    const uploadedPartIds = yield* Effect.all(
-      chunks.map((chunk, index) =>
-        Effect.gen(function* () {
-          const uploadUrl = uploadInstructions[index]?.uploadUrl;
-          if (!uploadUrl) {
-            return yield* Effect.fail(
-              mediaProcessingError(
-                PROVIDER,
-                `Missing upload URL for chunk ${index + 1}`
-              )
-            );
-          }
-
-          const uploadResponse = yield* Effect.tryPromise({
-            try: () =>
-              axios.put(uploadUrl, chunk, {
-                headers: binaryHeaders(accessToken),
-              }),
-            catch: () =>
-              mediaProcessingError(
-                PROVIDER,
-                `Video chunk ${index + 1} upload failed`
-              ),
-          });
-
-          const etag = uploadResponse.headers.etag as string;
-          return etag;
-        })
-      )
-    );
+    const uploadedPartIds: string[] = [];
+    for (const instruction of uploadInstructions) {
+      if (!instruction.uploadUrl) {
+        return yield* Effect.fail(
+          mediaProcessingError(PROVIDER, "Missing upload URL")
+        );
+      }
+      const chunk = yield* Effect.tryPromise({
+        try: () =>
+          readMediaRange(videoUrl, instruction.firstByte, instruction.lastByte),
+        catch: (e) => fromUnknownHttp(PROVIDER, e),
+      });
+      const response = yield* Effect.tryPromise({
+        try: () =>
+          axios.put(instruction.uploadUrl!, chunk, {
+            headers: binaryHeaders(accessToken),
+          }),
+        catch: (e) => fromUnknownHttp(PROVIDER, e),
+      });
+      if (!response.headers.etag) {
+        return yield* Effect.fail(
+          mediaProcessingError(PROVIDER, "Missing uploaded part ID")
+        );
+      }
+      uploadedPartIds.push(response.headers.etag);
+    }
     // Step 4: Finalize the upload.
     yield* Effect.tryPromise({
       try: () =>

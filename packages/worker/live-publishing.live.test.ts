@@ -4,21 +4,24 @@ import {
   JobId,
   MediaId,
   makeId,
+  makeTokenCipher,
   normalizePostgresUrl,
   PostGroupId,
   PostId,
   PostTargetId,
+  TokenCipher,
 } from "@delulu/core";
+import { JobService, JobTransport } from "@delulu/services";
 import {
   SocialPublishInputSchema,
   type SocialPublishInputType,
 } from "@delulu/validators/post";
 import { PgClient } from "@effect/sql-pg";
-import { Effect, Redacted } from "effect";
+import { Effect, String as EffectString, Layer, Redacted } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { processPostgresMessage } from "./postgres-client";
+import { publishTarget } from "./publish-target";
 import { resolveMediaUrls } from "./resolve-media-urls";
 
 const REQUIRED_CASES = [
@@ -318,6 +321,48 @@ liveDescribe("explicit production-account publishing matrix", () => {
       maxConnections: 3,
     });
 
+    const PublishPg = PgClient.layer({
+      url: Redacted.make(normalizePostgresUrl(databaseUrl)),
+      transformQueryNames: EffectString.camelToSnake,
+      transformResultNames: EffectString.snakeToCamel,
+      transformJson: false,
+    });
+    const Transport = Layer.succeed(
+      JobTransport,
+      JobTransport.of({
+        prepare: async (intent) => {
+          const url = new URL("/internal/jobs", requiredEnv("SCHEDULER_URL"));
+          if (url.protocol !== "https:") {
+            throw new Error("Scheduler requires HTTPS");
+          }
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              authorization: `Bearer ${requiredEnv("SCHEDULER_SECRET")}`,
+              "content-type": "application/json",
+            },
+            body: JSON.stringify(intent),
+          });
+          if (!response.ok) {
+            throw new Error(`Scheduler returned ${response.status}`);
+          }
+        },
+      })
+    );
+    const PublishLayer = Layer.mergeAll(
+      PublishPg,
+      Layer.succeed(
+        TokenCipher,
+        TokenCipher.of(
+          makeTokenCipher(
+            process.env.DELULU_LIVE_ENCRYPTION_SECRET ||
+              requiredEnv("ENCRYPTION_SECRET")
+          )
+        )
+      ),
+      JobService.layer.pipe(Layer.provide([PublishPg, Transport]))
+    );
+
     await Effect.runPromise(
       Effect.gen(function* () {
         const sql = yield* SqlClient.SqlClient;
@@ -358,6 +403,7 @@ liveDescribe("explicit production-account publishing matrix", () => {
               name: string;
               jobId: string;
               targetId: string;
+              workspaceId: string;
             }> = [];
             for (const entry of cases) {
               const connection = allowed.get(entry.connectionId);
@@ -369,17 +415,16 @@ liveDescribe("explicit production-account publishing matrix", () => {
                 jobId: string;
                 targetId: string;
                 targetStatus: string;
-                jobStatus: string;
+                workspaceId: string;
                 platformPostId: string | null;
                 platformPostUrl: string | null;
               }>`
-                SELECT j.id AS "jobId", t.id AS "targetId",
-                       t.status AS "targetStatus", j.status AS "jobStatus",
+                SELECT t.id AS "jobId", t.id AS "targetId", p.workspace_id AS "workspaceId",
+                       t.status AS "targetStatus",
                        t.platform_post_id AS "platformPostId",
                        t.platform_post_url AS "platformPostUrl"
                 FROM posts p
                 JOIN post_targets t ON t.post_id = p.id
-                JOIN jobs j ON j.payload->>'targetId' = t.id
                 WHERE p.external_submission_id = ${externalId}
                   AND p.workspace_id = ${connection.workspaceId}
                   AND t.connection_id = ${entry.connectionId}`;
@@ -402,10 +447,6 @@ liveDescribe("explicit production-account publishing matrix", () => {
                   throw new Error(
                     `${entry.name} previously failed in run ${runId}; inspect it before starting a new run`
                   );
-                }
-                if (existing[0].jobStatus === "pending") {
-                  yield* sql`UPDATE jobs SET status = 'dispatched'
-                    WHERE id = ${existing[0].jobId}`;
                 }
                 seeded.push({ name: entry.name, ...existing[0] });
                 continue;
@@ -466,14 +507,12 @@ liveDescribe("explicit production-account publishing matrix", () => {
                 (id, post_id, connection_id, group_id, settings, status)
                 VALUES (${targetId}, ${postId}, ${entry.connectionId}, ${groupId},
                   ${JSON.stringify(settings)}::jsonb, 'pending')`;
-              yield* sql`INSERT INTO jobs
-                (id, workspace_id, payload, run_at, status, attempts,
-                 max_attempts, idempotency_key)
-                VALUES (${jobId}, ${connection.workspaceId},
-                  ${JSON.stringify({ _tag: "PublishTarget", targetId })}::jsonb,
-                  now(), 'dispatched', 1, 1,
-                  ${`live:${connection.workspaceId}:${runId}:${entry.name}`})`;
-              seeded.push({ name: entry.name, jobId, targetId });
+              seeded.push({
+                name: entry.name,
+                jobId,
+                targetId,
+                workspaceId: connection.workspaceId,
+              });
             }
             return seeded;
           })
@@ -481,8 +520,18 @@ liveDescribe("explicit production-account publishing matrix", () => {
 
         for (const item of work) {
           yield* Effect.tryPromise(() =>
-            processPostgresMessage(
-              JSON.stringify({ jobId: item.jobId, targetId: item.targetId })
+            publishTarget(
+              {
+                id: item.jobId,
+                workspaceId: item.workspaceId,
+                payload: {
+                  _tag: "PublishTarget",
+                  targetId: item.targetId as PostTargetId,
+                },
+                runAt: Date.now(),
+                maxAttempts: 1,
+              },
+              PublishLayer
             )
           );
           const result = yield* sql<{

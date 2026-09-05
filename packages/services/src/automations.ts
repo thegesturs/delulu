@@ -23,6 +23,7 @@ import {
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/unstable/sql";
 import { AutomationKvService } from "./automation-kv";
+import { JobService } from "./jobs";
 
 export interface AutomationWriteInput {
   readonly connectionId: ConnectionId;
@@ -174,10 +175,10 @@ export class AutomationService extends Context.Service<
       profileId: string,
       mediaId: string
     ) => Effect.Effect<readonly Automation[], AutomationPersistenceError>;
-    readonly repairTriggerCache: (
-      limit: number,
-      offset: number
-    ) => Effect.Effect<number, AutomationPersistenceError>;
+    readonly repairTrigger: (
+      profileId: string,
+      mediaId: string
+    ) => Effect.Effect<void, AutomationPersistenceError>;
   }
 >()("@delulu/services/AutomationService") {
   static readonly layer = Layer.effect(
@@ -186,6 +187,25 @@ export class AutomationService extends Context.Service<
       const sql = yield* SqlClient.SqlClient;
       const repo = yield* makeAutomationRepository();
       const kv = yield* AutomationKvService;
+      const jobs = yield* JobService;
+      const scheduleRepair = (profileId: string, mediaId: string) =>
+        jobs.enqueue({
+          workspaceId: profileId,
+          payload: { _tag: "RepairAutomation", profileId, mediaId },
+          runAt: new Date(),
+          idempotencyKey: `automation-repair:${profileId}:${mediaId}`,
+        });
+      const scheduleExistingPairs = (automationId: string) =>
+        Effect.gen(function* () {
+          const pairs = yield* sql<{
+            profileId: string;
+            mediaId: string;
+          }>`SELECT profile_id, media_id
+          FROM automation_trigger_index WHERE automation_id = ${automationId}`;
+          for (const pair of pairs) {
+            yield* scheduleRepair(pair.profileId, pair.mediaId);
+          }
+        });
       // Hyperdrive does not invalidate cached SELECTs after writes. A stable
       // function makes mutable automation reads ineligible for query caching.
       const freshRead = sql`CURRENT_TIMESTAMP IS NOT NULL`;
@@ -244,13 +264,10 @@ export class AutomationService extends Context.Service<
             "Automation KV write-through failed",
             write.failure
           );
-          return;
+          return yield* Effect.fail(
+            persistenceError("repair trigger", write.failure)
+          );
         }
-        yield* sql`DELETE FROM automation_trigger_repairs WHERE profile_id = ${profileId} AND media_id = ${mediaId}`.pipe(
-          Effect.mapError((cause) =>
-            persistenceError("complete KV repair", cause)
-          )
-        );
       });
       const indexAutomation = Effect.fn("AutomationService.indexAutomation")(
         function* (automation: Automation) {
@@ -264,14 +281,11 @@ export class AutomationService extends Context.Service<
             );
           }
           const mediaIds = automationTriggerIndexIds(automation.triggers);
-          yield* sql`INSERT INTO automation_trigger_repairs (profile_id, media_id)
-            SELECT profile_id, media_id FROM automation_trigger_index
-            WHERE automation_id = ${automation.id}
-            ON CONFLICT (profile_id, media_id) DO UPDATE SET requested_at = now()`;
+          yield* scheduleExistingPairs(automation.id);
           yield* sql`DELETE FROM automation_trigger_index WHERE automation_id = ${automation.id}`;
           for (const mediaId of mediaIds) {
             yield* sql`INSERT INTO automation_trigger_index (automation_id, connection_id, profile_id, media_id, enabled) VALUES (${automation.id}, ${automation.connectionId}, ${connection[0].profileId}, ${mediaId}, ${automation.enabled})`;
-            yield* sql`INSERT INTO automation_trigger_repairs (profile_id, media_id) VALUES (${connection[0].profileId}, ${mediaId}) ON CONFLICT (profile_id, media_id) DO UPDATE SET requested_at = now()`;
+            yield* scheduleRepair(connection[0].profileId, mediaId);
           }
           return { profileId: connection[0].profileId, mediaIds };
         }
@@ -469,10 +483,7 @@ export class AutomationService extends Context.Service<
         yield* sql
           .withTransaction(
             Effect.gen(function* () {
-              yield* sql`INSERT INTO automation_trigger_repairs (profile_id, media_id)
-                SELECT profile_id, media_id FROM automation_trigger_index
-                WHERE automation_id = ${id}
-                ON CONFLICT (profile_id, media_id) DO UPDATE SET requested_at = now()`;
+              yield* scheduleExistingPairs(id);
               yield* sql`DELETE FROM automations WHERE workspace_id = ${workspaceId} AND id = ${id}`;
             })
           )
@@ -630,22 +641,6 @@ export class AutomationService extends Context.Service<
               );
         }
       );
-      const repairTriggerCache = Effect.fn(
-        "AutomationService.repairTriggerCache"
-      )(function* (limit: number, offset: number) {
-        const pairs = yield* sql<{
-          profileId: string;
-          mediaId: string;
-        }>`SELECT profile_id, media_id FROM automation_trigger_repairs ORDER BY requested_at, profile_id, media_id LIMIT ${limit} OFFSET ${offset}`.pipe(
-          Effect.mapError((cause) =>
-            persistenceError("scan trigger repair", cause)
-          )
-        );
-        for (const pair of pairs) {
-          yield* refreshPair(pair.profileId, pair.mediaId);
-        }
-        return pairs.length;
-      });
       return AutomationService.of({
         list,
         get,
@@ -655,7 +650,7 @@ export class AutomationService extends Context.Service<
         listRuns,
         inbox,
         findForTrigger,
-        repairTriggerCache,
+        repairTrigger: refreshPair,
       });
     })
   );

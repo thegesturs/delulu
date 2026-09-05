@@ -417,8 +417,12 @@ export class PostService extends Context.Service<
                   yield* sql`UPDATE post_reviews SET status = 'rejected', resolved_at = now()
                   WHERE post_id = ${postId}`;
                 }
-                yield* sql`DELETE FROM jobs WHERE payload ->> 'targetId' IN
-                (SELECT id FROM post_targets WHERE post_id = ${postId}) AND status IN ('pending', 'leased')`;
+                const previousTargets = yield* sql<{
+                  id: string;
+                }>`SELECT id FROM post_targets WHERE post_id = ${postId}`;
+                for (const target of previousTargets) {
+                  yield* jobs.cancel(`publish-target:${target.id}`);
+                }
                 yield* sql`DELETE FROM post_targets WHERE post_id = ${postId}`;
                 yield* sql`UPDATE posts SET content = ${JSON.stringify({ groups: input.value.groups })}::jsonb,
                 status = ${status}::post_status, source = ${input.value.source ?? "api"},
@@ -516,10 +520,14 @@ export class PostService extends Context.Service<
             resource: "post",
           });
         }
-        yield* sql`DELETE FROM jobs WHERE payload ->> 'targetId' IN
-          (SELECT id FROM post_targets WHERE post_id = ${id}) AND status IN ('pending', 'leased')`.pipe(
+        const targets = yield* sql<{
+          id: string;
+        }>`SELECT id FROM post_targets WHERE post_id = ${id}`.pipe(
           Effect.orDie
         );
+        for (const target of targets) {
+          yield* jobs.cancel(`publish-target:${target.id}`);
+        }
       });
       const retryTarget = Effect.fn("PostService.retryTarget")(
         function* (input: {
@@ -546,7 +554,7 @@ export class PostService extends Context.Service<
               targetId: input.targetId as typeof PostTargetId.Type,
             },
             runAt: new Date(),
-            idempotencyKey: `retry-target:${input.targetId}:${Date.now()}`,
+            idempotencyKey: `publish-target:${input.targetId}`,
           });
           const post = yield* get(input.workspaceId, input.postId);
           return post.targets.find(

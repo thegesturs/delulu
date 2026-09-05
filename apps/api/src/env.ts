@@ -11,7 +11,7 @@ import {
   R2Config,
 } from "@delulu/services";
 import { Layer } from "effect";
-import type { SchedulerNamespace } from "./alarm-scheduler";
+import type { JobNamespace } from "./job-runtime";
 
 /** Cloudflare Hyperdrive binding (Postgres connection pooler). */
 export interface Hyperdrive {
@@ -24,11 +24,12 @@ export interface Hyperdrive {
  * `DATABASE_URL` and the in-memory rate limiter.
  */
 export interface Env {
-  readonly SCHEDULER?: SchedulerNamespace;
+  readonly JOBS?: JobNamespace;
+  readonly SCHEDULER_URL?: string;
+  readonly SCHEDULER_SECRET?: string;
   readonly DATABASE_URL?: string;
   readonly HYPERDRIVE?: Hyperdrive;
   readonly DELULU_DEPLOYMENT_MODE?: "hosted" | "self_hosted";
-  readonly DELULU_PUBLISH_TRANSPORT?: "sqs" | "postgres";
   readonly DELULU_REGISTRATION_ENABLED?: string;
   readonly DELULU_VERSION?: string;
   readonly DELULU_COMMUNITY_API_RATE_PER_MINUTE?: string;
@@ -49,8 +50,6 @@ export interface Env {
   readonly R2_BUCKET_NAME?: string;
   readonly R2_PUBLIC_BASE_URL?: string;
   readonly ENCRYPTION_SECRET?: string;
-  readonly SQS_INGRESS_URL?: string;
-  readonly SQS_INGRESS_SECRET?: string;
   readonly EDGE_CACHE_KV?: KeyValueCacheBinding;
   readonly AUTOMATION_KV?: WorkersKvNamespace;
   readonly META_APP_SECRET?: string;

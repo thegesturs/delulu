@@ -231,8 +231,8 @@ export interface PublishContext {
 
 /**
  * Isomorphic (workerd-safe) surface of a platform. NOTE: deliberately has NO
- * `publish` — publishing pulls in Node-only deps (axios/googleapis) and lives
- * in `PlatformPublisher`, imported only from the worker entry (Path A).
+ * `publish`; publishing lives in `PlatformPublisher`, imported only by the
+ * durable execution entry.
  */
 export interface PlatformConnection {
   id: PublishableSocialType;
@@ -244,7 +244,7 @@ export interface PlatformConnection {
   queries?: PlatformQueries;
 }
 
-/** Node-only publishing half. Its `R` requires connection token storage. */
+/** Publishing execution requires connection token storage. */
 export interface PlatformPublisher {
   id: PublishableSocialType;
   publish(

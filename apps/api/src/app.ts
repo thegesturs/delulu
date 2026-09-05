@@ -1,4 +1,5 @@
 import { Api } from "@delulu/contracts";
+import type { TokenCipher } from "@delulu/core";
 import type {
   AdminService,
   AnalyticsService,
@@ -6,7 +7,6 @@ import type {
   AsTokenService,
   AuthConfig,
   AuthorizationService,
-  AutomationKvRepairJob,
   AutomationService,
   BillingOwnerTransfers,
   BillingProviderService,
@@ -62,6 +62,7 @@ import { WebhookRoutes } from "./webhook-routes";
 
 /** Everything the assembled routes need a per-request environment to provide. */
 export type AppServices =
+  | TokenCipher
   | SqlClient.SqlClient
   | DeploymentConfig
   | EntitlementPolicy
@@ -88,7 +89,6 @@ export type AppServices =
   | ReviewService
   | AdminService
   | AnalyticsService
-  | AutomationKvRepairJob
   | AutomationService
   | BillingService
   | BillingProviderService

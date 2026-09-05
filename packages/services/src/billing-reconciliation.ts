@@ -10,8 +10,8 @@ export interface ReconciliationResult {
 export class BillingReconciliation extends Context.Service<
   BillingReconciliation,
   {
-    readonly run: (input?: {
-      readonly billingOwnerUserId?: string;
+    readonly run: (input: {
+      readonly billingOwnerUserId: string;
     }) => Effect.Effect<ReconciliationResult>;
   }
 >()("@delulu/services/BillingReconciliation") {
@@ -19,22 +19,22 @@ export class BillingReconciliation extends Context.Service<
     BillingReconciliation,
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
-      const run = Effect.fn("BillingReconciliation.run")(function* (input?: {
-        readonly billingOwnerUserId?: string;
+      const run = Effect.fn("BillingReconciliation.run")(function* (input: {
+        readonly billingOwnerUserId: string;
       }) {
         return yield* sql
           .withTransaction(
             Effect.gen(function* () {
               const expired = yield* sql<{ count: string }>`WITH changed AS (
               UPDATE quota_reservations SET status = 'expired'
-              WHERE status = 'pending' AND expires_at <= now() RETURNING 1
+              WHERE status = 'pending' AND expires_at <= now()
+                AND billing_owner_user_id = ${input.billingOwnerUserId} RETURNING 1
             ) SELECT count(*)::text AS count FROM changed`;
               const updated = yield* sql<{ billingOwnerUserId: string }>`
               WITH selected AS (
                 SELECT billing_owner_user_id, current_period_start
                 FROM subscriptions
-                WHERE (${input?.billingOwnerUserId ?? null}::text IS NULL
-                  OR billing_owner_user_id = ${input?.billingOwnerUserId ?? null})
+                WHERE billing_owner_user_id = ${input.billingOwnerUserId}
               ), actual AS (
                 SELECT selected.billing_owner_user_id,
                   (SELECT count(*) FROM connections c JOIN workspaces w ON w.id = c.workspace_id
@@ -69,11 +69,3 @@ export class BillingReconciliation extends Context.Service<
     })
   );
 }
-
-/** Cron/job transport seam. Shared assembly can call this from any scheduler. */
-export const handleBillingReconciliationJob = Effect.fn(
-  "handleBillingReconciliationJob"
-)(function* (payload: { readonly billingOwnerUserId?: string }) {
-  const reconciliation = yield* BillingReconciliation;
-  return yield* reconciliation.run(payload);
-});

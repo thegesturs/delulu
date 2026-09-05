@@ -11,6 +11,7 @@ import {
   cancellationDeletionAt,
   canOfferMonthlySave,
 } from "./cancellation-policy";
+import { JobService } from "./jobs";
 import { MessagingService } from "./messaging";
 import { R2Service } from "./r2";
 
@@ -192,13 +193,14 @@ export class CancellationService extends Context.Service<
       readonly bookingAt?: string;
       readonly attendeeEmail?: string;
     }) => Effect.Effect<boolean>;
-    readonly runRetention: () => Effect.Effect<void>;
+    readonly runRetention: (requestId: string) => Effect.Effect<number | null>;
   }
 >()("@delulu/services/CancellationService") {
   static readonly layer = Layer.effect(
     CancellationService,
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
+      const jobs = yield* JobService;
       const billingProvider = yield* BillingProviderService;
       const providerConfig = yield* BillingProviderConfig;
       const messaging = yield* MessagingService;
@@ -539,24 +541,40 @@ export class CancellationService extends Context.Service<
             comment: request.comment ?? undefined,
           });
           const deletionAt = cancellationDeletionAt(sub.currentPeriodEnd);
-          const scheduled = yield* sql<{
-            id: string;
-          }>`UPDATE cancellation_requests SET status = 'scheduled',
+          yield* sql
+            .withTransaction(
+              Effect.gen(function* () {
+                const scheduled = yield* sql<{
+                  id: string;
+                }>`UPDATE cancellation_requests SET status = 'scheduled',
           scheduled_for = ${sub.currentPeriodEnd}, data_deletion_at = ${deletionAt},
           provider_response = ${JSON.stringify(providerResponse)}::jsonb
           WHERE id = ${request.id} AND status = 'open' RETURNING id`.pipe(
-            Effect.orDie
-          );
-          if (!scheduled[0]) {
-            return yield* new ConflictError({
-              message: "The cancellation request changed while scheduling",
-              resource: "cancellation_request",
-            });
-          }
-          yield* sql`UPDATE subscriptions SET cancel_at_period_end = true
+                  Effect.orDie
+                );
+                if (!scheduled[0]) {
+                  return yield* new ConflictError({
+                    message:
+                      "The cancellation request changed while scheduling",
+                    resource: "cancellation_request",
+                  });
+                }
+                yield* jobs.enqueue({
+                  workspaceId: input.billingOwnerUserId,
+                  payload: {
+                    _tag: "CancellationDeadline",
+                    requestId: request.id,
+                  },
+                  runAt: new Date(),
+                  idempotencyKey: `cancellation:${request.id}`,
+                });
+                yield* sql`UPDATE subscriptions SET cancel_at_period_end = true
           WHERE billing_owner_user_id = ${input.billingOwnerUserId}`.pipe(
-            Effect.orDie
-          );
+                  Effect.orDie
+                );
+              })
+            )
+            .pipe(Effect.catchTag("SqlError", (error) => Effect.die(error)));
           yield* notify(
             request.id,
             input.billingOwnerUserId,
@@ -715,7 +733,7 @@ export class CancellationService extends Context.Service<
         }
       );
       const runRetention = Effect.fn("CancellationService.runRetention")(
-        function* () {
+        function* (requestId: string) {
           const due = yield* sql<{
             id: string;
             billingOwnerUserId: string;
@@ -723,9 +741,10 @@ export class CancellationService extends Context.Service<
             dataDeletionAt: Date;
             scheduledFor: Date;
           }>`SELECT id, billing_owner_user_id, status, data_deletion_at, scheduled_for
-            FROM cancellation_requests WHERE status IN ('scheduled','effective','deleting','deleted')
+            FROM cancellation_requests WHERE id = ${requestId} AND status IN ('scheduled','effective','deleting','deleted')
               AND data_deletion_at IS NOT NULL`.pipe(Effect.orDie);
           const now = Date.now();
+          let next: number | null = null;
           for (const request of due) {
             if (request.status === "deleted") {
               yield* notify(
@@ -747,6 +766,15 @@ export class CancellationService extends Context.Service<
               ).pipe(Effect.orDie);
             }
             const remaining = request.dataDeletionAt.getTime() - now;
+            const deadlines = [
+              request.dataDeletionAt.getTime() - 30 * 86_400_000,
+              request.dataDeletionAt.getTime() - 7 * 86_400_000,
+              request.dataDeletionAt.getTime(),
+            ];
+            next = deadlines.find((deadline) => deadline > now) ?? null;
+            if (remaining <= 0 && request.status !== "scheduled") {
+              next = now + 30_000;
+            }
             if (remaining <= 30 * 86_400_000 && remaining > 7 * 86_400_000) {
               yield* notify(
                 request.id,
@@ -833,6 +861,7 @@ export class CancellationService extends Context.Service<
               }
             }
           }
+          return next;
         }
       );
       return CancellationService.of({

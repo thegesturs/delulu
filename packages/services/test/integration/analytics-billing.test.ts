@@ -5,6 +5,16 @@ import { SqlClient } from "effect/unstable/sql";
 import { describe, expect, it } from "vitest";
 import { AnalyticsService, LiveInsightsProvider } from "../../src/analytics";
 import { makeMemoryAnalyticsCacheLayer } from "../../src/analytics-cache";
+import { JobService } from "../../src/jobs";
+
+const Jobs = Layer.succeed(
+  JobService,
+  JobService.of({
+    enqueue: () => Effect.succeed("test-job"),
+    cancel: () => Effect.void,
+  })
+);
+
 import { BillingService } from "../../src/billing";
 import { BillingReconciliation } from "../../src/billing-reconciliation";
 import { BillingOwnerTransfers } from "../../src/billing-transfer";
@@ -55,7 +65,9 @@ const Config = Layer.succeed(
     appBaseUrl: "https://app.delulu.test",
   })
 );
-const Reservations = PooledQuotaReservations.layer.pipe(Layer.provide(Config));
+const Reservations = PooledQuotaReservations.layer.pipe(
+  Layer.provide([Config, Jobs])
+);
 // Disabled telemetry — BillingWebhookApplication now depends on ProductAnalytics
 // (for the "became paid" event). With `enabled: false` it is a no-op.
 const Telemetry = ProductAnalytics.layer.pipe(
@@ -76,7 +88,7 @@ const AppLayer = Layer.mergeAll(
   Analytics,
   BillingService.layer,
   BillingReconciliation.layer,
-  BillingWebhookApplication.layer.pipe(Layer.provide(Telemetry)),
+  BillingWebhookApplication.layer.pipe(Layer.provide([Telemetry, Jobs])),
   BillingOwnerTransfers.layer,
   Reservations
 ).pipe(Layer.provideMerge(Pg));

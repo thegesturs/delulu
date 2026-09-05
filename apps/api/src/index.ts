@@ -1,12 +1,5 @@
 import { makeTokenCipher, TokenCipher } from "@delulu/core";
 import {
-  prepareRecoveryCampaignDeliveryVerification,
-  recoveryCampaignDeliveryAudit,
-  releaseRecoveryCampaignRecipients,
-  renderRecoveryCampaignVerificationEmail,
-  runScheduledRecoveryCampaign,
-} from "@delulu/email/campaigns/migration-recovery/worker";
-import {
   AdminService,
   AnalyticsService,
   ApiKeyVerifier,
@@ -14,7 +7,6 @@ import {
   AuthorizationService,
   AutomationEngine,
   AutomationKvNamespace,
-  AutomationKvRepairJob,
   AutomationKvService,
   AutomationService,
   AutomationSessionService,
@@ -35,6 +27,7 @@ import {
   DmDispatchService,
   EntitlementPolicy,
   IdentityService,
+  JobIntent,
   JobService,
   LifecycleService,
   MediaService,
@@ -61,19 +54,19 @@ import {
   WorkspaceAccessService,
 } from "@delulu/services";
 import { PgClient } from "@effect/sql-pg";
-import { Effect, String as EffectString, Layer, Redacted } from "effect";
 import {
-  AlarmScheduler,
-  type AlarmState,
-  ensureSchedulers,
-  notifyScheduler,
-} from "./alarm-scheduler";
+  Effect,
+  String as EffectString,
+  Layer,
+  Redacted,
+  Schema,
+} from "effect";
 import { type AppServices, buildWebHandler } from "./app";
 import {
   AutomationProviderLive,
   PaymentWebhookSinkLive,
 } from "./automation-providers";
-import { dispatchDueJobs, nextJobDeadline } from "./dispatcher";
+import { DurableJobObject, type JobState } from "./durable-job";
 import {
   appOrigins,
   authConfigLayer,
@@ -83,8 +76,10 @@ import {
   type ExecutionContext,
   postHogConfigLayer,
 } from "./env";
+import { executeJob, failJob } from "./execute-job";
+import { jobTransportLayer, makeJobRuntime, sendIntent } from "./job-runtime";
 import { LiveInsightsProviderLive } from "./live-insights";
-import { runMaintenance } from "./maintenance";
+
 import { messagingProvidersLayer } from "./messaging-providers";
 
 /**
@@ -117,8 +112,6 @@ export const makeBaseLayer = (
   const Deployment = DeploymentConfig.layer({
     mode:
       env.DELULU_DEPLOYMENT_MODE === "self_hosted" ? "self_hosted" : "hosted",
-    publishTransport:
-      env.DELULU_PUBLISH_TRANSPORT === "postgres" ? "postgres" : "sqs",
     registrationEnabled: env.DELULU_REGISTRATION_ENABLED !== "false",
     version: env.DELULU_VERSION ?? "development",
     communityApiRatePerMinute: Number(
@@ -138,7 +131,7 @@ export const makeBaseLayer = (
   const [ClerkAdminConfig, ConnectionConfig, R2Config] =
     domainConfigLayers(env);
   const Authorization = AuthorizationService.layer;
-  const Jobs = JobService.layer;
+  const Jobs = JobService.layer.pipe(Layer.provide(jobTransportLayer(env)));
   const ClerkAdmin =
     overrides.clerkAdmin ??
     ClerkAdminService.layer.pipe(Layer.provide(ClerkAdminConfig));
@@ -169,9 +162,11 @@ export const makeBaseLayer = (
       )
     : AutomationKvService.memoryLayer();
   const Messaging = MessagingService.layer.pipe(
-    Layer.provide(messagingProvidersLayer(env))
+    Layer.provide([messagingProvidersLayer(env), Jobs])
   );
-  const Lifecycle = LifecycleService.layer.pipe(Layer.provide(Messaging));
+  const Lifecycle = LifecycleService.layer.pipe(
+    Layer.provide([Messaging, Jobs])
+  );
   const Connections = ConnectionsService.layer.pipe(
     Layer.provide([ConnectionState, Cipher, AutomationKvBinding, Lifecycle])
   );
@@ -200,7 +195,13 @@ export const makeBaseLayer = (
     Layer.provide(BillingProviderConfigLayer)
   );
   const Cancellations = CancellationService.layer.pipe(
-    Layer.provide([BillingProvider, BillingProviderConfigLayer, Messaging, R2])
+    Layer.provide([
+      BillingProvider,
+      BillingProviderConfigLayer,
+      Messaging,
+      R2,
+      Jobs,
+    ])
   );
   const CalendarConfig = Layer.succeed(
     CalendarWebhookConfig,
@@ -210,7 +211,7 @@ export const makeBaseLayer = (
     })
   );
   const BillingWebhooks = BillingWebhookApplication.layer.pipe(
-    Layer.provide(Telemetry)
+    Layer.provide([Telemetry, Jobs])
   );
   const BillingReconcile = BillingReconciliation.layer;
   const Transcriptions = TranscriptionService.layer;
@@ -231,13 +232,14 @@ export const makeBaseLayer = (
   const Setup = SetupService.layer.pipe(
     Layer.provide([ClerkAdmin, Entitlements])
   );
-  const QuotaReservations = PooledQuotaReservations.layer;
+  const QuotaReservations = PooledQuotaReservations.layer.pipe(
+    Layer.provide(Jobs)
+  );
   const AutomationKv = AutomationKvService.layer.pipe(
     Layer.provide(AutomationKvBinding)
   );
-  const Automations = AutomationService.layer.pipe(Layer.provide(AutomationKv));
-  const AutomationRepair = AutomationKvRepairJob.layer.pipe(
-    Layer.provide(Automations)
+  const Automations = AutomationService.layer.pipe(
+    Layer.provide([AutomationKv, Jobs])
   );
   const AutomationSessions = AutomationSessionService.layer.pipe(
     Layer.provide(AutomationKv)
@@ -300,6 +302,7 @@ export const makeBaseLayer = (
   );
 
   return Layer.mergeAll(
+    Cipher,
     IdentityService.layer,
     MembershipService.layer,
     ApiKeyVerifier.layer,
@@ -325,7 +328,6 @@ export const makeBaseLayer = (
     Admin,
     Analytics,
     Automations,
-    AutomationRepair,
     Billing,
     BillingProvider,
     Cancellations,
@@ -383,124 +385,17 @@ const handleRequest = (
   return run;
 };
 
-const RECOVERY_VERIFICATION_EMAIL = "rajswaraj.r@gmail.com";
-const RECOVERY_VERIFICATION_KEY =
-  "campaign:migration-recovery-2026-07:cloudflare-verification";
-
-const sendRecoveryCampaignVerification = (env: Env) =>
-  Effect.tryPromise({
-    try: async () => {
-      if (!(env.AUTOMATION_KV && env.EMAIL && env.CLOUDFLARE_EMAIL_FROM)) {
-        throw new Error(
-          "Recovery verification requires KV and Cloudflare Email bindings"
-        );
-      }
-      const existingMessageId = await env.AUTOMATION_KV.get(
-        RECOVERY_VERIFICATION_KEY
-      );
-      if (existingMessageId) {
-        return {
-          status: "already-sent",
-          messageId: existingMessageId,
-        } as const;
-      }
-      const email = await renderRecoveryCampaignVerificationEmail();
-      const response = await env.EMAIL.send({
-        from: {
-          email: env.CLOUDFLARE_EMAIL_FROM,
-          name: "Delulu Social",
-        },
-        to: RECOVERY_VERIFICATION_EMAIL,
-        subject: email.subject,
-        html: email.html,
-        text: email.text,
-        headers: {
-          "x-idempotency-key": RECOVERY_VERIFICATION_KEY,
-        },
-      });
-      if (!response.messageId) {
-        throw new Error(
-          "Cloudflare accepted the verification call without returning a messageId"
-        );
-      }
-      await env.AUTOMATION_KV.put(
-        RECOVERY_VERIFICATION_KEY,
-        response.messageId
-      );
-      return { status: "sent", messageId: response.messageId } as const;
-    },
-    catch: (cause) => cause,
-  });
-
-const runRecoveryCampaign = (env: Env): Promise<void> => {
-  if (
-    env.ENVIRONMENT !== "production" ||
-    env.DODO_PAYMENTS_ENVIRONMENT !== "live_mode"
-  ) {
-    return Promise.resolve();
-  }
-  if (!env.DODO_PAYMENTS_API_KEY) {
-    return Promise.reject(
-      new Error("Recovery campaign requires DODO_PAYMENTS_API_KEY")
+/** Each idempotency key owns its durable execution state and alarm. */
+export class JobExecutor extends DurableJobObject {
+  constructor(state: JobState, env: Env) {
+    super(
+      state,
+      makeJobRuntime(
+        () => makePgLayer(env),
+        (job) => executeJob(job, makeBaseLayer(env)),
+        (job, error) => failJob(job, error, makeBaseLayer(env))
+      )
     );
-  }
-  return Effect.gen(function* () {
-    const deliveryVerification =
-      yield* prepareRecoveryCampaignDeliveryVerification();
-    const verificationEmail = yield* sendRecoveryCampaignVerification(env);
-    const release = yield* releaseRecoveryCampaignRecipients(
-      verificationEmail.messageId
-    );
-    const result = yield* runScheduledRecoveryCampaign({
-      apiKey: env.DODO_PAYMENTS_API_KEY!,
-      environment: "live_mode",
-    });
-    const deliveryAudit = yield* recoveryCampaignDeliveryAudit();
-    const preview =
-      result.status === "launched"
-        ? result.launch.preview
-        : result.status === "complete"
-          ? result.preview
-          : undefined;
-    yield* Effect.logInfo("Recovery campaign scheduled run", {
-      status: result.status,
-      deliveryVerification,
-      verificationEmail,
-      release,
-      deliveryAudit,
-      eligibleRecipients: preview?.eligibleRecipients,
-      remainingRecipients: preview?.remainingRecipients,
-      sentRecipients: preview?.sentRecipients,
-      pendingRecipients: preview?.pendingRecipients,
-      failedRecipients: preview?.failedRecipients,
-      enqueued: result.status === "launched" ? result.launch.enqueued : 0,
-    });
-  }).pipe(Effect.provide(makePgLayer(env)), Effect.runPromise);
-};
-
-/** Separate named objects isolate publishing from maintenance and campaigns. */
-export class Scheduler extends AlarmScheduler {
-  constructor(state: AlarmState, env: Env) {
-    super(state, async (lane) => {
-      switch (lane) {
-        case "dispatch": {
-          await dispatchDueJobs(env, makeBaseLayer(env));
-          return nextJobDeadline(makePgLayer(env));
-        }
-        case "maintenance":
-          await runMaintenance(makeBaseLayer(env));
-          // Maintenance can enqueue jobs without an incoming HTTP mutation.
-          if (env.SCHEDULER) {
-            await notifyScheduler(env.SCHEDULER, "dispatch", true);
-          }
-          return null;
-        case "recovery":
-          await runRecoveryCampaign(env);
-          return null;
-        default:
-          throw new Error("Unknown scheduler lane");
-      }
-    });
   }
 }
 
@@ -510,17 +405,23 @@ export default {
     env: Env,
     ctx: ExecutionContext
   ): Promise<Response> {
-    // Deployment health probes bootstrap all lanes. Unrelated mutations must
-    // remain available when a maintenance or recovery object is unavailable.
-    const mutation = !["GET", "HEAD", "OPTIONS"].includes(request.method);
-    if (env.SCHEDULER && new URL(request.url).pathname === "/health") {
-      await ensureSchedulers(env.SCHEDULER);
+    if (new URL(request.url).pathname === "/internal/jobs") {
+      if (
+        !(env.JOBS && env.SCHEDULER_SECRET) ||
+        request.headers.get("authorization") !==
+          `Bearer ${env.SCHEDULER_SECRET}`
+      ) {
+        return new Response(null, { status: 401 });
+      }
+      if (request.method !== "POST") {
+        return new Response(null, { status: 405 });
+      }
+      await sendIntent(
+        env.JOBS,
+        Schema.decodeUnknownSync(JobIntent)(await request.json())
+      );
+      return new Response(null, { status: 204 });
     }
-    const response = await handleRequest(request, env, ctx);
-    if (env.SCHEDULER && mutation) {
-      // Post-commit notification: a lost notification is repaired by the alarm.
-      ctx.waitUntil(notifyScheduler(env.SCHEDULER, "dispatch", true));
-    }
-    return response;
+    return handleRequest(request, env, ctx);
   },
 };

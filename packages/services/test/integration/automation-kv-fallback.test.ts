@@ -7,6 +7,7 @@ import {
   AutomationKvService,
 } from "../../src/automation-kv";
 import { AutomationService } from "../../src/automations";
+import { JobService } from "../../src/jobs";
 
 const Pg = PgClient.layer({
   url: Redacted.make(
@@ -20,7 +21,16 @@ const Pg = PgClient.layer({
 const serviceLayer = (namespace: Layer.Layer<AutomationKvNamespace>) => {
   const Kv = AutomationKvService.layer.pipe(Layer.provide(namespace));
   return AutomationService.layer.pipe(
-    Layer.provide(Kv),
+    Layer.provide([
+      Kv,
+      Layer.succeed(
+        JobService,
+        JobService.of({
+          enqueue: () => Effect.succeed("test"),
+          cancel: () => Effect.void,
+        })
+      ),
+    ]),
     Layer.provideMerge(Pg)
   );
 };
