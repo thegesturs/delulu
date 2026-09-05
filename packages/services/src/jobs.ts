@@ -34,14 +34,17 @@ export class JobService extends Context.Service<
               const rows = yield* sql<{ transactionId: string }>`
           INSERT INTO execution_receipts (id) VALUES (${receiptId})
           RETURNING pg_current_xact_id()::text AS transaction_id`;
-              yield* Effect.promise(() =>
-                transport.prepare({
-                  key,
-                  job,
-                  receiptId,
-                  transactionId: rows[0].transactionId,
-                })
-              );
+              yield* Effect.promise((signal) =>
+                transport.prepare(
+                  {
+                    key,
+                    job,
+                    receiptId,
+                    transactionId: rows[0].transactionId,
+                  },
+                  signal
+                )
+              ).pipe(Effect.timeout("5 seconds"));
             })
           )
           .pipe(Effect.orDie);

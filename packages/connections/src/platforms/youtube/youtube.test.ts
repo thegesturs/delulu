@@ -41,6 +41,69 @@ const run = (ctx: PublishContext) =>
   Effect.runPromise(youtubePublisher.publish(ctx).pipe(Effect.provide(Store)));
 afterEach(() => vi.unstubAllGlobals());
 describe("durable YouTube upload", () => {
+  it.each([
+    404, 410,
+  ])("clears a rejected upload session (%s)", async (status) => {
+    const ctx = context({
+      youtubeUploadUrl: "https://www.googleapis.com/upload/session",
+      other: "preserved",
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url) =>
+        String(url).includes("oauth2")
+          ? Response.json({ access_token: "access" })
+          : String(url).includes("media.test")
+            ? new Response("v", {
+                status: 206,
+                headers: { "content-range": "bytes 0-0/5" },
+              })
+            : new Response("expired", { status })
+      )
+    );
+    await expect(run(ctx)).rejects.toMatchObject({
+      retryable: false,
+      code: "API_ERROR",
+    });
+    expect(ctx.persistProviderState).toHaveBeenCalledWith({
+      other: "preserved",
+    });
+  });
+  it.each([
+    false,
+    true,
+  ])("re-probes fully acknowledged bytes (still finalizing: %s)", async (pending) => {
+    const ctx = context({
+      youtubeUploadUrl: "https://www.googleapis.com/upload/session",
+    });
+    let calls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url) =>
+        String(url).includes("oauth2")
+          ? Response.json({ access_token: "access" })
+          : String(url).includes("media.test")
+            ? new Response("v", {
+                status: 206,
+                headers: { "content-range": "bytes 0-0/5" },
+              })
+            : ++calls === 1 || pending
+              ? new Response(null, {
+                  status: 308,
+                  headers: { range: "bytes=0-4" },
+                })
+              : Response.json({ id: "complete" })
+      )
+    );
+    if (pending) {
+      await expect(run(ctx)).rejects.toMatchObject({
+        code: "PUBLISH_CONTINUATION",
+      });
+    } else {
+      expect((await run(ctx)).platformPostId).toBe("complete");
+    }
+    expect(calls).toBe(2);
+  });
   it("classifies rejected authorization as permanent", async () => {
     vi.stubGlobal(
       "fetch",
@@ -51,7 +114,10 @@ describe("durable YouTube upload", () => {
       code: "API_ERROR",
     });
   });
-  it("probes a persisted session and uploads only missing bytes", async () => {
+  it.each([
+    false,
+    true,
+  ])("uploads only missing bytes (final chunk returns 308: %s)", async (final308) => {
     const ctx = context({
       youtubeUploadUrl: "https://www.googleapis.com/upload/session",
     });
@@ -77,7 +143,12 @@ describe("durable YouTube upload", () => {
         requests.push(init);
         return requests.length === 1
           ? new Response(null, { status: 308, headers: { range: "bytes=0-1" } })
-          : Response.json({ id: "confirmed" });
+          : final308 && requests.length === 2
+            ? new Response(null, {
+                status: 308,
+                headers: { range: "bytes=0-4" },
+              })
+            : Response.json({ id: "confirmed" });
       })
     );
     const result = await run(ctx);

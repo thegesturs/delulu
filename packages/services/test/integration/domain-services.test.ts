@@ -28,6 +28,7 @@ import { type JobIntent, JobTransport } from "../../src/job-transport";
 import { JobService } from "../../src/jobs";
 
 const intents: JobIntent[] = [];
+let rejectCancellation = false;
 
 import { LifecycleService } from "../../src/lifecycle";
 import { MembershipService } from "../../src/membership";
@@ -60,6 +61,9 @@ beforeAll(() => {
         JobTransport,
         JobTransport.of({
           prepare: async (intent) => {
+            if (rejectCancellation && intent.job === null) {
+              throw new Error("scheduler unavailable");
+            }
             intents.push(intent);
           },
         })
@@ -164,6 +168,25 @@ describe("M2 PostService and JobService", () => {
       const actor = { memberId: member.memberId, role: member.role };
       const first = yield* posts.create({ workspaceId, actor, value });
       const second = yield* posts.create({ workspaceId, actor, value });
+      const sql = yield* SqlClient.SqlClient;
+      rejectCancellation = true;
+      try {
+        const removal = yield* posts
+          .remove(workspaceId, first.id)
+          .pipe(Effect.exit);
+        expect(removal._tag).toBe("Failure");
+      } finally {
+        rejectCancellation = false;
+      }
+      const rows = yield* sql<{
+        deletedAt: Date | null;
+      }>`SELECT deleted_at FROM posts WHERE id = ${first.id}`;
+      expect(rows[0].deletedAt).toBeNull();
+      yield* posts.remove(workspaceId, first.id);
+      const deleted = yield* sql<{
+        deletedAt: Date | null;
+      }>`SELECT deleted_at FROM posts WHERE id = ${first.id}`;
+      expect(deleted[0].deletedAt).toBeInstanceOf(Date);
       return { first, second };
     });
     const result = await Effect.runPromise(

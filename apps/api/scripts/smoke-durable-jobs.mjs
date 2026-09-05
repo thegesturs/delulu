@@ -1,16 +1,14 @@
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
-import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { setTimeout } from "node:timers/promises";
 
+import { build } from "esbuild";
+import { Miniflare } from "miniflare";
+
 test("SQLite durable job recovery", async () => {
-  const require = createRequire(import.meta.url);
-  const wrangler = createRequire(require.resolve("wrangler/package.json"));
-  const { Miniflare } = wrangler("miniflare");
-  const { build } = wrangler("esbuild");
   const directory = await mkdtemp(join(tmpdir(), "durable-smoke-"));
   const scriptPath = join(directory, "worker.mjs");
   const modulePath = resolve(import.meta.dirname, "../src/durable-job.ts");

@@ -14,10 +14,12 @@ export interface JobNamespace {
 }
 export const sendIntent = async (
   namespace: JobNamespace,
-  intent: JobIntent
+  intent: JobIntent,
+  signal?: AbortSignal
 ) => {
   const response = await namespace.get(namespace.idFromName(intent.key)).fetch(
     new Request("https://jobs/prepare", {
+      signal,
       method: "POST",
       body: JSON.stringify(intent),
     })
@@ -30,9 +32,9 @@ export const jobTransportLayer = (env: Env) =>
   Layer.succeed(
     JobTransport,
     JobTransport.of({
-      prepare: async (intent) => {
+      prepare: async (intent, signal) => {
         if (env.JOBS) {
-          return sendIntent(env.JOBS, intent);
+          return sendIntent(env.JOBS, intent, signal);
         }
         if (!(env.SCHEDULER_URL && env.SCHEDULER_SECRET)) {
           throw new Error("Durable job service is not configured");
@@ -42,6 +44,7 @@ export const jobTransportLayer = (env: Env) =>
           throw new Error("Remote scheduler requires HTTPS");
         }
         const response = await fetch(url, {
+          signal,
           method: "POST",
           headers: {
             authorization: `Bearer ${env.SCHEDULER_SECRET}`,
@@ -66,16 +69,26 @@ export const makeJobRuntime = <E>(
       const sql = yield* SqlClient.SqlClient;
       // CURRENT_TIMESTAMP prevents Hyperdrive caching a pre-commit absence.
       const states = yield* sql<{ state: string | null }>`SELECT
-      pg_xact_status(${intent.transactionId}::xid8) AS state
+      CASE WHEN ${intent.transactionId}::xid8 >= pg_current_xact_id()
+        THEN 'invalid' ELSE pg_xact_status(${intent.transactionId}::xid8) END AS state
       WHERE CURRENT_TIMESTAMP IS NOT NULL`;
       if (states[0].state === "in progress") {
         return "pending" as const;
       }
+      if (states[0].state === "invalid") {
+        yield* Effect.logError(
+          "Discarding scheduler intent with a future transaction ID",
+          { receiptId: intent.receiptId }
+        );
+        return "aborted" as const;
+      }
       if (states[0].state === "aborted") {
         return "aborted" as const;
       }
-      if (states[0].state === "committed") {
-        // A fresh statement observes the committed transaction, including whether
+      if (states[0].state === "committed" || states[0].state === null) {
+        // NULL means the transaction is too old for pg_xact_status, hence no
+        // longer in progress. Its durable witness still proves commitment.
+        // A fresh statement observes the settled transaction, including whether
         // its receipt survived any rolled-back savepoint.
         const rows = yield* sql<{ exists: boolean }>`SELECT
         EXISTS(SELECT 1 FROM execution_receipts WHERE id = ${intent.receiptId}::uuid) AS exists

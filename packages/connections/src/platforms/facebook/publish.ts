@@ -138,8 +138,10 @@ const uploadReelContent = (
   Effect.gen(function* () {
     yield* Effect.tryPromise({
       try: async () => {
-        const source = await fetch(videoUrl);
+        const deadline = AbortSignal.timeout(5 * 60_000);
+        const source = await fetch(videoUrl, { signal: deadline });
         if (!(source.ok && source.body)) {
+          await source.body?.cancel();
           throw new Error(`Video fetch returned ${source.status}`);
         }
         const size = source.headers.get("content-length");
@@ -150,6 +152,7 @@ const uploadReelContent = (
         const response = await fetch(uploadUrl, {
           method: "POST",
           body: source.body,
+          signal: deadline,
           duplex: "half",
           headers: {
             Authorization: `OAuth ${accessToken}`,
@@ -157,8 +160,12 @@ const uploadReelContent = (
             file_size: size,
             offset: "0",
           },
-        } as RequestInit);
+        } as RequestInit).catch(async (error) => {
+          await source.body?.cancel().catch(() => undefined);
+          throw error;
+        });
         if (!response.ok) {
+          await response.body?.cancel();
           throw new Error(`Video upload returned ${response.status}`);
         }
         await response.body?.cancel();

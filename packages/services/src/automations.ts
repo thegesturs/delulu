@@ -295,7 +295,11 @@ export class AutomationService extends Context.Service<
         mediaIds: readonly string[]
       ) {
         for (const mediaId of new Set(mediaIds)) {
-          yield* refreshPair(profileId, mediaId);
+          yield* refreshPair(profileId, mediaId).pipe(
+            Effect.catch((error) =>
+              Effect.logWarning("Deferred automation trigger repair", error)
+            )
+          );
         }
       });
 

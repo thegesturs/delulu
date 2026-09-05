@@ -388,14 +388,14 @@ const handleRequest = (
 /** Each idempotency key owns its durable execution state and alarm. */
 export class JobExecutor extends DurableJobObject {
   constructor(state: JobState, env: Env) {
-    super(
-      state,
-      makeJobRuntime(
+    super(state, {
+      ...makeJobRuntime(
         () => makePgLayer(env),
         (job) => executeJob(job, makeBaseLayer(env)),
         (job, error) => failJob(job, error, makeBaseLayer(env))
-      )
-    );
+      ),
+      paused: env.SCHEDULER_PAUSED === "true",
+    });
   }
 }
 

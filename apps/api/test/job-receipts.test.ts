@@ -64,3 +64,71 @@ it("distinguishes commit, in-flight prepare, and a rolled-back savepoint", async
   expect(await runtime.receipt(captured[1])).toBe("aborted");
   await runtime.removeReceipt(captured[0].receiptId);
 });
+
+it("uses the witness for frozen transactions and rejects future transaction IDs", async () => {
+  const runtime = makeJobRuntime(
+    () => Pg,
+    async () => null,
+    async () => undefined
+  );
+  const id = crypto.randomUUID();
+  const intent: JobIntent = {
+    receiptId: id,
+    transactionId: "1",
+    key: id,
+    job: null,
+  };
+  await Effect.runPromise(
+    Effect.gen(function* () {
+      const sql = yield* SqlClient.SqlClient;
+      yield* sql`INSERT INTO execution_receipts (id) VALUES (${id})`;
+    }).pipe(Effect.provide(Pg))
+  );
+  try {
+    expect(await runtime.receipt(intent)).toBe("committed");
+    expect(
+      await runtime.receipt({
+        ...intent,
+        transactionId: "18446744073709551615",
+      })
+    ).toBe("aborted");
+  } finally {
+    await runtime.removeReceipt(id);
+  }
+  expect(await runtime.receipt(intent)).toBe("aborted");
+});
+
+it("aborts a hung prepare and rolls back its witness", async () => {
+  let captured: JobIntent | undefined;
+  let signal: AbortSignal | undefined;
+  const transport = Layer.succeed(
+    JobTransport,
+    JobTransport.of({
+      prepare: (intent, abort) => {
+        captured = intent;
+        signal = abort;
+        return new Promise(() => {
+          /* Simulate a scheduler that never acknowledges. */
+        });
+      },
+    })
+  );
+  const Jobs = JobService.layer.pipe(Layer.provide([Pg, transport]));
+  const started = Date.now();
+  await expect(
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const jobs = yield* JobService;
+        yield* jobs.cancel("timeout-test");
+      }).pipe(Effect.provide(Jobs))
+    )
+  ).rejects.toBeDefined();
+  expect(Date.now() - started).toBeLessThan(10_000);
+  expect(signal?.aborted).toBe(true);
+  const runtime = makeJobRuntime(
+    () => Pg,
+    async () => null,
+    async () => undefined
+  );
+  expect(await runtime.receipt(captured!)).toBe("aborted");
+}, 15_000);

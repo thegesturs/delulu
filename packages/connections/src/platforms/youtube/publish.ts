@@ -118,12 +118,14 @@ const upload = async (ctx: PublishContext, refreshToken: string) => {
       throw new Error("Invalid YouTube upload session");
     }
     // Probe the provider after every restart, including a lost final response.
-    let response = await timedFetch(session, {
-      method: "PUT",
-      redirect: "manual",
-      headers: { authorization, "content-range": `bytes */${source.size}` },
-      body: new Uint8Array(),
-    });
+    const probe = () =>
+      timedFetch(session!, {
+        method: "PUT",
+        redirect: "manual",
+        headers: { authorization, "content-range": `bytes */${source.size}` },
+        body: new Uint8Array(),
+      });
+    let response = await probe();
     let offset = 0;
     if (response.status === 308) {
       const range = response.headers.get("range");
@@ -166,6 +168,24 @@ const upload = async (ctx: PublishContext, refreshToken: string) => {
         }
         offset = next;
       }
+    }
+    if (response.status === 308) {
+      // All bytes were acknowledged, but the resource may still be finalizing.
+      response = await probe();
+      if (response.status === 308) {
+        await response.body?.cancel();
+        throw new PublishContinuation({
+          code: "PUBLISH_CONTINUATION",
+          provider: PROVIDER,
+          retryable: true,
+          message: "Await video upload finalization",
+          resumeAt: Date.now() + 30_000,
+        });
+      }
+    }
+    if (response.status === 404 || response.status === 410) {
+      const { youtubeUploadUrl: _expired, ...remainingState } = state;
+      await ctx.persistProviderState(remainingState);
     }
     await check(response);
     id = ((await response.json()) as { id?: string }).id;

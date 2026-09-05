@@ -39,8 +39,9 @@ const Pg = PgClient.layer({
 const Transport = Layer.succeed(
   JobTransport,
   JobTransport.of({
-    prepare: async (intent) => {
+    prepare: async (intent, signal) => {
       const response = await fetch(endpoint, {
+        signal: signal ?? AbortSignal.timeout(30_000),
         method: "POST",
         headers: {
           authorization: `Bearer ${secret}`,

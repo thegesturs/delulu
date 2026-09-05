@@ -3,8 +3,6 @@ name: delulu
 x-runtime-environment: &runtime-environment
   DATABASE_URL: postgres://delulu:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/delulu
   DELULU_DEPLOYMENT_MODE: self_hosted
-  SCHEDULER_URL: ${SCHEDULER_URL:?set SCHEDULER_URL}
-  SCHEDULER_SECRET: ${SCHEDULER_SECRET:?set SCHEDULER_SECRET}
   DELULU_REGISTRATION_ENABLED: ${DELULU_REGISTRATION_ENABLED:-true}
   DELULU_VERSION: ${DELULU_VERSION:-development}
   DELULU_COMMUNITY_API_RATE_PER_MINUTE: ${DELULU_COMMUNITY_API_RATE_PER_MINUTE:-120}
@@ -88,6 +86,8 @@ services:
     restart: unless-stopped
     environment:
       <<: *runtime-environment
+      SCHEDULER_URL: ${SCHEDULER_URL:?set SCHEDULER_URL}
+      SCHEDULER_SECRET: ${SCHEDULER_SECRET:?set SCHEDULER_SECRET}
       PORT: 8787
     depends_on:
       migrate:

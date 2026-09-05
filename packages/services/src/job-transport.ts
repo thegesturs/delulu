@@ -22,6 +22,9 @@ export type JobIntent = typeof JobIntent.Type;
 export class JobTransport extends Context.Service<
   JobTransport,
   {
-    readonly prepare: (intent: JobIntent) => Promise<void>;
+    readonly prepare: (
+      intent: JobIntent,
+      signal?: AbortSignal
+    ) => Promise<void>;
   }
 >()("@delulu/services/JobTransport") {}

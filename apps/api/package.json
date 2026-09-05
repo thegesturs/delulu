@@ -27,6 +27,8 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260713.1",
     "@delulu/typescript-config": "workspace:*",
+    "esbuild": "0.28.1",
+    "miniflare": "4.20260708.1",
     "typescript": "catalog:",
     "vitest": "^3.1.1",
     "wrangler": "^4.110.0"

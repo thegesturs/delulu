@@ -504,31 +504,34 @@ export class PostService extends Context.Service<
         readonly actor: PostActor;
         readonly value: PostWriteInput;
       }) => write({ ...input, postId: input.postId });
-      const remove = Effect.fn("PostService.remove")(function* (
-        workspaceId: WorkspaceId,
-        id: string
-      ) {
-        const rows = yield* sql<{
-          id: string;
-        }>`UPDATE posts SET deleted_at = now()
+      const remove = Effect.fn("PostService.remove")(
+        function* (workspaceId: WorkspaceId, id: string) {
+          const rows = yield* sql<{
+            id: string;
+          }>`UPDATE posts SET deleted_at = now()
           WHERE id = ${id} AND workspace_id = ${workspaceId} AND deleted_at IS NULL RETURNING id`.pipe(
-          Effect.orDie
-        );
-        if (rows.length === 0) {
-          return yield* new NotFoundError({
-            message: "Post not found",
-            resource: "post",
-          });
-        }
-        const targets = yield* sql<{
-          id: string;
-        }>`SELECT id FROM post_targets WHERE post_id = ${id}`.pipe(
-          Effect.orDie
-        );
-        for (const target of targets) {
-          yield* jobs.cancel(`publish-target:${target.id}`);
-        }
-      });
+            Effect.orDie
+          );
+          if (rows.length === 0) {
+            return yield* new NotFoundError({
+              message: "Post not found",
+              resource: "post",
+            });
+          }
+          const targets = yield* sql<{
+            id: string;
+          }>`SELECT id FROM post_targets WHERE post_id = ${id}`.pipe(
+            Effect.orDie
+          );
+          for (const target of targets) {
+            yield* jobs.cancel(`publish-target:${target.id}`);
+          }
+        },
+        (effect) =>
+          sql
+            .withTransaction(effect)
+            .pipe(Effect.catchTag("SqlError", Effect.die))
+      );
       const retryTarget = Effect.fn("PostService.retryTarget")(
         function* (input: {
           readonly workspaceId: WorkspaceId;

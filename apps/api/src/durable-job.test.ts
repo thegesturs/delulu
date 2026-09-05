@@ -40,9 +40,16 @@ const harness = () => {
     },
     blockConcurrencyWhile: (run) => run(),
   };
+  const removed = new Set<string>();
   const runtime: JobRuntime = {
-    receipt: vi.fn(async () => "committed" as const),
-    removeReceipt: vi.fn(async () => undefined),
+    receipt: vi.fn(async (value) =>
+      removed.has(value.receiptId)
+        ? ("aborted" as const)
+        : ("committed" as const)
+    ),
+    removeReceipt: vi.fn(async (id) => {
+      removed.add(id);
+    }),
     execute: vi.fn(async () => null),
     failed: vi.fn(async () => undefined),
   };
@@ -69,6 +76,41 @@ const harness = () => {
 };
 afterEach(() => vi.useRealTimers());
 describe("durable execution", () => {
+  it("pauses receipt resolution and execution while keeping an alarm", async () => {
+    vi.useFakeTimers();
+    const h = harness();
+    Object.assign(h.runtime, { paused: true });
+    await h.send(intent());
+    await h.tick();
+    expect(h.runtime.receipt).not.toHaveBeenCalled();
+    expect(h.runtime.execute).not.toHaveBeenCalled();
+    expect(h.alarm()).not.toBeNull();
+    Object.assign(h.runtime, { paused: false });
+    await h.tick();
+    await h.tick();
+    await h.tick();
+    expect(h.runtime.execute).toHaveBeenCalledTimes(1);
+  });
+  it("retains dedupe during failed cleanup and rejects replay after cleanup", async () => {
+    vi.useFakeTimers();
+    const h = harness();
+    const value = intent();
+    await h.send(value);
+    await h.tick();
+    vi.mocked(h.runtime.removeReceipt).mockRejectedValueOnce(
+      new Error("offline")
+    );
+    await expect(h.tick()).rejects.toThrow("offline");
+    await h.send(value);
+    expect(h.values.has(`receipt:${value.receiptId}`)).toBe(true);
+    await h.tick();
+    h.restart();
+    await h.send(value);
+    await h.tick();
+    await h.tick();
+    expect(h.runtime.execute).toHaveBeenCalledTimes(1);
+    expect(h.values.has(`receipt:${value.receiptId}`)).toBe(false);
+  });
   it("survives restart and a repeated prepare without executing twice", async () => {
     vi.useFakeTimers();
     const h = harness();
@@ -80,6 +122,10 @@ describe("durable execution", () => {
     await h.tick();
     await h.tick();
     expect(h.runtime.execute).toHaveBeenCalledTimes(1);
+    expect(
+      [...h.values.keys()].filter((key) => key.startsWith("receipt:"))
+    ).toEqual([]);
+    h.restart();
     await h.send(value);
     await h.tick();
     expect(h.runtime.execute).toHaveBeenCalledTimes(1);

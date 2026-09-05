@@ -19,6 +19,7 @@ interface ActiveJob {
   error?: string;
 }
 export interface JobRuntime {
+  readonly paused?: boolean;
   receipt(intent: JobIntent): Promise<"committed" | "pending" | "aborted">;
   removeReceipt(id: string): Promise<void>;
   execute(job: DurableJob): Promise<number | null>;
@@ -96,6 +97,9 @@ export class DurableJobObject {
   async alarm(): Promise<void> {
     // A persisted retry protects interruption during receipt validation or execution.
     await this.state.storage.setAlarm(Date.now() + RETRY_MS);
+    if (this.runtime.paused) {
+      return;
+    }
     const first = (await this.read()).intents[0];
     if (first) {
       const outcome = await this.runtime.receipt(first);
@@ -114,7 +118,9 @@ export class DurableJobObject {
           snapshot.cleanup.push(first.receiptId);
         }
         snapshot.intents.shift();
-        await this.state.storage.put(`receipt:${first.receiptId}`, true);
+        if (outcome === "committed") {
+          await this.state.storage.put(`receipt:${first.receiptId}`, true);
+        }
         await this.save(snapshot);
       });
       return;
@@ -125,6 +131,8 @@ export class DurableJobObject {
       await this.state.blockConcurrencyWhile(async () => {
         const snapshot = await this.read();
         snapshot.cleanup = snapshot.cleanup.filter((id) => id !== cleanup);
+        // A later replay is rejected by the now-absent SQL witness.
+        await this.state.storage.delete(`receipt:${cleanup}`);
         await this.save(snapshot);
       });
       return;
