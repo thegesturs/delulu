@@ -12,6 +12,8 @@ export default $config({
       home: "aws",
       providers: {
         aws: {
+          // Supports URL-scoped InvokeFunction permissions required by new URLs.
+          version: "7.37.0",
           // In GitHub Actions credentials come from the assumed OIDC role
           // (exported as env vars), so no named profile exists there. Locally
           // we keep using the delulu_social SSO profile.
@@ -181,6 +183,40 @@ export default $config({
         maxAge: 86_400,
       },
     });
+
+    // Keep these explicit URL-only policies serialized with the provider's own
+    // URL policy updates: Lambda rejects concurrent permission changes.
+    for (const [name, fn, url] of [
+      [
+        "PostgresTriggerSqsFunction",
+        postgresTrigger.nodes.function,
+        postgresTrigger.url,
+      ],
+      [
+        "TranscriptionFunction",
+        transcriptionFunction.nodes.function,
+        transcriptionFunction.url,
+      ],
+      ["YoutubeTrimmerFunction", trimmerFunction, trimmerUrl.functionUrl],
+    ] as const) {
+      const functionName = url.apply(() => fn.name);
+      const urlAccess = new aws.lambda.Permission(`${name}UrlAccess`, {
+        function: functionName,
+        principal: "*",
+        action: "lambda:InvokeFunctionUrl",
+        functionUrlAuthType: "NONE",
+      });
+      new aws.lambda.Permission(
+        `${name}UrlInvoke`,
+        {
+          function: functionName,
+          principal: "*",
+          action: "lambda:InvokeFunction",
+          invokedViaFunctionUrl: true,
+        },
+        { dependsOn: [urlAccess] }
+      );
+    }
 
     return {
       PostgresSocialPostsApiEndpoint: postgresTrigger.url,
