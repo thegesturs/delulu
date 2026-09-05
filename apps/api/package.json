@@ -16,6 +16,7 @@
     "test:durable-runtime": "node scripts/smoke-durable-jobs.mjs"
   },
   "dependencies": {
+    "@delulu/communication-telegram": "workspace:*",
     "@delulu/communication-whatsapp": "workspace:*",
     "@delulu/analytics": "workspace:*",
     "@delulu/contracts": "workspace:*",

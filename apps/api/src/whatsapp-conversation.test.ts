@@ -13,6 +13,10 @@ vi.mock("cloudflare:workers", () => {
   return { DurableObject: Worker, WorkerEntrypoint: Worker };
 });
 
+import {
+  TelegramAdmission,
+  TelegramConversation,
+} from "./telegram-conversation";
 import { WhatsAppConversation } from "./whatsapp-conversation";
 
 class Storage {
@@ -48,9 +52,9 @@ class Storage {
 
 const message = { id: "message-1", sender: "15550000001", text: "Hello" };
 
-function harness(storage = new Storage()) {
+function harness(storage = new Storage(), telegram = false) {
   const jobs: Promise<unknown>[] = [];
-  let actor: WhatsAppConversation;
+  let actor: WhatsAppConversation | TelegramConversation;
   const submit = vi.fn(
     async (input: {
       chatGatewayRpcTarget: {
@@ -62,6 +66,8 @@ function harness(storage = new Storage()) {
     }
   );
   const env = {
+    TELEGRAM_BOT_TOKEN: "42:test-token",
+    TELEGRAM_INGRESS_ENABLED: "true",
     WHATSAPP_INGRESS_ENABLED: "true",
     WHATSAPP_TEST_SENDER: message.sender,
     WHATSAPP_TEST_EMAIL: "tester@example.com",
@@ -75,12 +81,13 @@ function harness(storage = new Storage()) {
       interruptExternalRun: vi.fn(),
     },
   } as unknown as Env;
-  actor = new WhatsAppConversation(
+  const Conversation = telegram ? TelegramConversation : WhatsAppConversation;
+  actor = new Conversation(
     {
       storage,
       waitUntil: (promise: Promise<unknown>) => jobs.push(promise),
       exports: {
-        WhatsAppResponseTarget: ({
+        [telegram ? "TelegramResponseTarget" : "WhatsAppResponseTarget"]: ({
           props,
         }: {
           props: { messageId: string };
@@ -169,6 +176,38 @@ it("enforces the staging allowance before model invocation", async () => {
   await h.storage.put(`reserved:${new Date().toISOString().slice(0, 7)}`, 10);
   await expect(h.actor.enqueue(message)).rejects.toThrow("allowance exhausted");
   expect(h.submit).not.toHaveBeenCalled();
+});
+
+it("delivers Telegram replies once using an isolated guest identity", async () => {
+  const fetcher = vi.fn(async () =>
+    Response.json({ ok: true, result: { message_id: 99 } })
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const h = harness(new Storage(), true);
+  await h.actor.enqueue(message);
+  await h.flush();
+  await h.actor.enqueue(message);
+  await h.flush();
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(h.env.AGENT_RUNTIME!.ensureExternalUser).toHaveBeenCalledWith({
+    email: `tg-42-${message.sender}@guest.invalid`,
+    displayName: `tg-42-${message.sender}`,
+  });
+  expect(await h.storage.get(`message:${message.id}`)).toMatchObject({
+    state: "sent",
+    text: "",
+    providerId: "99",
+  });
+});
+
+it("caps admission across different Telegram senders and permits only matching retries", async () => {
+  const actor = new TelegramAdmission({ storage: new Storage() }, {} as Env);
+  for (let id = 0; id < 10; id++) {
+    expect(await actor.reserve(String(id), String(100 + id))).toBe(true);
+  }
+  expect(await actor.reserve("0", "100")).toBe(true);
+  expect(await actor.reserve("0", "999")).toBe(false);
+  expect(await actor.reserve("11", "999")).toBe(false);
 });
 
 it("preserves a callback arriving while a timed-out run is interrupted", async () => {

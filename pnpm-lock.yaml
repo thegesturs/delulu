@@ -99,6 +99,9 @@ importers:
       '@delulu/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
+      '@delulu/communication-telegram':
+        specifier: workspace:*
+        version: link:../../packages/communication-telegram
       '@delulu/communication-whatsapp':
         specifier: workspace:*
         version: link:../../packages/communication-whatsapp
@@ -1006,7 +1009,19 @@ importers:
         version: 5.8.3
       vitest:
         specifier: ^3.1.1
-        version: 3.2.4(@types/debug@4.1.12)(@types/node@22.14.1)(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.13.3)(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
+
+  packages/communication-telegram:
+    devDependencies:
+      '@delulu/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.3
+      vitest:
+        specifier: ^3.1.1
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.13.3)(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
 
   packages/communication-whatsapp:
     dependencies:
@@ -1025,7 +1040,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: ^3.1.1
-        version: 3.2.4(@types/debug@4.1.12)(@types/node@22.14.1)(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.13.3)(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
 
   packages/connections:
     dependencies:

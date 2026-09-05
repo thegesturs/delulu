@@ -95,6 +95,20 @@ export interface Env {
   readonly SCHEDULER_SECRET?: string;
   readonly SCHEDULER_PAUSED?: string;
   readonly WHATSAPP_INGRESS_ENABLED?: string;
+  readonly TELEGRAM_BOT_TOKEN?: string;
+  readonly TELEGRAM_WEBHOOK_SECRET?: string;
+  readonly TELEGRAM_SETUP_TOKEN?: string;
+  readonly TELEGRAM_INGRESS_ENABLED?: string;
+  readonly TELEGRAM_CONVERSATIONS?: {
+    getByName(
+      name: string
+    ): import("./channel-conversation").ConversationBinding;
+  };
+  readonly TELEGRAM_ADMISSION?: {
+    getByName(name: string): {
+      reserve(id: string, sender: string): Promise<boolean>;
+    };
+  };
   readonly WHATSAPP_PHONE_NUMBER_ID?: string;
   readonly WHATSAPP_TEST_SENDER?: string;
   readonly WHATSAPP_TEST_EMAIL?: string;

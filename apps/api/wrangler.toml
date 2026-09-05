@@ -9,6 +9,10 @@ compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env", "a
 tag = "v1-whatsapp-conversation"
 new_sqlite_classes = ["WhatsAppConversation"]
 
+[[migrations]]
+tag = "v2-telegram-conversation"
+new_sqlite_classes = ["TelegramConversation", "TelegramAdmission"]
+
 # Local `wrangler dev` server. Wrangler's default 8787 is frequently taken by
 # other local services, so pin the dev port here. The app reaches this via
 # NEXT_PUBLIC_API_URL (set in apps/app/.env.local for local dev).
@@ -168,12 +172,21 @@ AS_ISSUER = "https://delulu-staging.whizzy.workers.dev"
 API_RESOURCE = "https://delulu-staging.whizzy.workers.dev"
 APP_BASE_URL = "http://localhost:3000"
 DODO_PAYMENTS_ENVIRONMENT = "test_mode"
-WHATSAPP_INGRESS_ENABLED = "true"
+WHATSAPP_INGRESS_ENABLED = "false"
+TELEGRAM_INGRESS_ENABLED = "true"
 WHATSAPP_PHONE_NUMBER_ID = "1235417779664941"
 
 [[env.staging.durable_objects.bindings]]
 name = "WHATSAPP_CONVERSATIONS"
 class_name = "WhatsAppConversation"
+
+[[env.staging.durable_objects.bindings]]
+name = "TELEGRAM_CONVERSATIONS"
+class_name = "TelegramConversation"
+
+[[env.staging.durable_objects.bindings]]
+name = "TELEGRAM_ADMISSION"
+class_name = "TelegramAdmission"
 
 [env.staging.triggers]
 crons = []

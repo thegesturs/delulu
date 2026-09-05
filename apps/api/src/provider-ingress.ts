@@ -1,4 +1,9 @@
 import {
+  decodeTelegramMessage,
+  secretMatches,
+  telegramCall,
+} from "@delulu/communication-telegram";
+import {
   decodeWhatsAppWebhook,
   verifyWhatsAppChallenge,
   verifyWhatsAppSignature,
@@ -86,6 +91,121 @@ export const handleProviderIngress = async (
   const url = new URL(request.url);
   if (request.method === "GET" && url.pathname === "/live") {
     return jsonResponse({ service: "delulu-api", status: "ok" });
+  }
+  if (url.pathname === "/v1/providers/telegram/setup") {
+    if (
+      !(await secretMatches(
+        request.headers.get("authorization"),
+        env.TELEGRAM_SETUP_TOKEN
+          ? `Bearer ${env.TELEGRAM_SETUP_TOKEN}`
+          : undefined
+      ))
+    ) {
+      return textResponse("Forbidden", 403);
+    }
+    if (request.method !== "POST" && request.method !== "GET") {
+      return textResponse("Method not allowed", 405);
+    }
+    if (!(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_WEBHOOK_SECRET)) {
+      return textResponse("Not configured", 503);
+    }
+    if (!env.API_RESOURCE?.startsWith("https://")) {
+      return textResponse("Webhook origin not configured", 503);
+    }
+    const expected = new URL("/v1/providers/telegram/webhook", env.API_RESOURCE)
+      .href;
+    if (request.method === "POST") {
+      const registered = await telegramCall(
+        env.TELEGRAM_BOT_TOKEN,
+        "setWebhook",
+        {
+          url: expected,
+          secret_token: env.TELEGRAM_WEBHOOK_SECRET,
+          allowed_updates: ["message"],
+          max_connections: 2,
+        }
+      );
+      if (!registered.ok) {
+        return jsonResponse(
+          { error: "Telegram registration failed", status: registered.status },
+          502
+        );
+      }
+    }
+    const me = await telegramCall<{ username: string }>(
+      env.TELEGRAM_BOT_TOKEN,
+      "getMe"
+    );
+    const info = await telegramCall<{
+      url: string;
+      pending_update_count: number;
+      last_error_message?: string;
+    }>(env.TELEGRAM_BOT_TOKEN, "getWebhookInfo");
+    if (!(me.ok && info.ok)) {
+      return textResponse("Telegram status unavailable", 502);
+    }
+    return jsonResponse({
+      username: me.result.username,
+      registered: info.result.url === expected,
+      pending: info.result.pending_update_count,
+      lastError: info.result.last_error_message,
+    });
+  }
+  if (url.pathname === "/v1/providers/telegram/webhook") {
+    if (request.method !== "POST") {
+      return textResponse("Method not allowed", 405);
+    }
+    if (
+      !(await secretMatches(
+        request.headers.get("x-telegram-bot-api-secret-token"),
+        env.TELEGRAM_WEBHOOK_SECRET
+      ))
+    ) {
+      return textResponse("Forbidden", 403);
+    }
+    if (
+      env.TELEGRAM_INGRESS_ENABLED !== "true" ||
+      !env.TELEGRAM_BOT_TOKEN ||
+      !env.TELEGRAM_CONVERSATIONS ||
+      !env.TELEGRAM_ADMISSION ||
+      !env.AGENT_RUNTIME
+    ) {
+      return textResponse("Telegram ingress unavailable", 503);
+    }
+    const raw = await readWebhookBody(request);
+    if (raw === null) {
+      return textResponse("Payload too large", 413);
+    }
+    let value: unknown;
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      return textResponse("Invalid JSON", 400);
+    }
+    const message = decodeTelegramMessage(value);
+    if (!message) {
+      return jsonResponse({ accepted: true });
+    }
+    try {
+      const botId = env.TELEGRAM_BOT_TOKEN.split(":")[0];
+      if (
+        !(await env.TELEGRAM_ADMISSION.getByName(`telegram:${botId}`).reserve(
+          message.id,
+          message.sender
+        ))
+      ) {
+        return jsonResponse({
+          accepted: false,
+          reason: "test_allowance_exhausted",
+        });
+      }
+      await env.TELEGRAM_CONVERSATIONS.getByName(
+        `telegram:${botId}:${message.sender}`
+      ).enqueue(message);
+      return jsonResponse({ accepted: true });
+    } catch {
+      return textResponse("Telegram temporarily unavailable", 503);
+    }
   }
   if (url.pathname !== WEBHOOK_PATH) {
     return null;

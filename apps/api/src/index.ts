@@ -91,6 +91,11 @@ import { messagingProvidersLayer } from "./messaging-providers";
 import { handleProviderIngress } from "./provider-ingress";
 
 export {
+  TelegramAdmission,
+  TelegramConversation,
+  TelegramResponseTarget,
+} from "./telegram-conversation";
+export {
   WhatsAppConversation,
   WhatsAppResponseTarget,
 } from "./whatsapp-conversation";
