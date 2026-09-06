@@ -3,7 +3,7 @@ title: Self-hosting
 description: Install, operate, back up, and upgrade the supported Community deployment.
 ---
 
-The Community deployment runs the authenticated app, typed Node API, PostgreSQL publisher, migrations, and database with Docker Compose. It does not require a subscription.
+The Community deployment runs the authenticated app, typed Node API, migrations, and database with Docker Compose, plus a dedicated Cloudflare Worker for Durable Object execution. It does not require a subscription.
 
 The current release requires operator-owned Clerk and Cloudflare R2 projects. Generic OIDC and S3-compatible storage are planned portability work, not current capabilities.
 
@@ -38,7 +38,7 @@ Configure Clerk for `APP_BASE_URL` and configure every enabled social provider w
 
 Generate `AS_SIGNING_KEY_BASE64` once using the command in the environment template, store it in a secrets manager, and include it in backups. Replacing it invalidates agent OAuth access and refresh tokens.
 
-`DELULU_DEPLOYMENT_MODE=self_hosted` enables Community entitlements and disables payment operations. `DELULU_PUBLISH_TRANSPORT=postgres` keeps scheduled publication inside the Compose deployment. Authorization, reviews, retries, operation identity, and safety limits remain active.
+`DELULU_DEPLOYMENT_MODE=self_hosted` enables Community entitlements and disables payment operations. `SCHEDULER_URL` and `SCHEDULER_SECRET` connect the Node API to a dedicated scheduler Worker. Configure that Worker with the same database, encryption key, media storage, and provider credentials as this installation. Authorization, reviews, retries, operation identity, and safety limits remain active.
 
 `GET /v1/instance` is the authoritative capability response. Clients must use it instead of inferring behavior from environment variables.
 
@@ -54,31 +54,67 @@ docker compose up -d --build --wait
 ## Architecture
 
 - `app`: authenticated Next.js interface.
-- `api`: typed Node API and leader-elected maintenance loop.
-- `publisher`: PostgreSQL-backed due-job leasing and publication.
+- `api`: typed Node API; background work runs in the scheduler Worker.
+- Cloudflare `JobExecutor`: durable deadlines, retries, and direct publication.
 - `migrate`: one-shot schema migration before application services start.
 - `postgres`: authoritative state in a persistent volume.
 - `proxy`: optional automatic TLS termination with Caddy.
 
 ## Backup and restore
 
-Create an encrypted logical database backup and preserve the environment file separately:
+A PostgreSQL dump is only an application-data backup. Pending job payloads,
+deadlines, retries, cancellation intents, and provider continuation state also
+live in the remote `JobExecutor` SQLite objects. Preserve the environment,
+Worker version, DO namespace identity, and media backup with the recovery record.
+Encrypt backups at rest; `pg_dump` does not encrypt its output.
+
+Before a coordinated backup or restore:
+
+1. Stop application writes with `docker compose stop app api` and block external
+   ingress to the dedicated scheduler Worker.
+2. Deploy the scheduler with `SCHEDULER_PAUSED="true"` in its Worker variables.
+   Paused alarms rearm without processing receipts, cleanup, or publications.
+   Deploy this to 100% of traffic. Wait for all invocations of the previous
+   version, including provider uploads, to finish; the flag does not interrupt
+   work already running. Check Worker logs and database sessions before proceeding.
+3. Fence the scheduler's database access at the database/network boundary and
+   terminate its existing sessions before `pg_restore`. Keep the administrative
+   restore connection available. A paused Worker is not a substitute for this
+   fence while replacing the database.
+4. Capture or select a coordinated recovery point for PostgreSQL and **every**
+   job object, including pending intents and cleanup entries. Preserve the exact
+   object IDs and namespace. R2 objects need an independent backup too.
+
+The repository currently has no complete DO inventory/export/import or automated
+reconciliation command. **A Postgres-only backup cannot restore a working
+scheduler. Do not resume scheduling after restoring one.** Establish and test an
+operator-managed DO recovery procedure before treating an installation as
+recoverable; otherwise keep the original database and scheduler intact.
+
+After the above prerequisites, take the database dump:
 
 ```bash
 docker compose exec -T postgres pg_dump -U delulu -d delulu -Fc > delulu.dump
 ```
 
-Restore into a stopped or fresh application database:
+Restore into a separate database while the scheduler remains paused and fenced.
+Before pointing services at it, reconcile every restored object's job and intent
+against restored application state: post targets and deletion status, message
+status, cancellations, reservations, and lifecycle deadlines. Recover confirmed
+provider publication IDs and upload sessions; restoring an old snapshot must not
+republish work that already completed externally. Account explicitly for every
+pending job absent from the selected snapshot before resuming.
 
-```bash
-docker compose stop app api publisher
-docker compose exec -T postgres dropdb -U delulu --if-exists delulu
-docker compose exec -T postgres createdb -U delulu delulu
-docker compose exec -T postgres pg_restore -U delulu -d delulu --clean --if-exists < delulu.dump
-docker compose up -d --build --wait
-```
+Do not reuse prepared transaction IDs across a logical PostgreSQL restore: XIDs
+belong to the original database history. Resolve pending intents against the
+original database before backup, or reconcile them manually and prepare fresh
+intents against the restored database. Restore UUID witnesses and object state as
+one coordinated recovery set; never connect stale objects to a fresh database.
 
-R2 objects are not included in the database backup. Enable bucket versioning or maintain an independent object backup.
+Validate the API and scheduler Worker versions against the recovered SQL and DO
+state, remove the database fence, then deploy `SCHEDULER_PAUSED="false"` and
+resume application traffic. Verify a controlled scheduled operation before
+reopening writes to users.
 
 ## Upgrade
 
@@ -86,12 +122,24 @@ R2 objects are not included in the database backup. Enable bucket versioning or 
 2. Check out the desired release tag or commit.
 3. Run `docker compose build --pull`.
 4. Run `docker compose up -d --wait`; migrations must finish before app services start.
-5. Verify `/v1/instance`, schedule a test post, and inspect `docker compose logs --since=15m api publisher`.
+5. Verify `/v1/instance`, schedule a test post, and inspect `docker compose logs --since=15m api`.
 
-Only roll application images back after checking migration compatibility. Restore the matching database backup when a migration is not backward-compatible.
+Roll the dedicated scheduler Worker back alongside the API and app to a tested
+release combination, keeping the same DO namespace and object identities. Pause
+and drain it using the procedure above before rollback. Worker code rollback does
+not roll back DO SQLite contents: verify that the older code can read the current
+object snapshots, payload variants, provider progress, and receipt protocol.
+Rolling back only application images requires explicitly tested mixed-version
+compatibility.
+
+Only roll application images back after checking migration compatibility. Restore
+the matching database backup when a migration is not backward-compatible, together
+with reconciled DO state using the recovery procedure above. After queue retirement,
+a pre-DO release cannot operate against the current database; do not roll it back
+independently or recreate an empty SQL queue and assume pending work is recovered.
 
 ## Operations
 
-Use `docker compose ps` for health and `docker compose logs --since=15m api publisher` for runtime failures. Keep the agent OAuth signing key stable across upgrades and restores.
+Use `docker compose ps` for health and `docker compose logs --since=15m api` for runtime failures. Keep the agent OAuth signing key stable across upgrades and restores.
 
 Changing `ENCRYPTION_SECRET` without re-encrypting stored tokens makes existing connections unreadable. Rotate Clerk, R2, social-provider, and encryption credentials using each provider's procedure.

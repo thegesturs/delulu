@@ -3,7 +3,6 @@ import { Context, Layer } from "effect";
 
 export interface DeploymentOptions {
   readonly mode: DeploymentMode;
-  readonly publishTransport: "sqs" | "postgres";
   readonly registrationEnabled: boolean;
   readonly version: string;
   readonly communityApiRatePerMinute: number;

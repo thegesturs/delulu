@@ -103,7 +103,7 @@ export const assertMigrationHead = (
     const head = rows[0]?.head ?? 0;
     if (head !== EXPECTED_MIGRATION_HEAD) {
       return yield* new LoaderError({
-        message: `Migration head is ${head}, expected ${EXPECTED_MIGRATION_HEAD}. Apply pending migrations before loading.`,
+        message: `Migration head is ${head}, expected ${EXPECTED_MIGRATION_HEAD}. This historical importer only supports the pre-cutover schema; do not run it against the current application database.`,
       });
     }
     return head;

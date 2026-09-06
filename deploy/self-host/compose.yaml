@@ -3,7 +3,6 @@ name: delulu
 x-runtime-environment: &runtime-environment
   DATABASE_URL: postgres://delulu:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/delulu
   DELULU_DEPLOYMENT_MODE: self_hosted
-  DELULU_PUBLISH_TRANSPORT: postgres
   DELULU_REGISTRATION_ENABLED: ${DELULU_REGISTRATION_ENABLED:-true}
   DELULU_VERSION: ${DELULU_VERSION:-development}
   DELULU_COMMUNITY_API_RATE_PER_MINUTE: ${DELULU_COMMUNITY_API_RATE_PER_MINUTE:-120}
@@ -87,6 +86,8 @@ services:
     restart: unless-stopped
     environment:
       <<: *runtime-environment
+      SCHEDULER_URL: ${SCHEDULER_URL:?set SCHEDULER_URL}
+      SCHEDULER_SECRET: ${SCHEDULER_SECRET:?set SCHEDULER_SECRET}
       PORT: 8787
     depends_on:
       migrate:
@@ -98,24 +99,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
-
-  publisher:
-    build:
-      <<: *app-build
-      target: publisher
-    restart: unless-stopped
-    environment:
-      <<: *runtime-environment
-      PUBLISH_CONCURRENCY: ${PUBLISH_CONCURRENCY:-5}
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    stop_grace_period: 30s
-    healthcheck:
-      test: ["CMD-SHELL", "kill -0 1"]
-      interval: 15s
-      timeout: 3s
-      retries: 3
 
   app:
     build:

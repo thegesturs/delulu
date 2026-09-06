@@ -226,37 +226,43 @@ export class MediaService extends Context.Service<
             resource: "mediaStorageBytes",
             billingOwnerUserId: input.billingOwnerUserId,
           });
-          const outputs: {
-            mediaId: string;
-            bucketKey: string;
-            uploadUrl: string;
-          }[] = [];
-          for (const file of input.files) {
-            const mediaId = makeId(MediaId);
-            const extension = file.filename.includes(".")
-              ? file.filename
-                  .slice(file.filename.lastIndexOf("."))
-                  .replace(/[^.a-zA-Z0-9]/g, "")
-              : "";
-            const bucketKey = `${input.workspaceId}/${mediaId}${extension}`;
-            const uploadUrl = yield* r2.presignPut(bucketKey);
-            yield* sql`INSERT INTO media
+          return yield* sql
+            .withTransaction(
+              Effect.gen(function* () {
+                const outputs: {
+                  mediaId: string;
+                  bucketKey: string;
+                  uploadUrl: string;
+                }[] = [];
+                for (const file of input.files) {
+                  const mediaId = makeId(MediaId);
+                  const extension = file.filename.includes(".")
+                    ? file.filename
+                        .slice(file.filename.lastIndexOf("."))
+                        .replace(/[^.a-zA-Z0-9]/g, "")
+                    : "";
+                  const bucketKey = `${input.workspaceId}/${mediaId}${extension}`;
+                  const uploadUrl = yield* r2.presignPut(bucketKey);
+                  yield* sql`INSERT INTO media
             (id, workspace_id, bucket_key, url, media_type, mime_type, size_bytes, width, height,
              duration_seconds, thumbnails, alt_text, status)
             VALUES (${mediaId}, ${input.workspaceId}, ${bucketKey}, ${r2.publicUrl(bucketKey)},
               ${mediaTypeFor(file.contentType)}, ${file.contentType}, 0, ${file.width ?? null}, ${file.height ?? null},
               ${file.durationSeconds ?? null}, ${JSON.stringify(file.thumbnails ?? [])}::jsonb, ${file.altText ?? null}, 'pending')`.pipe(
-              Effect.orDie
-            );
-            outputs.push({ mediaId, bucketKey, uploadUrl });
-          }
-          yield* jobs.enqueue({
-            workspaceId: input.workspaceId,
-            payload: { _tag: "SweepPendingMedia" },
-            runAt: new Date(Date.now() + 6 * 60 * 60 * 1000),
-            idempotencyKey: `sweep-pending:${input.workspaceId}:${new Date().toISOString().slice(0, 10)}`,
-          });
-          return outputs;
+                    Effect.orDie
+                  );
+                  outputs.push({ mediaId, bucketKey, uploadUrl });
+                }
+                yield* jobs.enqueue({
+                  workspaceId: input.workspaceId,
+                  payload: { _tag: "SweepPendingMedia" },
+                  runAt: new Date(Date.now() + 6 * 60 * 60 * 1000),
+                  idempotencyKey: `sweep-pending:${input.workspaceId}:${new Date().toISOString().slice(0, 10)}`,
+                });
+                return outputs;
+              })
+            )
+            .pipe(Effect.catchTag("SqlError", (error) => Effect.die(error)));
         }
       );
       const complete = Effect.fn("MediaService.complete")(function* (input: {

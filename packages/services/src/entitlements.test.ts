@@ -16,7 +16,6 @@ const snapshot = (mode: "hosted" | "self_hosted") =>
       Effect.provide(
         DeploymentConfig.layer({
           mode,
-          publishTransport: mode === "hosted" ? "sqs" : "postgres",
           registrationEnabled: true,
           version: "test",
           communityApiRatePerMinute: 240,

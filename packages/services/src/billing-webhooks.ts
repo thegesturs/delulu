@@ -7,6 +7,7 @@ import {
 import { isPaidPlan } from "@delulu/payments/plans";
 import { Context, DateTime, Effect, Layer, Option } from "effect";
 import { SqlClient } from "effect/unstable/sql";
+import { JobService } from "./jobs";
 import { ProductAnalytics } from "./product-analytics";
 import { stopBilledWorkspaceWork } from "./subscription-access";
 
@@ -38,6 +39,7 @@ export const applyBillingWebhook = Effect.fn("applyBillingWebhook")(function* (
   event: BillingWebhookEvent
 ) {
   const sql = yield* SqlClient.SqlClient;
+  const jobs = yield* JobService;
   return yield* sql
     .withTransaction(
       Effect.gen(function* () {
@@ -186,6 +188,24 @@ export const applyBillingWebhook = Effect.fn("applyBillingWebhook")(function* (
               paid: null,
             };
           }
+          yield* jobs.enqueue({
+            workspaceId: event.billingOwnerUserId,
+            payload: {
+              _tag: "BillingReconcile",
+              ownerId: event.billingOwnerUserId,
+            },
+            runAt: new Date(),
+            idempotencyKey: `billing-reconcile:${event.billingOwnerUserId}`,
+          });
+          yield* jobs.enqueue({
+            workspaceId: event.billingOwnerUserId,
+            payload: {
+              _tag: "LifecycleDeadline",
+              ownerId: event.billingOwnerUserId,
+            },
+            runAt: new Date(),
+            idempotencyKey: `lifecycle:${event.billingOwnerUserId}`,
+          });
           if (
             event.providerEventType === "subscription.cancelled" ||
             event.providerEventType === "subscription.expired"
@@ -197,6 +217,15 @@ export const applyBillingWebhook = Effect.fn("applyBillingWebhook")(function* (
                 AND status = 'scheduled' RETURNING id`;
             if (effective[0]) {
               yield* stopBilledWorkspaceWork(event.billingOwnerUserId);
+              yield* jobs.enqueue({
+                workspaceId: event.billingOwnerUserId,
+                payload: {
+                  _tag: "CancellationDeadline",
+                  requestId: effective[0].id,
+                },
+                runAt: new Date(),
+                idempotencyKey: `cancellation:${effective[0].id}`,
+              });
             }
           }
           if (
@@ -261,13 +290,15 @@ export class BillingWebhookApplication extends Context.Service<
     BillingWebhookApplication,
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
+      const jobs = yield* JobService;
       const analytics = yield* ProductAnalytics;
 
       const apply = Effect.fn("BillingWebhookApplication.apply")(function* (
         event: BillingWebhookEvent
       ) {
         const result = yield* applyBillingWebhook(event).pipe(
-          Effect.provideService(SqlClient.SqlClient, sql)
+          Effect.provideService(SqlClient.SqlClient, sql),
+          Effect.provideService(JobService, jobs)
         );
         // Fire the "became paid" event AFTER the billing transaction commits —
         // never inside it — so a telemetry hiccup can't roll back billing and

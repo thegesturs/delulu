@@ -24,7 +24,12 @@ import {
   ConnectionsService,
 } from "../../src/connections";
 import { IdentityService } from "../../src/identity";
+import { type JobIntent, JobTransport } from "../../src/job-transport";
 import { JobService } from "../../src/jobs";
+
+const intents: JobIntent[] = [];
+let rejectCancellation = false;
+
 import { LifecycleService } from "../../src/lifecycle";
 import { MembershipService } from "../../src/membership";
 import { PostService } from "../../src/posts";
@@ -50,7 +55,21 @@ let AppLayer: Layer.Layer<
 >;
 
 beforeAll(() => {
-  const Jobs = JobService.layer;
+  const Jobs = JobService.layer.pipe(
+    Layer.provide(
+      Layer.succeed(
+        JobTransport,
+        JobTransport.of({
+          prepare: async (intent) => {
+            if (rejectCancellation && intent.job === null) {
+              throw new Error("scheduler unavailable");
+            }
+            intents.push(intent);
+          },
+        })
+      )
+    )
+  );
   const Posts = PostService.layer.pipe(Layer.provide(Jobs));
   const Reviews = ReviewService.layer.pipe(Layer.provide(Jobs));
   const StateConfig = Layer.succeed(
@@ -68,7 +87,7 @@ beforeAll(() => {
     LifecycleService.of({
       record: () => Effect.void,
       syncWorkspace: () => Effect.void,
-      runScheduled: () => Effect.void,
+      runScheduled: () => Effect.succeed(null),
     })
   );
   const Connections = ConnectionsService.layer.pipe(
@@ -149,6 +168,25 @@ describe("M2 PostService and JobService", () => {
       const actor = { memberId: member.memberId, role: member.role };
       const first = yield* posts.create({ workspaceId, actor, value });
       const second = yield* posts.create({ workspaceId, actor, value });
+      const sql = yield* SqlClient.SqlClient;
+      rejectCancellation = true;
+      try {
+        const removal = yield* posts
+          .remove(workspaceId, first.id)
+          .pipe(Effect.exit);
+        expect(removal._tag).toBe("Failure");
+      } finally {
+        rejectCancellation = false;
+      }
+      const rows = yield* sql<{
+        deletedAt: Date | null;
+      }>`SELECT deleted_at FROM posts WHERE id = ${first.id}`;
+      expect(rows[0].deletedAt).toBeNull();
+      yield* posts.remove(workspaceId, first.id);
+      const deleted = yield* sql<{
+        deletedAt: Date | null;
+      }>`SELECT deleted_at FROM posts WHERE id = ${first.id}`;
+      expect(deleted[0].deletedAt).toBeInstanceOf(Date);
       return { first, second };
     });
     const result = await Effect.runPromise(
@@ -234,11 +272,7 @@ describe("M2 PostService and JobService", () => {
       });
       const counts = yield* sql<{
         targets: string;
-        jobs: string;
-      }>`SELECT
-          (SELECT count(*)::text FROM post_targets WHERE post_id = ${created.id}) AS targets,
-          (SELECT count(*)::text FROM jobs
-            WHERE idempotency_key = ${`publish-target:${created.targets[0]?.id}`}) AS jobs`;
+      }>`SELECT count(*)::text AS targets FROM post_targets WHERE post_id = ${created.id}`;
       return { created, duplicateCreate, repeated, counts: counts[0] };
     });
 
@@ -252,75 +286,41 @@ describe("M2 PostService and JobService", () => {
     );
     expect(result.repeated.status).toBe("publishing");
     expect(result.repeated.targets[0]?.id).toBe(result.created.targets[0]?.id);
-    expect(result.counts).toEqual({ targets: "1", jobs: "1" });
+    expect(result.counts).toEqual({ targets: "1" });
+    expect(
+      intents.filter(
+        (i) => i.key === `publish-target:${result.created.targets[0]?.id}`
+      )
+    ).toHaveLength(1);
   });
 
-  it("leases a due job once so concurrent dispatchers cannot double-claim it", async () => {
-    const program = Effect.gen(function* () {
-      const identity = yield* IdentityService;
-      const jobs = yield* JobService;
-      const resolved = yield* identity.resolve({
-        sub: `clerk_${crypto.randomUUID()}`,
-      });
-      const workspaceId = resolved.personalWorkspace?.id;
-      if (!workspaceId) {
-        return yield* Effect.die("missing workspace");
-      }
-      const id = yield* jobs.enqueue({
-        workspaceId,
-        payload: { _tag: "SweepPendingMedia" },
-        runAt: new Date(Date.now() - 1000),
-        idempotencyKey: `claim-${crypto.randomUUID()}`,
-      });
-      const first = yield* jobs.claimDue({ limit: 100, leaseSeconds: 60 });
-      const second = yield* jobs.claimDue({ limit: 100, leaseSeconds: 60 });
-      return { id, first, second };
-    });
-    const { id, first, second } = await Effect.runPromise(
-      program.pipe(Effect.provide(AppLayer))
+  it("rolls back the transaction witness when the business transaction aborts", async () => {
+    const key = `rollback:${crypto.randomUUID()}`;
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        const jobs = yield* JobService;
+        const result = yield* sql
+          .withTransaction(
+            Effect.gen(function* () {
+              yield* jobs.enqueue({
+                workspaceId: "unused",
+                payload: { _tag: "SweepPendingMedia" },
+                runAt: new Date(),
+                idempotencyKey: key,
+              });
+              return yield* Effect.fail("abort business transaction");
+            })
+          )
+          .pipe(Effect.result);
+        expect(result._tag).toBe("Failure");
+        const intent = intents.find((i) => i.key === key)!;
+        expect(intent).toBeDefined();
+        const rows =
+          yield* sql`SELECT id FROM execution_receipts WHERE id = ${intent.receiptId}::uuid`;
+        expect(rows).toHaveLength(0);
+      }).pipe(Effect.provide(AppLayer))
     );
-    expect(first.some((job) => job.id === id)).toBe(true);
-    expect(second.some((job) => job.id === id)).toBe(false);
-  });
-
-  it("re-dispatches an expired delivery lease and fails it after max attempts", async () => {
-    const program = Effect.gen(function* () {
-      const identity = yield* IdentityService;
-      const jobs = yield* JobService;
-      const sql = yield* SqlClient.SqlClient;
-      const resolved = yield* identity.resolve({
-        sub: `clerk_${crypto.randomUUID()}`,
-      });
-      const workspaceId = resolved.personalWorkspace?.id;
-      if (!workspaceId) {
-        return yield* Effect.die("missing workspace");
-      }
-      const id = yield* jobs.enqueue({
-        workspaceId,
-        payload: { _tag: "SweepPendingMedia" },
-        runAt: new Date(Date.now() - 1000),
-        idempotencyKey: `redispatch-${crypto.randomUUID()}`,
-        maxAttempts: 2,
-      });
-      const first = yield* jobs.claimDue({ limit: 100, leaseSeconds: 60 });
-      yield* jobs.markDispatched(id);
-      yield* sql`UPDATE jobs SET locked_until = now() - interval '1 second' WHERE id = ${id}`;
-      const second = yield* jobs.claimDue({ limit: 100, leaseSeconds: 60 });
-      yield* jobs.markDispatched(id);
-      yield* sql`UPDATE jobs SET locked_until = now() - interval '1 second' WHERE id = ${id}`;
-      const exhausted = yield* jobs.claimDue({ limit: 100, leaseSeconds: 60 });
-      const rows = yield* sql<{
-        status: string;
-      }>`SELECT status FROM jobs WHERE id = ${id}`;
-      return { id, first, second, exhausted, status: rows[0]?.status };
-    });
-    const result = await Effect.runPromise(
-      program.pipe(Effect.provide(AppLayer))
-    );
-    expect(result.first.some((job) => job.id === result.id)).toBe(true);
-    expect(result.second.some((job) => job.id === result.id)).toBe(true);
-    expect(result.exhausted.some((job) => job.id === result.id)).toBe(false);
-    expect(result.status).toBe("failed");
   });
 
   it("reschedules only missed targets when approving a delayed review", async () => {
@@ -497,9 +497,10 @@ describe("M2 PostService and JobService", () => {
           source: "api",
         },
       });
-      const queued = yield* sql<{
-        count: string;
-      }>`SELECT count(*)::text AS count FROM jobs WHERE payload ->> 'targetId' = ${post.targets[0]?.id}`;
+      const queued = intents.filter(
+        (i) =>
+          i.key === `publish-target:${post.targets[0]?.id}` && i.job !== null
+      ).length;
       yield* posts.updateTarget({
         workspaceId,
         postId: post.id,
@@ -512,7 +513,7 @@ describe("M2 PostService and JobService", () => {
       }>`SELECT status FROM post_reviews WHERE post_id = ${post.id}`;
       return {
         post,
-        queued: Number(queued[0]?.count ?? 0),
+        queued,
         reviewStatus: reviews[0]?.status,
       };
     });
@@ -667,21 +668,21 @@ describe("M2 PostService and JobService", () => {
         runAt: new Date(Date.now() - 1000),
         idempotencyKey: key,
       });
-      yield* jobs.complete(id);
+      yield* jobs.cancel(key);
       yield* jobs.enqueue({
         workspaceId,
         payload: { _tag: "SweepPendingMedia" },
         runAt: new Date(Date.now() - 1000),
         idempotencyKey: key,
       });
-      const claimed = yield* jobs.claimDue({ limit: 100, leaseSeconds: 60 });
-      return { id, claimed };
+      return { id, key };
     });
     const result = await Effect.runPromise(
       program.pipe(Effect.provide(AppLayer))
     );
-    expect(result.claimed.filter((job) => job.id === result.id)).toHaveLength(
-      1
-    );
+    const mutations = intents.filter((i) => i.key === result.key);
+    expect(mutations).toHaveLength(3);
+    expect(mutations[1].job).toBeNull();
+    expect(mutations[2].job?.id).not.toBe(result.id);
   });
 });

@@ -136,29 +136,41 @@ const uploadReelContent = (
   accessToken: string
 ): Effect.Effect<void, ConnectionError> =>
   Effect.gen(function* () {
-    // Fetch the source video, then stream the bytes to Facebook's upload URL.
-    const videoBuffer = yield* Effect.tryPromise({
-      try: () =>
-        axios
-          .get(videoUrl, { responseType: "arraybuffer" })
-          .then((r) => Buffer.from(r.data)),
-      catch: (e) => fromUnknownHttp(PROVIDER, e),
-    });
-
     yield* Effect.tryPromise({
-      try: () =>
-        axios.post(uploadUrl, videoBuffer, {
+      try: async () => {
+        const deadline = AbortSignal.timeout(5 * 60_000);
+        const source = await fetch(videoUrl, { signal: deadline });
+        if (!(source.ok && source.body)) {
+          await source.body?.cancel();
+          throw new Error(`Video fetch returned ${source.status}`);
+        }
+        const size = source.headers.get("content-length");
+        if (!size) {
+          await source.body.cancel();
+          throw new Error("Video size unavailable");
+        }
+        const response = await fetch(uploadUrl, {
+          method: "POST",
+          body: source.body,
+          signal: deadline,
+          duplex: "half",
           headers: {
             Authorization: `OAuth ${accessToken}`,
-            "Content-Type": "application/octet-stream",
-            file_size: videoBuffer.length.toString(),
+            "content-type": "application/octet-stream",
+            file_size: size,
             offset: "0",
           },
-          maxContentLength: Number.POSITIVE_INFINITY,
-          maxBodyLength: Number.POSITIVE_INFINITY,
-          timeout: 300_000, // 5 minutes for large videos
-        }),
-      catch: (e) => fromUnknownHttp(PROVIDER, e),
+        } as RequestInit).catch(async (error) => {
+          await source.body?.cancel().catch(() => undefined);
+          throw error;
+        });
+        if (!response.ok) {
+          await response.body?.cancel();
+          throw new Error(`Video upload returned ${response.status}`);
+        }
+        await response.body?.cancel();
+      },
+      catch: (error) => fromUnknownHttp(PROVIDER, error),
     });
   });
 

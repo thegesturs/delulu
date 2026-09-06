@@ -1,23 +1,64 @@
+import type { runPublish } from "@delulu/connections/worker";
 import {
   ConnectionId,
   JobId,
   MediaId,
   MemberId,
   makeId,
+  makeTokenCipher,
   PostGroupId,
   PostId,
   PostTargetId,
   SubscriptionId,
+  TokenCipher,
   UserId,
   WorkspaceId,
 } from "@delulu/core";
+import { JobService } from "@delulu/services";
 import { PgClient } from "@effect/sql-pg";
-import { Effect, Redacted } from "effect";
+import { Effect, String as EffectString, Layer, Redacted } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { describe, expect, it } from "vitest";
-import { processPostgresMessage } from "./postgres-client";
+import { publishTarget } from "./publish-target";
+
+const followups: unknown[] = [];
+const execute = (
+  seeded: { jobId: string; targetId: PostTargetId; workspaceId: string },
+  runner: typeof runPublish
+) =>
+  publishTarget(
+    {
+      id: seeded.jobId,
+      workspaceId: seeded.workspaceId,
+      payload: { _tag: "PublishTarget", targetId: seeded.targetId },
+      runAt: Date.now(),
+      maxAttempts: 5,
+    },
+    Layer.mergeAll(
+      Pg,
+      Layer.succeed(
+        TokenCipher,
+        TokenCipher.of(makeTokenCipher("integration-key"))
+      ),
+      Layer.succeed(
+        JobService,
+        JobService.of({
+          enqueue: (input) =>
+            Effect.sync(() => {
+              followups.push(input);
+              return crypto.randomUUID();
+            }),
+          cancel: () => Effect.void,
+        })
+      )
+    ),
+    runner
+  );
 
 const Pg = PgClient.layer({
+  transformQueryNames: EffectString.camelToSnake,
+  transformResultNames: EffectString.snakeToCamel,
+  transformJson: false,
   url: Redacted.make(
     process.env.DATABASE_URL ?? "postgres://delulu:delulu@localhost:5432/delulu"
   ),
@@ -51,33 +92,36 @@ const seed = (text: string, withThumbnail = false) =>
     VALUES (${postId}, ${workspaceId}, 'scheduled', ${JSON.stringify({ groups: [{ id: groupId, isDefault: true, segments: [{ text, media: withThumbnail ? [{ id: mediaId, thumbnailMediaId }] : [] }] }] })}::jsonb, ${memberId}, 'api')`;
       yield* sql`INSERT INTO post_targets (id, post_id, connection_id, group_id, settings, status)
       VALUES (${targetId}, ${postId}, ${connectionId}, ${groupId}, ${JSON.stringify({ platform: "TWITTER", values: {} })}::jsonb, 'pending')`;
-      yield* sql`INSERT INTO jobs (id, workspace_id, payload, run_at, status, attempts, max_attempts, idempotency_key)
-    VALUES (${jobId}, ${workspaceId}, ${JSON.stringify({ _tag: "PublishTarget", targetId })}::jsonb, now(), 'dispatched', 1, 5, ${`worker-${jobId}`})`;
-      return { sql, jobId, targetId, postId, mediaId, thumbnailMediaId };
+      return {
+        sql,
+        workspaceId,
+        jobId,
+        targetId,
+        postId,
+        mediaId,
+        thumbnailMediaId,
+      };
     }).pipe(Effect.provide(Pg))
   );
 
-describe("Postgres publish worker outcomes", () => {
+describe("Durable publish outcomes", () => {
   it("passes a post-specific thumbnail image to the publisher", async () => {
     const seeded = await seed("publish with cover", true);
     let receivedThumbnail: string | undefined;
-    await processPostgresMessage(
-      JSON.stringify({ jobId: seeded.jobId, targetId: seeded.targetId }),
-      async (_platform, context) => {
-        receivedThumbnail =
-          context.content.content[0]?.media[0]?.thumbnailBucketUrl;
-        return {
-          status: "PUBLISHED",
-          result: {
-            platformPostId: "remote-cover",
-            platformPostUrl: "https://example.test/remote-cover",
-            platformId: "TWITTER",
-            postId: seeded.postId,
-            postedAt: new Date(),
-          },
-        };
-      }
-    );
+    await execute(seeded, async (_platform, context) => {
+      receivedThumbnail =
+        context.content.content[0]?.media[0]?.thumbnailBucketUrl;
+      return {
+        status: "PUBLISHED",
+        result: {
+          platformPostId: "remote-cover",
+          platformPostUrl: "https://example.test/remote-cover",
+          platformId: "TWITTER",
+          postId: seeded.postId,
+          postedAt: new Date(),
+        },
+      };
+    });
 
     expect(receivedThumbnail).toBe("https://example.test/cover.jpg");
   });
@@ -102,8 +146,8 @@ describe("Postgres publish worker outcomes", () => {
       jobId: seeded.jobId,
       targetId: seeded.targetId,
     });
-    await processPostgresMessage(body, publish);
-    await processPostgresMessage(body, publish);
+    await execute(seeded, publish);
+    await execute(seeded, publish);
     const state = await Effect.runPromise(
       Effect.gen(function* () {
         const sql = yield* SqlClient.SqlClient;
@@ -111,49 +155,42 @@ describe("Postgres publish worker outcomes", () => {
           target: string;
           job: string;
           post: string;
-        }>`SELECT t.status AS target, j.status AS job, p.status AS post
-        FROM post_targets t JOIN jobs j ON j.id = ${seeded.jobId} JOIN posts p ON p.id = t.post_id WHERE t.id = ${seeded.targetId}`;
+        }>`SELECT t.status AS target, p.status AS post
+        FROM post_targets t JOIN posts p ON p.id = t.post_id WHERE t.id = ${seeded.targetId}`;
       }).pipe(Effect.provide(Pg))
     );
     expect(calls).toBe(1);
     expect(state[0]).toMatchObject({
       target: "published",
-      job: "completed",
       post: "published",
     });
   });
 
   it("records permanent platform validation failures", async () => {
     const seeded = await seed("x".repeat(5000));
-    await processPostgresMessage(
-      JSON.stringify({ jobId: seeded.jobId, targetId: seeded.targetId }),
-      async () => {
-        throw new Error("publisher must not run");
-      }
-    );
+    await execute(seeded, async () => {
+      throw new Error("publisher must not run");
+    });
     const state = await Effect.runPromise(
       Effect.gen(function* () {
         const sql = yield* SqlClient.SqlClient;
         return yield* sql<{
           target: string;
           job: string;
-        }>`SELECT t.status AS target, j.status AS job FROM post_targets t JOIN jobs j ON j.id = ${seeded.jobId} WHERE t.id = ${seeded.targetId}`;
+        }>`SELECT t.status AS target FROM post_targets t WHERE t.id = ${seeded.targetId}`;
       }).pipe(Effect.provide(Pg))
     );
-    expect(state[0]).toMatchObject({ target: "failed", job: "failed" });
+    expect(state[0]).toMatchObject({ target: "failed" });
   });
 
-  it("keeps retryable publish failures eligible for SQS redelivery", async () => {
+  it("keeps retryable publish failures eligible for DO retry", async () => {
     const seeded = await seed("retry me");
     await expect(
-      processPostgresMessage(
-        JSON.stringify({ jobId: seeded.jobId, targetId: seeded.targetId }),
-        async () => ({
-          status: "FAILED",
-          message: "temporary outage",
-          retryable: true,
-        })
-      )
+      execute(seeded, async () => ({
+        status: "FAILED",
+        message: "temporary outage",
+        retryable: true,
+      }))
     ).rejects.toThrow("Retryable publish failure");
     const state = await Effect.runPromise(
       Effect.gen(function* () {
@@ -161,10 +198,10 @@ describe("Postgres publish worker outcomes", () => {
         return yield* sql<{
           target: string;
           job: string;
-        }>`SELECT t.status AS target, j.status AS job FROM post_targets t JOIN jobs j ON j.id = ${seeded.jobId} WHERE t.id = ${seeded.targetId}`;
+        }>`SELECT t.status AS target FROM post_targets t WHERE t.id = ${seeded.targetId}`;
       }).pipe(Effect.provide(Pg))
     );
-    expect(state[0]).toMatchObject({ target: "pending", job: "pending" });
+    expect(state[0]).toMatchObject({ target: "pending" });
   });
 
   it("persists provider progress so a redelivery can resume without duplicates", async () => {
@@ -175,7 +212,7 @@ describe("Postgres publish worker outcomes", () => {
     });
 
     await expect(
-      processPostgresMessage(body, async (_platform, context) => {
+      execute(seeded, async (_platform, context) => {
         expect(context.providerState).toEqual({});
         await context.persistProviderState?.({
           publishedSegmentIds: ["remote-1"],
@@ -188,15 +225,8 @@ describe("Postgres publish worker outcomes", () => {
       })
     ).rejects.toThrow("Retryable publish failure");
 
-    await Effect.runPromise(
-      Effect.gen(function* () {
-        const sql = yield* SqlClient.SqlClient;
-        yield* sql`UPDATE jobs SET status = 'dispatched' WHERE id = ${seeded.jobId}`;
-      }).pipe(Effect.provide(Pg))
-    );
-
-    await processPostgresMessage(body, async (_platform, context) => {
-      expect(context.providerState).toEqual({
+    await execute(seeded, async (_platform, context) => {
+      expect(context.providerState).toMatchObject({
         publishedSegmentIds: ["remote-1"],
       });
       await context.persistProviderState?.({
@@ -225,27 +255,61 @@ describe("Postgres publish worker outcomes", () => {
       }).pipe(Effect.provide(Pg))
     );
     expect(state[0]).toMatchObject({
-      providerState: { publishedSegmentIds: ["remote-1", "remote-2"] },
+      providerState: expect.objectContaining({
+        publishedSegmentIds: ["remote-1", "remote-2"],
+      }),
       status: "published",
     });
   });
 
-  it("does not publish an SQS delivery whose durable job was cancelled", async () => {
+  it("does not publish a removed target", async () => {
     const seeded = await seed("cancel me");
     await Effect.runPromise(
       Effect.gen(function* () {
         const sql = yield* SqlClient.SqlClient;
-        yield* sql`DELETE FROM jobs WHERE id = ${seeded.jobId}`;
+        yield* sql`DELETE FROM post_targets WHERE id = ${seeded.targetId}`;
       }).pipe(Effect.provide(Pg))
     );
     let calls = 0;
-    await processPostgresMessage(
-      JSON.stringify({ jobId: seeded.jobId, targetId: seeded.targetId }),
-      async () => {
-        calls += 1;
-        return { status: "FAILED", message: "must not run", retryable: false };
-      }
-    );
+    await execute(seeded, async () => {
+      calls += 1;
+      return { status: "FAILED", message: "must not run", retryable: false };
+    });
     expect(calls).toBe(0);
+  });
+  it("finalizes a saved publication after its media disappears", async () => {
+    const seeded = await seed("confirmed with deleted media", true);
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        yield* sql`UPDATE media SET deleted_at = now() WHERE id = ${seeded.mediaId}`;
+        yield* sql`UPDATE post_targets SET status = 'publishing', provider_state = ${JSON.stringify(
+          {
+            executionOutcome: {
+              status: "PUBLISHED",
+              result: {
+                platformPostId: "confirmed",
+                platformPostUrl: "https://example.test/confirmed",
+                platformId: "TWITTER",
+                postId: seeded.postId,
+                postedAt: new Date(),
+              },
+            },
+          }
+        )}::jsonb WHERE id = ${seeded.targetId}`;
+      }).pipe(Effect.provide(Pg))
+    );
+    await execute(seeded, async () => {
+      throw new Error("must not publish twice");
+    });
+    const rows = await Effect.runPromise(
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        return yield* sql<{
+          status: string;
+        }>`SELECT status FROM post_targets WHERE id = ${seeded.targetId}`;
+      }).pipe(Effect.provide(Pg))
+    );
+    expect(rows[0].status).toBe("published");
   });
 });

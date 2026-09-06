@@ -1,5 +1,6 @@
 import { Context, Effect, Layer, Predicate } from "effect";
 import { SqlClient } from "effect/unstable/sql";
+import { JobService } from "./jobs";
 
 export type MessageChannel = "transactional" | "lifecycle";
 
@@ -114,13 +115,14 @@ export class MessagingService extends Context.Service<
       readonly idempotencyKey: string;
       readonly metadata?: Readonly<Record<string, unknown>>;
     }) => Effect.Effect<{ readonly sent: boolean }>;
-    readonly dispatchPending: (limit?: number) => Effect.Effect<number>;
+    readonly deliver: (messageId: string) => Effect.Effect<void>;
   }
 >()("@delulu/services/MessagingService") {
   static readonly layer = Layer.effect(
     MessagingService,
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
+      const jobs = yield* JobService;
       const lifecycleProvider = yield* LifecycleProvider;
       const transactionalEmailProvider = yield* TransactionalEmailProvider;
 
@@ -138,17 +140,33 @@ export class MessagingService extends Context.Service<
         status?: "queued" | "suppressed";
         suppressionReason?: string;
       }) =>
-        sql`INSERT INTO message_deliveries
+        sql
+          .withTransaction(
+            Effect.gen(function* () {
+              const id = `message_${crypto.randomUUID()}`;
+              const rows = yield* sql<{
+                id: string;
+              }>`INSERT INTO message_deliveries
           (id, user_id, idempotency_key, channel, message_type, provider, status,
             payload, metadata, suppression_reason)
-          VALUES (${`message_${crypto.randomUUID()}`}, ${input.userId}, ${input.idempotencyKey},
+          VALUES (${id}, ${input.userId}, ${input.idempotencyKey},
             ${input.channel}, ${input.messageType}, ${input.provider}, ${input.status ?? "queued"},
             ${JSON.stringify(input.payload)}::jsonb, ${JSON.stringify(input.metadata ?? {})}::jsonb,
             ${input.suppressionReason ?? null})
-          ON CONFLICT (idempotency_key) DO NOTHING`.pipe(
-          Effect.asVoid,
-          Effect.orDie
-        );
+          ON CONFLICT (idempotency_key) DO UPDATE SET idempotency_key = EXCLUDED.idempotency_key
+          RETURNING id`;
+              if (input.status !== "suppressed") {
+                yield* jobs.enqueue({
+                  workspaceId: input.userId,
+                  payload: { _tag: "DeliverMessage", messageId: rows[0].id },
+                  runAt: new Date(),
+                  idempotencyKey: `message:${rows[0].id}`,
+                  maxAttempts: 72,
+                });
+              }
+            })
+          )
+          .pipe(Effect.orDie);
       const preferences = Effect.fn("MessagingService.preferences")(function* (
         userId: string
       ) {
@@ -293,69 +311,59 @@ export class MessagingService extends Context.Service<
           return { sent: true };
         }
       );
-      const dispatchPending = Effect.fn("MessagingService.dispatchPending")(
-        function* (limit = 50) {
-          const claimed = yield* sql
-            .withTransaction(
-              sql<{
-                id: string;
-                idempotencyKey: string;
-                payload: unknown;
-                attempts: number;
-              }>`
-              WITH due AS (
-                SELECT id FROM message_deliveries
-                WHERE (status IN ('queued', 'failed') OR
-                  (status = 'leased' AND locked_until < now()))
-                  AND next_attempt_at <= now() AND attempts < max_attempts
-                ORDER BY next_attempt_at, created_at FOR UPDATE SKIP LOCKED LIMIT ${limit}
-              ) UPDATE message_deliveries m SET status = 'leased', attempts = attempts + 1,
-                locked_until = now() + interval '2 minutes'
-              FROM due WHERE m.id = due.id
-              RETURNING m.id, m.idempotency_key, m.payload, m.attempts`
-            )
-            .pipe(Effect.orDie);
-          for (const row of claimed) {
-            const payload = row.payload as DeliveryPayload;
-            const delivery =
-              payload.kind === "identify"
-                ? lifecycleProvider.identify(payload)
-                : payload.kind === "track"
-                  ? lifecycleProvider.track(payload)
-                  : transactionalEmailProvider.send({
-                      ...payload,
-                      idempotencyKey: row.idempotencyKey,
-                    });
-            const result = yield* delivery.pipe(Effect.result);
-            if (result._tag === "Success") {
-              const messageId =
-                Predicate.isObject(result.success) &&
-                Predicate.isString(result.success.messageId)
-                  ? result.success.messageId
-                  : null;
-              yield* sql`UPDATE message_deliveries SET status = 'sent', sent_at = now(),
-                locked_until = NULL, last_error = NULL, provider_message_id = ${messageId}
+      const deliver = Effect.fn("MessagingService.deliver")(function* (
+        messageId: string
+      ) {
+        const claimed = yield* sql<{
+          id: string;
+          idempotencyKey: string;
+          payload: unknown;
+          attempts: number;
+        }>`
+            UPDATE message_deliveries SET attempts = attempts + 1
+            WHERE id = ${messageId} AND status IN ('queued','failed')
+            RETURNING id, idempotency_key, payload, attempts`.pipe(
+          Effect.orDie
+        );
+        for (const row of claimed) {
+          const payload = row.payload as DeliveryPayload;
+          const delivery =
+            payload.kind === "identify"
+              ? lifecycleProvider.identify(payload)
+              : payload.kind === "track"
+                ? lifecycleProvider.track(payload)
+                : transactionalEmailProvider.send({
+                    ...payload,
+                    idempotencyKey: row.idempotencyKey,
+                  });
+          const result = yield* delivery.pipe(Effect.result);
+          if (result._tag === "Success") {
+            const messageId =
+              Predicate.isObject(result.success) &&
+              Predicate.isString(result.success.messageId)
+                ? result.success.messageId
+                : null;
+            yield* sql`UPDATE message_deliveries SET status = 'sent', sent_at = now(),
+                last_error = NULL, provider_message_id = ${messageId}
                 , provider_response = ${JSON.stringify(messageId ? { messageId } : {})}::jsonb
                 WHERE id = ${row.id}`.pipe(Effect.orDie);
-            } else {
-              yield* sql`UPDATE message_deliveries SET
-                status = CASE WHEN attempts >= max_attempts THEN 'dead'::text ELSE 'failed'::text END,
-                next_attempt_at = now() + (LEAST(300, power(2, attempts)::integer) * interval '1 second'),
-                locked_until = NULL, last_error = ${String(result.failure)} WHERE id = ${row.id}`.pipe(
-                Effect.orDie
-              );
-            }
+          } else {
+            yield* sql`UPDATE message_deliveries SET
+                status = 'failed',
+                last_error = ${String(result.failure)} WHERE id = ${row.id}`.pipe(
+              Effect.orDie
+            );
+            return yield* Effect.die(result.failure);
           }
-          return claimed.length;
         }
-      );
+      });
       return MessagingService.of({
         identify,
         track,
         preferences,
         updatePreferences,
         sendTransactional,
-        dispatchPending,
+        deliver,
       });
     })
   );

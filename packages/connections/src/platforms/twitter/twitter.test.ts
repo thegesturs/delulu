@@ -48,6 +48,25 @@ afterEach(() => {
   vi.mocked(axios).mockReset();
 });
 
+const MEDIA_RANGE = /bytes=(\d+)-(\d+)/;
+const mockMedia = (value: string) =>
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (_url, init) => {
+      const bytes = new TextEncoder().encode(value);
+      const range = new Headers(init?.headers).get("range")?.match(MEDIA_RANGE);
+      const start = Number(range?.[1] ?? 0);
+      const end = Number(range?.[2] ?? bytes.length - 1);
+      return new Response(bytes.slice(start, end + 1), {
+        status: 206,
+        headers: {
+          "content-range": `bytes ${start}-${end}/${bytes.length}`,
+          "content-type": "application/octet-stream",
+        },
+      });
+    })
+  );
+
 const currentStore = () =>
   Layer.succeed(ConnectionStore, {
     getSocialProviderWithDecryptedTokens: () =>
@@ -254,7 +273,7 @@ describe("X publishing formats", () => {
   });
 
   it("publishes a single post with multiple images", async () => {
-    vi.mocked(axios).mockResolvedValue({ data: Buffer.from("image") });
+    mockMedia("image");
     xdk.upload
       .mockResolvedValueOnce({ data: { id: "media-1" } })
       .mockResolvedValueOnce({ data: { id: "media-2" } });
@@ -292,7 +311,7 @@ describe("X publishing formats", () => {
   });
 
   it("uploads video through the current chunked media SDK", async () => {
-    vi.mocked(axios).mockResolvedValue({ data: Buffer.from("video") });
+    mockMedia("video");
     xdk.initializeUpload.mockResolvedValue({ data: { id: "media-video" } });
     xdk.appendUpload.mockResolvedValue({ data: {} });
     xdk.finalizeUpload.mockResolvedValue({ data: {} });
