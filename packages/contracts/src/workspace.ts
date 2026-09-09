@@ -352,6 +352,9 @@ export const ConnectionView = Schema.Struct({
   displayName: Schema.NullOr(Schema.String),
   profileImage: Schema.NullOr(Schema.String),
   expiresAt: Schema.NullOr(Schema.String),
+  accountType: Schema.optional(
+    Schema.NullOr(Schema.Literals(["member", "organization"]))
+  ),
 });
 export const ConnectionMediaItem = Schema.Struct({
   id: Schema.String,

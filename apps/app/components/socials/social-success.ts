@@ -47,3 +47,21 @@ export const socialSuccessCopy = (input: {
         : undefined,
   };
 };
+
+export const socialConnectionProgressCopy = (input: {
+  readonly provider: string;
+  readonly status: "syncing" | "error";
+}) => {
+  const name = providerName(input.provider);
+  return input.status === "syncing"
+    ? {
+        title: `Finishing ${name} connection`,
+        message:
+          "Your authorization succeeded. We’re refreshing Connected Accounts now.",
+      }
+    : {
+        title: `${name} connected, but not visible yet`,
+        message:
+          "The provider accepted the connection. Refresh Connected Accounts again to finish syncing it.",
+      };
+};

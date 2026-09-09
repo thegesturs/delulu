@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { socialSuccessCopy } from "./social-success";
+import {
+  socialConnectionProgressCopy,
+  socialSuccessCopy,
+} from "./social-success";
 
 describe("socialSuccessCopy", () => {
   it("includes provider, username, and CLI completion guidance", () => {
@@ -39,5 +42,15 @@ describe("socialSuccessCopy", () => {
         client: null,
       }).message
     ).toBe("Jane Doe is now connected and ready to use.");
+  });
+
+  it("explains that a successful authorization is still syncing", () => {
+    expect(
+      socialConnectionProgressCopy({ provider: "linkedin", status: "syncing" })
+    ).toEqual({
+      title: "Finishing LinkedIn connection",
+      message:
+        "Your authorization succeeded. We’re refreshing Connected Accounts now.",
+    });
   });
 });

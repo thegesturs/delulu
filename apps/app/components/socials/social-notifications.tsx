@@ -5,6 +5,7 @@ import {
   SOCIAL_ACCOUNT_CONNECTION_FAILED,
 } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
+import { invalidateWorkspaceResource } from "@delulu/client";
 import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Dialog,
@@ -14,14 +15,18 @@ import {
   DialogTitle,
 } from "@delulu/design-system/components/ui/dialog";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { CheckmarkCircle01Icon } from "@delulu/icons";
+import { CheckmarkCircle01Icon, Loading03Icon } from "@delulu/icons";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import { useMutationAtom, useResourceRegistry } from "@/state/resources";
 import { SocialError } from "../error/social-error";
-import { socialSuccessCopy } from "./social-success";
+import {
+  socialConnectionProgressCopy,
+  socialSuccessCopy,
+} from "./social-success";
+import { useConnectionReconciliation } from "./use-connection-reconciliation";
 
 const ERROR_MESSAGES = {
   auth_required: {
@@ -46,6 +51,16 @@ const ERROR_MESSAGES = {
     title: "Failed to Fetch Twitter Profile",
     description:
       "We could not fetch your Twitter profile information. Please try again.",
+  },
+  linkedin_auth_failed: {
+    title: "LinkedIn Connection Failed",
+    description:
+      "LinkedIn did not authorize the connection. Please try again and approve the requested access.",
+  },
+  linkedin_pages_fetch_failed: {
+    title: "LinkedIn Pages Unavailable",
+    description:
+      "We could not load the LinkedIn Pages you manage. Please try connecting again.",
   },
   youtube_auth_failed: {
     title: "YouTube Authentication Failed",
@@ -92,8 +107,16 @@ const NOTIFICATIONS = {
 
 function SocialNotificationsContent() {
   const searchParams = useSearchParams();
+  const success = searchParams.get("success");
+  const error = searchParams.get("error");
+  const notification = searchParams.get("notification");
+  const provider = searchParams.get("provider");
+  const client = searchParams.get("client");
   const [visible, setVisible] = useState(true);
   const [callbackUsername, setCallbackUsername] = useState<string | null>(null);
+  const [callbackProfileId, setCallbackProfileId] = useState<string | null>(
+    null
+  );
   const [callbackReady, setCallbackReady] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [transferError, setTransferError] = useState<string | null>(null);
@@ -104,22 +127,26 @@ function SocialNotificationsContent() {
   const trackedRef = useRef(false);
   const invalidatedRef = useRef(false);
 
-  const success = searchParams.get("success");
-  const error = searchParams.get("error");
-  const notification = searchParams.get("notification");
-  const provider = searchParams.get("provider");
-  const client = searchParams.get("client");
   const callbackClient =
     client === "cli" || client === "mcp" ? client : undefined;
   const connectionId = searchParams.get("connectionId");
   const sourceWorkspaceId = searchParams.get("sourceWorkspaceId");
   const transferToken = searchParams.get("transferToken");
+  const connectionSync = useConnectionReconciliation({
+    enabled: success === "true" && callbackReady,
+    provider,
+    callbackProfileId,
+    callbackUsername,
+    workspaceId,
+  });
 
   useEffect(() => {
     const fragment = new URLSearchParams(window.location.hash.slice(1));
     const connectedUsername = fragment.get("username");
+    const connectedProfileId = fragment.get("profileId");
     setCallbackUsername(connectedUsername);
-    if (connectedUsername) {
+    setCallbackProfileId(connectedProfileId);
+    if (connectedUsername || connectedProfileId) {
       window.history.replaceState(
         window.history.state,
         "",
@@ -149,21 +176,17 @@ function SocialNotificationsContent() {
     }
   }, [success, error, provider, analytics]);
 
-  // The OAuth callback lands back here (a full-page redirect) after a connect,
-  // transfer, or failure. Drop the cached connections list once so the freshly
-  // connected account — or its absence, on failure — shows without a manual
-  // reload, regardless of browser back/forward cache.
   useEffect(() => {
-    if (invalidatedRef.current || !workspaceId) {
+    if (invalidatedRef.current || !workspaceId || !callbackReady) {
       return;
     }
     if (success === "true" || notification || error) {
       invalidatedRef.current = true;
-      registry.invalidateResources({
-        queryKey: resources.connections.list(workspaceId).queryKey,
-      });
+      invalidateWorkspaceResource(registry, workspaceId, "connections").catch(
+        () => undefined
+      );
     }
-  }, [success, notification, error, workspaceId, registry, resources]);
+  }, [success, notification, error, callbackReady, workspaceId, registry]);
 
   // Fetch the connect URL if we have a provider and might need to retry
   const connect = useMutationAtom(
@@ -262,10 +285,11 @@ function SocialNotificationsContent() {
                       sourceWorkspaceId: sourceWorkspaceId ?? undefined,
                       transferToken: transferToken ?? undefined,
                     });
-                    await registry.invalidateResources({
-                      queryKey:
-                        resources.connections.list(workspaceId).queryKey,
-                    });
+                    await invalidateWorkspaceResource(
+                      registry,
+                      workspaceId,
+                      "connections"
+                    );
                     setVisible(false);
                   } catch (cause) {
                     setTransferError(
@@ -298,26 +322,56 @@ function SocialNotificationsContent() {
   }
 
   if (success === "true" && provider && callbackReady) {
+    const syncing = connectionSync.status === "syncing";
+    const syncError = connectionSync.status === "error";
     const copy = socialSuccessCopy({
       provider,
       username: callbackUsername,
       client,
     });
+    const progressCopy =
+      syncing || syncError
+        ? socialConnectionProgressCopy({
+            provider,
+            status: syncing ? "syncing" : "error",
+          })
+        : null;
     return (
-      <Dialog onOpenChange={setVisible} open={visible}>
+      <Dialog
+        onOpenChange={(open) => {
+          if (!syncing) {
+            setVisible(open);
+          }
+        }}
+        open={visible}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader className="items-center text-center">
             <div className="mb-2 flex size-12 items-center justify-center rounded-full bg-emerald-500/10">
               <Icon
-                className="text-emerald-500"
-                icon={CheckmarkCircle01Icon}
+                className={
+                  syncing ? "animate-spin text-emerald-500" : "text-emerald-500"
+                }
+                icon={syncing ? Loading03Icon : CheckmarkCircle01Icon}
                 size={28}
               />
             </div>
-            <DialogTitle>{copy.title}</DialogTitle>
-            <DialogDescription>{copy.message}</DialogDescription>
+            <DialogTitle>{progressCopy?.title ?? copy.title}</DialogTitle>
+            <DialogDescription>
+              {progressCopy?.message ?? copy.message}
+            </DialogDescription>
           </DialogHeader>
-          {copy.detail ? (
+          {syncError ? (
+            <Button
+              className="min-h-11 w-full"
+              onClick={() => {
+                connectionSync.retry().catch(() => undefined);
+              }}
+              variant="outline"
+            >
+              Refresh Connected Accounts
+            </Button>
+          ) : copy.detail && !syncing ? (
             <p className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-center text-foreground text-sm">
               {copy.detail}
             </p>

@@ -93,5 +93,58 @@ export const ConnectionRoutes = HttpRouter.use((router) =>
         )
       )
     );
+    yield* router.add("GET", "/v1/connections/linkedin/targets", (request) => {
+      const url = new URL(request.url, "http://localhost");
+      const state = url.searchParams.get("state") ?? "";
+      const selectionId = url.searchParams.get("selection") ?? "";
+      return connections.listLinkedInTargets({ state, selectionId }).pipe(
+        Effect.map((targets) => HttpServerResponse.jsonUnsafe({ targets })),
+        Effect.catch(() =>
+          Effect.succeed(
+            HttpServerResponse.jsonUnsafe(
+              {
+                error: {
+                  code: "ConflictError",
+                  message: "LinkedIn account selection expired",
+                },
+              },
+              { status: 400 }
+            )
+          )
+        )
+      );
+    });
+    yield* router.add("POST", "/v1/connections/linkedin/complete", (request) =>
+      request.text.pipe(
+        Effect.flatMap((raw) => {
+          const input = Schema.decodeUnknownSync(
+            Schema.fromJsonString(
+              Schema.Struct({
+                state: Schema.String,
+                selectionId: Schema.String,
+                targetId: Schema.String,
+              })
+            )
+          )(raw);
+          return connections
+            .completeLinkedIn(input)
+            .pipe(Effect.tap(() => reconcileFromState(input.state)));
+        }),
+        Effect.map((result) => HttpServerResponse.jsonUnsafe(result)),
+        Effect.catch(() =>
+          Effect.succeed(
+            HttpServerResponse.jsonUnsafe(
+              {
+                error: {
+                  code: "ConflictError",
+                  message: "Invalid LinkedIn completion",
+                },
+              },
+              { status: 400 }
+            )
+          )
+        )
+      )
+    );
   })
 );

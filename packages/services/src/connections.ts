@@ -6,9 +6,12 @@ import {
   type ConnectionUpsertResult,
   callbackRedirect,
   connectFacebookPage,
+  connectLinkedInTarget,
   ensureFreshToken,
   getConnection,
   isConnectionError,
+  type LinkedInTarget,
+  listStoredLinkedInTargets,
   networkError,
   type PlatformMediaPage,
   type PublishableSocialType,
@@ -363,6 +366,10 @@ const toOutput = (row: Record<string, unknown>): ConnectionOutput => {
         ? null
         : String(row.profileImage),
     expiresAt,
+    accountType:
+      row.accountType === "member" || row.accountType === "organization"
+        ? row.accountType
+        : null,
   };
 };
 
@@ -449,6 +456,24 @@ export class ConnectionsService extends Context.Service<
         },
       ConflictError
     >;
+    readonly listLinkedInTargets: (input: {
+      readonly state: string;
+      readonly selectionId: string;
+    }) => Effect.Effect<readonly LinkedInTarget[], ConflictError>;
+    readonly completeLinkedIn: (input: {
+      readonly state: string;
+      readonly selectionId: string;
+      readonly targetId: string;
+    }) => Effect.Effect<
+      (ConnectionUpsertResult & {
+        readonly name: string;
+        readonly profileId: string;
+      }) & {
+        readonly client?: ConnectionClient;
+        readonly returnTarget?: ConnectionReturnTarget;
+      },
+      ConflictError
+    >;
   }
 >()("@delulu/services/ConnectionsService") {
   static readonly layer = Layer.effect(
@@ -472,6 +497,7 @@ export class ConnectionsService extends Context.Service<
           Record<string, unknown>
         >`SELECT id, platform, profile_id, username, display_name,
             metadata->>'profileImage' AS profile_image, expires_at,
+            metadata->>'linkedinTargetType' AS account_type,
             (refresh_token IS NOT NULL) AS has_refresh,
             metadata->>'refreshTokenExpiresIn' AS refresh_expires_at
           FROM connections WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`.pipe(
@@ -805,7 +831,11 @@ export class ConnectionsService extends Context.Service<
           return yield* Effect.tryPromise({
             try: async () => {
               let connected:
-                | { readonly provider: string; readonly username: string }
+                | {
+                    readonly provider: string;
+                    readonly profileId: string;
+                    readonly username: string;
+                  }
                 | undefined;
               let response: Response;
               try {
@@ -827,6 +857,7 @@ export class ConnectionsService extends Context.Service<
                     if (status.status !== "transfer_required") {
                       connected = {
                         provider: value.socialType,
+                        profileId: value.profileId,
                         username:
                           value.username ?? value.fullName ?? value.profileId,
                       };
@@ -942,6 +973,60 @@ export class ConnectionsService extends Context.Service<
           });
         }
       );
+      const listLinkedInTargets = Effect.fn(
+        "ConnectionsService.listLinkedInTargets"
+      )(function* (input: { state: string; selectionId: string }) {
+        const verified = yield* states.verify(input.state);
+        return yield* Effect.tryPromise({
+          try: () =>
+            listStoredLinkedInTargets({
+              userId: verified.principal,
+              selectionId: input.selectionId,
+              temporaryStore,
+            }),
+          catch: () =>
+            new ConflictError({
+              message: "LinkedIn account selection expired",
+              resource: "connection",
+            }),
+        });
+      });
+      const completeLinkedIn = Effect.fn("ConnectionsService.completeLinkedIn")(
+        function* (input: {
+          state: string;
+          selectionId: string;
+          targetId: string;
+        }) {
+          const verified = yield* states.verify(input.state);
+          const result = yield* Effect.tryPromise({
+            try: () =>
+              connectLinkedInTarget({
+                userId: verified.principal,
+                selectionId: input.selectionId,
+                targetId: input.targetId,
+                temporaryStore,
+                upsert: (value) =>
+                  Effect.runPromise(
+                    upsertFromOAuth(
+                      verified.workspaceId as WorkspaceId,
+                      value,
+                      verified.principal
+                    )
+                  ),
+              }),
+            catch: () =>
+              new ConflictError({
+                message: "LinkedIn account connection failed",
+                resource: "connection",
+              }),
+          });
+          return {
+            ...result,
+            client: verified.client,
+            returnTarget: verified.returnTarget,
+          };
+        }
+      );
       return ConnectionsService.of({
         list,
         listMedia,
@@ -953,6 +1038,8 @@ export class ConnectionsService extends Context.Service<
         confirmTransfer,
         confirmOAuthTransfer,
         completeFacebook,
+        listLinkedInTargets,
+        completeLinkedIn,
       });
     })
   );

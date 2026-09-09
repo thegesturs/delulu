@@ -11,6 +11,8 @@ export interface SocialProviderTokens {
   username?: string;
   expiresIn?: number;
   refreshTokenExpiresIn?: number;
+  /** LinkedIn author kind; absent for legacy member connections and other providers. */
+  linkedinTargetType?: "member" | "organization";
 }
 
 export interface SocialProviderUpdate {
