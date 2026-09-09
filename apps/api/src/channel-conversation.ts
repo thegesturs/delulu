@@ -17,6 +17,7 @@ export interface MessageRecord extends ChannelMessage {
   response?: string;
   providerId?: string;
   sendAttempts?: number;
+  nextSendAt?: number;
 }
 
 export interface ConversationBinding {
@@ -175,6 +176,10 @@ export class ChannelConversation extends DurableObject<Env> {
         continue;
       }
       if (record.state === "ready") {
+        if (record.nextSendAt && record.nextSendAt > Date.now()) {
+          await this.ctx.storage.setAlarm(record.nextSendAt);
+          return;
+        }
         await this.ctx.storage.put(key, { ...record, state: "sending" });
         const result = await this.send(record);
         const attempts = (record.sendAttempts ?? 0) + 1;
@@ -184,14 +189,15 @@ export class ChannelConversation extends DurableObject<Env> {
           result.error.deliveryState === "not_sent" &&
           attempts < 3
         ) {
+          const nextSendAt =
+            Date.now() + Math.max(30_000, result.error.retryAfterMs ?? 0);
           await this.ctx.storage.put(key, {
             ...record,
             state: "ready",
             sendAttempts: attempts,
+            nextSendAt,
           });
-          await this.ctx.storage.setAlarm(
-            Date.now() + Math.max(30_000, result.error.retryAfterMs ?? 0)
-          );
+          await this.ctx.storage.setAlarm(nextSendAt);
           return;
         }
         await this.ctx.storage.put(key, {

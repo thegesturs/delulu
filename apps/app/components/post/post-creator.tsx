@@ -331,10 +331,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
               )}
 
               <div className="mx-auto mb-4 w-full max-w-[780px]">
-                <SocialSelector
-                  showPlatformSettings={false}
-                  surface="composer"
-                />
+                <SocialSelector surface="composer" />
               </div>
 
               <TabsContent className="mt-0" value="global">

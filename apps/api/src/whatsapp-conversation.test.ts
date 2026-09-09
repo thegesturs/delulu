@@ -102,7 +102,10 @@ function harness(storage = new Storage(), telegram = false) {
   return { actor, storage, submit, env, flush: () => Promise.all(jobs) };
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 it("deduplicates concurrent receipts and callback replays", async () => {
   const send = vi.fn(async () =>
@@ -163,6 +166,12 @@ it("retries a definitive rate-limit rejection without rerunning the agent", asyn
     state: "ready",
     sendAttempts: 1,
   });
+  await h.actor.alarm();
+  expect(send).toHaveBeenCalledTimes(1);
+  const pending = await h.storage.get<{ nextSendAt: number }>(
+    `message:${message.id}`
+  );
+  vi.spyOn(Date, "now").mockReturnValue(pending!.nextSendAt);
   await h.actor.alarm();
   expect(send).toHaveBeenCalledTimes(2);
   expect(h.submit).toHaveBeenCalledTimes(1);

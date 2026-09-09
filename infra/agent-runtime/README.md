@@ -26,7 +26,13 @@ corepack pnpm exec wrangler secret put CF_AI_GATEWAY_API_TOKEN \
 
 Keep the token in the runtime Worker only; it must never be placed in a user workspace or the Delulu API Worker. Run `pnpm deploy -- --dry-run` to build and validate every generated Worker configuration before `pnpm deploy` performs the real deployment.
 
-External turns are capped at four model steps, a 32k-token input window, and 4k output tokens per step. Delulu atomically reserves $0.50 of internal budget before dispatch and reconciles the actual gateway usage afterward.
+External turns are capped at four model steps, a 32k-token input window, and 4k output tokens per step. The authenticated workspace API reserves $0.50 of internal budget before dispatch and reconciles reported usage afterward. This is separate from the direct channel pilot: its admission is count-based (ten Telegram messages across the bot, plus ten turns per conversation per month), not dollar-based metering.
+
+## Staging pilot boundaries
+
+Telegram currently supports private text messages under an isolated guest runtime identity. It does not link that identity to a verified Delulu account. WhatsApp uses an explicitly configured test sender and is disabled in the staging configuration. Both transports persist their inbox/outbox in Durable Objects, not Postgres, and retain message IDs for deduplication after clearing terminal delivery payloads. Provider rate-limit deadlines survive restarts and new incoming events.
+
+Successful channel replies verify transport and inference only. Verified account linking, user-facing transcript exports, canonical memory extraction, media ingress, and production ritual delivery still require end-to-end acceptance. The staging API has no production database bindings, so it cannot provide canonical content capabilities. Unknown or expired external-effect execution outcomes require reconciliation; never retry them merely because a lease is old.
 
 The Workshop Worker exposes `ExternalMessageGateway` to the Delulu API only through a service binding with `{ "source": "delulu" }` props. Bind the API Worker back to itself as `AGENT_RUNTIME_BRIDGE` with entrypoint `AgentRuntimeBridge` so persistent response targets survive Worker restarts. After the runtime exists, redeploy `apps/api` so its `AGENT_RUNTIME` binding resolves.
 

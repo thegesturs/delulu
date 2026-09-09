@@ -74,6 +74,10 @@ import {
 } from "./automation-providers";
 import { DurableJobObject, type JobState } from "./durable-job";
 import {
+  assertContentReceiptOwner,
+  prepareContentWrite,
+} from "./content-action-policy";
+import {
   agentRuntimeProviderLayer,
   appOrigins,
   authConfigLayer,
@@ -521,10 +525,11 @@ export class AgentContentBridge extends WorkerEntrypoint<Env> {
         input.workspaceId
       );
       const members = yield* sql<{
+        userId: string;
         memberId: string;
         role: "owner" | "admin" | "editor" | "viewer";
         workspaceName: string;
-      }>`SELECT wm.id AS member_id, wm.role, w.name AS workspace_name
+      }>`SELECT u.id AS user_id, wm.id AS member_id, wm.role, w.name AS workspace_name
           FROM users u
           JOIN workspace_members wm ON wm.user_id = u.id
           JOIN workspaces w ON w.id = wm.workspace_id
@@ -542,12 +547,14 @@ export class AgentContentBridge extends WorkerEntrypoint<Env> {
         sql<Record<string, unknown>>`SELECT id, category, value, provenance,
           confidence, status, requires_confirmation, updated_at
           FROM agent_memories WHERE workspace_id = ${input.workspaceId}
+            AND user_id = ${member.userId}
             AND status != 'rejected' ORDER BY updated_at DESC LIMIT 100`,
         sql<Record<string, unknown>>`SELECT wf.id, wf.filename, wf.logical_path,
           wfv.mime_type, COALESCE(wfv.size_bytes, 0)::text AS size_bytes
           FROM workspace_files wf LEFT JOIN workspace_file_versions wfv
             ON wfv.id = wf.current_version_id
           WHERE wf.workspace_id = ${input.workspaceId} AND wf.deleted_at IS NULL
+            AND (wf.visibility = 'workspace' OR wf.owner_user_id = ${member.userId})
             AND wf.status = 'available' ORDER BY wf.updated_at DESC LIMIT 100`,
         posts.list({
           workspaceId,
@@ -603,30 +610,48 @@ export class AgentContentBridge extends WorkerEntrypoint<Env> {
         role: "owner" | "admin" | "editor" | "viewer";
       }>`SELECT wm.id AS member_id, wm.role FROM users u
           JOIN workspace_members wm ON wm.user_id = u.id
+          JOIN agent_workspaces aw ON aw.user_id = u.id AND aw.workspace_id = wm.workspace_id
           WHERE lower(u.email) = ${input.callerEmail.trim().toLowerCase()}
             AND wm.workspace_id = ${input.action.workspaceId}
+            AND aw.state = 'active' AND aw.deleted_at IS NULL
+            AND aw.external_writes_enabled = true
             AND u.identity_deleted_at IS NULL LIMIT 1`;
       const actor = members[0];
       if (!actor || actor.role === "viewer") {
         throw new Error("Content HQ write access denied");
       }
+      const receiptOwner = {
+        callerEmail: input.callerEmail.trim().toLowerCase(),
+        workspaceId: input.action.workspaceId,
+        actionKind: input.action.kind,
+      };
+      // An interrupted execution may already have committed its effect. Only a
+      // confirmed failure can retry; stale executing receipts need reconciliation.
       const claimed = yield* sql<{
         idempotencyKey: string;
       }>`INSERT INTO agent_external_effects
         (idempotency_key, caller_email, workspace_id, action_kind, status)
-        VALUES (${input.idempotencyKey}, ${input.callerEmail.toLowerCase()},
+        VALUES (${input.idempotencyKey}, ${receiptOwner.callerEmail},
           ${input.action.workspaceId}, ${input.action.kind}, 'executing')
         ON CONFLICT (idempotency_key) DO UPDATE SET
           status = 'executing', error = NULL, started_at = now()
-        WHERE agent_external_effects.status = 'failed'
-          OR agent_external_effects.updated_at < now() - interval '5 minutes'
+        WHERE agent_external_effects.caller_email = EXCLUDED.caller_email
+          AND agent_external_effects.workspace_id = EXCLUDED.workspace_id
+          AND agent_external_effects.action_kind = EXCLUDED.action_kind
+          AND agent_external_effects.status = 'failed'
         RETURNING idempotency_key`;
       if (!claimed[0]) {
         const existing = yield* sql<{
           status: string;
           result: unknown;
-        }>`SELECT status, result
+          callerEmail: string;
+          workspaceId: string;
+          actionKind: string;
+        }>`SELECT status, result, caller_email, workspace_id, action_kind
           FROM agent_external_effects WHERE idempotency_key = ${input.idempotencyKey}`;
+        if (existing[0]) {
+          assertContentReceiptOwner(existing[0], receiptOwner);
+        }
         if (existing[0]?.status === "completed") {
           return existing[0].result;
         }
@@ -645,21 +670,11 @@ export class AgentContentBridge extends WorkerEntrypoint<Env> {
         const decoded = yield* Schema.decodeUnknownEffect(PostWrite)(
           input.action.value
         );
-        const value =
-          input.action.kind === "create_draft"
-            ? {
-                ...decoded,
-                intent: "draft" as const,
-                source: "automation" as const,
-                externalSubmissionId: input.idempotencyKey,
-              }
-            : input.action.kind === "schedule"
-              ? {
-                  ...decoded,
-                  intent: "schedule" as const,
-                  source: "automation" as const,
-                }
-              : decoded;
+        const value = prepareContentWrite(
+          input.action.kind,
+          decoded,
+          input.idempotencyKey
+        );
         return input.action.kind === "create_draft"
           ? yield* posts.create({
               workspaceId,
