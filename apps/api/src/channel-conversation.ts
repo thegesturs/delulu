@@ -18,6 +18,7 @@ export interface MessageRecord extends ChannelMessage {
   providerId?: string;
   sendAttempts?: number;
   nextSendAt?: number;
+  submittedAt?: number;
 }
 
 export interface ConversationBinding {
@@ -41,6 +42,11 @@ export type DeliveryResult =
 
 export class ChannelConversation extends DurableObject<Env> {
   private draining?: Promise<void>;
+
+  /** Best-effort channel feedback; returns the next recovery wake interval. */
+  protected async showProcessing(_record: MessageRecord): Promise<number> {
+    return 30_000;
+  }
 
   protected enabled() {
     return this.env.WHATSAPP_INGRESS_ENABLED === "true";
@@ -238,12 +244,34 @@ export class ChannelConversation extends DurableObject<Env> {
         });
         continue;
       }
+      const shouldSubmit =
+        !record.submittedAt || Date.now() - record.submittedAt >= 30_000;
       const active = {
         ...record,
         state: "running" as const,
         startedAt: record.startedAt ?? Date.now(),
+        submittedAt: shouldSubmit ? Date.now() : record.submittedAt,
       };
-      await this.ctx.storage.put(key, active);
+      const activated = await this.ctx.storage.transaction(async (storage) => {
+        const current = await storage.get<MessageRecord>(key);
+        if (current?.state !== "queued" && current?.state !== "running") {
+          return false;
+        }
+        await storage.put(key, active);
+        return true;
+      });
+      if (!activated) {
+        return this.process();
+      }
+      const wakeAfter = await this.showProcessing(active);
+      if ((await this.ctx.storage.get<MessageRecord>(key))?.state === "ready") {
+        return this.process();
+      }
+      await this.ctx.storage.setAlarm(Date.now() + wakeAfter);
+      // Frequent status refreshes must not repeatedly submit the same agent turn.
+      if (!shouldSubmit) {
+        return;
+      }
       await runtime.ensureExternalUser({
         email: this.email(record.sender)!,
         displayName: this.email(record.sender)!.split("@")[0],

@@ -1,5 +1,15 @@
 # Telegram text pilot
 
+Active turns show Telegram's native typing status (refreshed approximately every
+four seconds) and an ephemeral `sendMessageDraft` Thinking placeholder (refreshed
+every twenty seconds). Durable alarms recover status updates after restarts;
+provider backoff is persisted and status calls time out after 1.5 seconds. No
+partial model text is simulated. Final responses still use the durable outbox.
+Refreshes stop when the turn finishes, times out, or ingress is disabled. Telegram
+clears typing on delivery; an undelivered draft expires naturally within thirty
+seconds after its last refresh. Status updates are not sent to queued followers
+until their turn starts, and never consume additional model reservations.
+
 The API Worker receives authenticated Telegram updates at
 `/v1/providers/telegram/webhook`. It uses the shared durable conversation/outbox
 engine and the agent runtime service binding. Message payloads do not enter

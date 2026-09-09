@@ -2,8 +2,15 @@ const BOT_TOKEN_PATTERN = /^\d+:[A-Za-z0-9_-]+$/;
 /** Never expose request URLs containing tokens in errors. */
 export async function telegramCall<T>(
   token: string,
-  method: "sendMessage" | "setWebhook" | "getWebhookInfo" | "getMe",
-  body: Record<string, unknown> = {}
+  method:
+    | "sendMessage"
+    | "sendChatAction"
+    | "sendMessageDraft"
+    | "setWebhook"
+    | "getWebhookInfo"
+    | "getMe",
+  body: Record<string, unknown> = {},
+  timeoutMs = 15_000
 ): Promise<
   { ok: true; result: T } | { ok: false; status: number; retryAfterMs?: number }
 > {
@@ -17,7 +24,7 @@ export async function telegramCall<T>(
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(timeoutMs),
       }
     );
     const data = (await response.json()) as {

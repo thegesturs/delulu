@@ -197,7 +197,7 @@ it("delivers Telegram replies once using an isolated guest identity", async () =
   await h.flush();
   await h.actor.enqueue(message);
   await h.flush();
-  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(fetcher).toHaveBeenCalledTimes(3);
   expect(h.env.AGENT_RUNTIME!.ensureExternalUser).toHaveBeenCalledWith({
     email: `tg-42-${message.sender}@guest.invalid`,
     displayName: `tg-42-${message.sender}`,
@@ -217,6 +217,161 @@ it("caps admission across different Telegram senders and permits only matching r
   expect(await actor.reserve("0", "100")).toBe(true);
   expect(await actor.reserve("0", "999")).toBe(false);
   expect(await actor.reserve("11", "999")).toBe(false);
+});
+
+it("refreshes Telegram activity after restart without resubmitting and stops after delivery", async () => {
+  let now = 1_800_000_000_000;
+  vi.spyOn(Date, "now").mockImplementation(() => now);
+  const calls: { method: string; body: Record<string, unknown> }[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, options: RequestInit) => {
+      calls.push({
+        method: url.split("/").at(-1)!,
+        body: JSON.parse(options.body as string),
+      });
+      return Response.json({ ok: true, result: { message_id: 99 } });
+    })
+  );
+  const h = harness(new Storage(), true);
+  h.submit.mockImplementation(async () => ({
+    accepted: true,
+    chatPath: "/test",
+  }));
+  const input = { ...message, id: "123" };
+  await h.actor.enqueue(input);
+  await h.flush();
+  expect(calls.map((call) => call.method)).toEqual([
+    "sendChatAction",
+    "sendMessageDraft",
+  ]);
+  expect(calls[1]!.body).toMatchObject({
+    draft_id: 123,
+    text: "",
+    chat_id: input.sender,
+  });
+  now += 4000;
+  const restarted = harness(h.storage, true);
+  await restarted.actor.alarm();
+  expect(restarted.submit).not.toHaveBeenCalled();
+  expect(calls.map((call) => call.method)).toEqual([
+    "sendChatAction",
+    "sendMessageDraft",
+    "sendChatAction",
+  ]);
+  now += 16_000;
+  await restarted.actor.alarm();
+  expect(
+    calls.filter((call) => call.method === "sendMessageDraft")
+  ).toHaveLength(2);
+  await restarted.actor.complete(input.id, "Done");
+  await restarted.flush();
+  const count = calls.length;
+  now += 40_000;
+  await restarted.actor.alarm();
+  expect(calls).toHaveLength(count);
+  expect(calls.at(-1)!.method).toBe("sendMessage");
+  expect(h.storage.alarm).toBeUndefined();
+});
+
+it("status failures do not prevent an agent response", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (!url.endsWith("/sendMessage")) {
+        throw new Error("unavailable");
+      }
+      return Response.json({ ok: true, result: { message_id: 99 } });
+    })
+  );
+  const h = harness(new Storage(), true);
+  await h.actor.enqueue(message);
+  await h.flush();
+  expect(await h.storage.get(`message:${message.id}`)).toMatchObject({
+    state: "sent",
+  });
+  expect(h.submit).toHaveBeenCalledTimes(1);
+});
+
+it("persists status rate limits and stops refreshes when ingress is disabled", async () => {
+  let now = 1_800_000_000_000;
+  vi.spyOn(Date, "now").mockImplementation(() => now);
+  const fetcher = vi.fn(async () =>
+    Response.json(
+      { ok: false, parameters: { retry_after: 60 } },
+      { status: 429 }
+    )
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const h = harness(new Storage(), true);
+  h.submit.mockImplementation(async () => ({
+    accepted: true,
+    chatPath: "/test",
+  }));
+  await h.actor.enqueue(message);
+  await h.flush();
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  now += 30_000;
+  const restarted = harness(h.storage, true);
+  restarted.submit.mockImplementation(async () => ({
+    accepted: true,
+    chatPath: "/test",
+  }));
+  await restarted.actor.alarm();
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  now += 30_000;
+  Object.assign(restarted.env, { TELEGRAM_INGRESS_ENABLED: "false" });
+  await restarted.actor.alarm();
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it("preserves completion arriving during a Telegram status refresh", async () => {
+  let now = 1_800_000_000_000;
+  vi.spyOn(Date, "now").mockImplementation(() => now);
+  const h = harness(new Storage(), true);
+  let complete = false;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (complete && url.endsWith("/sendChatAction")) {
+        complete = false;
+        await h.actor.complete(message.id, "Finished during status");
+      }
+      return Response.json({ ok: true, result: { message_id: 99 } });
+    })
+  );
+  h.submit.mockImplementation(async () => ({
+    accepted: true,
+    chatPath: "/test",
+  }));
+  await h.actor.enqueue(message);
+  await h.flush();
+  now += 4000;
+  complete = true;
+  await h.actor.alarm();
+  expect(await h.storage.get(`message:${message.id}`)).toMatchObject({
+    state: "sent",
+  });
+  expect(h.submit).toHaveBeenCalledTimes(1);
+});
+
+it.each([
+  "failed",
+  "timeout",
+] as const)("does not refresh Telegram status after %s", async (state) => {
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  const h = harness(new Storage(), true);
+  await h.storage.put(`message:${message.id}`, {
+    ...message,
+    state: state === "failed" ? "failed" : "running",
+    createdAt: 1,
+    startedAt: 1,
+  });
+  await h.actor.alarm();
+  await h.actor.alarm();
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(h.submit).not.toHaveBeenCalled();
 });
 
 it("preserves a callback arriving while a timed-out run is interrupted", async () => {
