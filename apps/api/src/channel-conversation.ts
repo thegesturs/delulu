@@ -43,6 +43,14 @@ export type DeliveryResult =
 export class ChannelConversation extends DurableObject<Env> {
   private draining?: Promise<void>;
 
+  protected monthlyTurnLimit(): number {
+    return 10;
+  }
+
+  protected quotaExceededResponse(): string | undefined {
+    return undefined;
+  }
+
   /** Best-effort channel feedback; returns the next recovery wake interval. */
   protected async showProcessing(_record: MessageRecord): Promise<number> {
     return 30_000;
@@ -106,14 +114,19 @@ export class ChannelConversation extends DurableObject<Env> {
       const quotaKey = `reserved:${month}`;
       const reserved = (await storage.get<number>(quotaKey)) ?? 0;
       // Conservative staging reservation. Failed runs retain their reservation.
-      if (reserved >= 10) {
+      const exhausted = reserved >= this.monthlyTurnLimit();
+      const response = exhausted ? this.quotaExceededResponse() : undefined;
+      if (exhausted && !response) {
         throw new Error("Staging turn allowance exhausted");
       }
-      await storage.put(quotaKey, reserved + 1);
+      if (!exhausted) {
+        await storage.put(quotaKey, reserved + 1);
+      }
       await storage.put("principal", this.email(message.sender)!);
       await storage.put(`message:${message.id}`, {
         ...message,
-        state: "queued",
+        state: exhausted ? "ready" : "queued",
+        response,
         createdAt: Date.now(),
       } satisfies MessageRecord);
       await storage.setAlarm(Date.now() + 1000);

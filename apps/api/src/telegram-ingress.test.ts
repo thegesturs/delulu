@@ -45,11 +45,12 @@ it("authenticates Telegram before reserving capacity or storing messages", async
     text: "hello",
   });
 });
-it("never enqueues a message over the bot-wide test cap", async () => {
+it("ignores the retired lifetime cap and delegates atomic quotas to the conversation", async () => {
   const h = environment();
   h.reserve.mockResolvedValue(false);
   expect((await handleProviderIngress(request(), h.env))?.status).toBe(200);
-  expect(h.enqueue).not.toHaveBeenCalled();
+  expect(h.reserve).not.toHaveBeenCalled();
+  expect(h.enqueue).toHaveBeenCalled();
 });
 
 it.each([

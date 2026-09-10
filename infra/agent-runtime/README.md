@@ -26,7 +26,9 @@ corepack pnpm exec wrangler secret put CF_AI_GATEWAY_API_TOKEN \
 
 Keep the token in the runtime Worker only; it must never be placed in a user workspace or the Delulu API Worker. Run `pnpm deploy -- --dry-run` to build and validate every generated Worker configuration before `pnpm deploy` performs the real deployment.
 
-External turns are capped at four model steps, a 32k-token input window, and 4k output tokens per step. The authenticated workspace API reserves $0.50 of internal budget before dispatch and reconciles reported usage afterward. This is separate from the direct channel pilot: its admission is count-based (ten Telegram messages across the bot, plus ten turns per conversation per month), not dollar-based metering.
+External turns are capped at four model steps, a 32k-token input window, and 4k output tokens per step. The authenticated workspace API reserves $0.50 of internal budget before dispatch and reconciles reported usage afterward. This is separate from the direct channel pilot: its admission is count-based, not dollar-based metering. Telegram permits only `TELEGRAM_ALLOWED_USER_ID`, with `TELEGRAM_MONTHLY_TURN_LIMIT` turns per UTC month (1,000 in staging; missing/invalid values default to ten). Reservations and message deduplication are atomic in the conversation; failed runs still count. Exhaustion sends a durable notice without inference. The retired lifetime admission object remains for storage compatibility but is no longer called. WhatsApp retains its ten-turn monthly allowance.
+
+Telegram currently routes every message from the same bot/user pair to the same persistent runtime chat. Idle time and Worker restarts do not create new sessions; there is no `/new` command yet. Changing session routing must preserve the workspace and handle pending callbacks explicitly.
 
 ## Staging pilot boundaries
 

@@ -100,6 +100,7 @@ export interface Env {
   readonly TELEGRAM_SETUP_TOKEN?: string;
   readonly TELEGRAM_INGRESS_ENABLED?: string;
   readonly TELEGRAM_ALLOWED_USER_ID?: string;
+  readonly TELEGRAM_MONTHLY_TURN_LIMIT?: string;
   readonly TELEGRAM_CONVERSATIONS?: {
     getByName(
       name: string

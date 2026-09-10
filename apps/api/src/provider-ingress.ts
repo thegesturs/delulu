@@ -167,7 +167,6 @@ export const handleProviderIngress = async (
       env.TELEGRAM_INGRESS_ENABLED !== "true" ||
       !env.TELEGRAM_BOT_TOKEN ||
       !env.TELEGRAM_CONVERSATIONS ||
-      !env.TELEGRAM_ADMISSION ||
       !env.AGENT_RUNTIME
     ) {
       return textResponse("Telegram ingress unavailable", 503);
@@ -193,17 +192,6 @@ export const handleProviderIngress = async (
     }
     try {
       const botId = env.TELEGRAM_BOT_TOKEN.split(":")[0];
-      if (
-        !(await env.TELEGRAM_ADMISSION.getByName(`telegram:${botId}`).reserve(
-          message.id,
-          message.sender
-        ))
-      ) {
-        return jsonResponse({
-          accepted: false,
-          reason: "test_allowance_exhausted",
-        });
-      }
       await env.TELEGRAM_CONVERSATIONS.getByName(
         `telegram:${botId}:${message.sender}`
       ).enqueue(message);

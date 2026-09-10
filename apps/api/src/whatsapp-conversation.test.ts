@@ -210,6 +210,77 @@ it("delivers Telegram replies once using an isolated guest identity", async () =
   });
 });
 
+it("continues Telegram beyond the old ten-turn cap without resetting usage", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => Response.json({ ok: true, result: { message_id: 99 } }))
+  );
+  const h = harness(new Storage(), true);
+  Object.assign(h.env, { TELEGRAM_MONTHLY_TURN_LIMIT: "1000" });
+  const quotaKey = `reserved:${new Date().toISOString().slice(0, 7)}`;
+  await h.storage.put(quotaKey, 10);
+  await h.actor.enqueue(message);
+  await h.flush();
+  expect(h.submit).toHaveBeenCalledTimes(1);
+  expect(await h.storage.get(quotaKey)).toBe(11);
+});
+
+it("sends one durable quota notice on retries without invoking the model", async () => {
+  const fetcher = vi.fn(async () =>
+    Response.json({ ok: true, result: { message_id: 99 } })
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const h = harness(new Storage(), true);
+  Object.assign(h.env, { TELEGRAM_MONTHLY_TURN_LIMIT: "1000" });
+  const quotaKey = `reserved:${new Date().toISOString().slice(0, 7)}`;
+  await h.storage.put(quotaKey, 1000);
+  await h.actor.enqueue(message);
+  await h.flush();
+  await h.actor.enqueue(message);
+  await h.flush();
+  expect(h.submit).not.toHaveBeenCalled();
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(fetcher).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({
+      body: expect.stringContaining("monthly testing allowance"),
+    })
+  );
+  expect(await h.storage.get(quotaKey)).toBe(1000);
+});
+
+it.each([
+  undefined,
+  "",
+  "0",
+  "-1",
+  "NaN",
+  "1000000",
+])("fails closed for invalid Telegram limit %s", async (limit) => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => Response.json({ ok: true, result: { message_id: 99 } }))
+  );
+  const h = harness(new Storage(), true);
+  Object.assign(h.env, { TELEGRAM_MONTHLY_TURN_LIMIT: limit });
+  await h.storage.put(`reserved:${new Date().toISOString().slice(0, 7)}`, 10);
+  await h.actor.enqueue(message);
+  await h.flush();
+  expect(h.submit).not.toHaveBeenCalled();
+});
+
+it("starts a fresh allowance in a new UTC month", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => Response.json({ ok: true, result: { message_id: 99 } }))
+  );
+  const h = harness(new Storage(), true);
+  await h.storage.put("reserved:2000-01", 10);
+  await h.actor.enqueue(message);
+  await h.flush();
+  expect(h.submit).toHaveBeenCalledTimes(1);
+});
+
 it("caps admission across different Telegram senders and permits only matching retries", async () => {
   const actor = new TelegramAdmission({ storage: new Storage() }, {} as Env);
   for (let id = 0; id < 10; id++) {
