@@ -163,6 +163,10 @@ export class ChannelConversation extends DurableObject<Env> {
       ).values(),
     ].sort((a, b) => a.createdAt - b.createdAt);
     for (const record of records) {
+      if (!this.authorized(record.sender)) {
+        await this.ctx.storage.deleteAlarm();
+        return;
+      }
       if (principal && principal !== this.email(record.sender)) {
         throw new Error("Channel principal does not match configuration");
       }

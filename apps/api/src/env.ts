@@ -99,6 +99,7 @@ export interface Env {
   readonly TELEGRAM_WEBHOOK_SECRET?: string;
   readonly TELEGRAM_SETUP_TOKEN?: string;
   readonly TELEGRAM_INGRESS_ENABLED?: string;
+  readonly TELEGRAM_ALLOWED_USER_ID?: string;
   readonly TELEGRAM_CONVERSATIONS?: {
     getByName(
       name: string

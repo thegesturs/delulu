@@ -68,6 +68,7 @@ function harness(storage = new Storage(), telegram = false) {
   const env = {
     TELEGRAM_BOT_TOKEN: "42:test-token",
     TELEGRAM_INGRESS_ENABLED: "true",
+    TELEGRAM_ALLOWED_USER_ID: message.sender,
     WHATSAPP_INGRESS_ENABLED: "true",
     WHATSAPP_TEST_SENDER: message.sender,
     WHATSAPP_TEST_EMAIL: "tester@example.com",
@@ -217,6 +218,23 @@ it("caps admission across different Telegram senders and permits only matching r
   expect(await actor.reserve("0", "100")).toBe(true);
   expect(await actor.reserve("0", "999")).toBe(false);
   expect(await actor.reserve("11", "999")).toBe(false);
+});
+
+it("blocks direct Telegram ingress and old queued turns after access is revoked", async () => {
+  const h = harness(new Storage(), true);
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  Object.assign(h.env, { TELEGRAM_ALLOWED_USER_ID: "999" });
+  await expect(h.actor.enqueue(message)).rejects.toThrow("not authorized");
+  await h.storage.put(`message:${message.id}`, {
+    ...message,
+    state: "queued",
+    createdAt: 1,
+  });
+  await h.actor.alarm();
+  expect(h.submit).not.toHaveBeenCalled();
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(h.storage.alarm).toBeUndefined();
 });
 
 it("refreshes Telegram activity after restart without resubmitting and stops after delivery", async () => {

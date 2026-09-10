@@ -16,7 +16,11 @@ engine and the agent runtime service binding. Message payloads do not enter
 Postgres. Each private chat has an isolated guest runtime identity; it is not a
 verified Delulu account or linked to a personal workspace.
 
-The public pilot accepts private text messages only and reserves at most ten
+The restricted pilot accepts private text messages only from the single numeric
+`TELEGRAM_ALLOWED_USER_ID` configured in the API environment. Missing configuration
+denies all senders. Other users are silently ignored before durable admission,
+storage, typing, or model invocation. The conversation also rechecks the allowlist
+before processing queued work. The pilot reserves at most ten
 unique updates across the entire bot. Failed turns retain their reservation.
 This is a test allowance, not dollar-based production billing. Duplicate update
 IDs must match their original sender. Group messages and edited messages are ignored.

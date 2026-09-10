@@ -9,7 +9,7 @@ import {
   verifyWhatsAppSignature,
 } from "@delulu/communication-whatsapp";
 import { Effect } from "effect";
-import { conversationName } from "./channel-routing";
+import { conversationName, isAllowedTelegramSender } from "./channel-routing";
 import type { Env } from "./env";
 
 export type { Env } from "./env";
@@ -185,6 +185,11 @@ export const handleProviderIngress = async (
     const message = decodeTelegramMessage(value);
     if (!message) {
       return jsonResponse({ accepted: true });
+    }
+    if (
+      !isAllowedTelegramSender(message.sender, env.TELEGRAM_ALLOWED_USER_ID)
+    ) {
+      return jsonResponse({ accepted: false });
     }
     try {
       const botId = env.TELEGRAM_BOT_TOKEN.split(":")[0];

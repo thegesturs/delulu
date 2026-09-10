@@ -24,6 +24,7 @@ function environment() {
     TELEGRAM_BOT_TOKEN: "42:token",
     TELEGRAM_WEBHOOK_SECRET: "secret",
     TELEGRAM_INGRESS_ENABLED: "true",
+    TELEGRAM_ALLOWED_USER_ID: "123",
     TELEGRAM_CONVERSATIONS: { getByName },
     TELEGRAM_ADMISSION: { getByName: () => ({ reserve }) },
     AGENT_RUNTIME: {},
@@ -48,6 +49,20 @@ it("never enqueues a message over the bot-wide test cap", async () => {
   const h = environment();
   h.reserve.mockResolvedValue(false);
   expect((await handleProviderIngress(request(), h.env))?.status).toBe(200);
+  expect(h.enqueue).not.toHaveBeenCalled();
+});
+
+it.each([
+  undefined,
+  "",
+  "999",
+  "123,999",
+])("ignores unapproved senders before admission with allowlist %s", async (allowed) => {
+  const h = environment();
+  Object.assign(h.env, { TELEGRAM_ALLOWED_USER_ID: allowed });
+  expect((await handleProviderIngress(request(), h.env))?.status).toBe(200);
+  expect(h.reserve).not.toHaveBeenCalled();
+  expect(h.getByName).not.toHaveBeenCalled();
   expect(h.enqueue).not.toHaveBeenCalled();
 });
 it("returns retryable failure when durable storage fails", async () => {

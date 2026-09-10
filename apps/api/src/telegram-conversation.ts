@@ -5,9 +5,8 @@ import {
   type DeliveryResult,
   type MessageRecord,
 } from "./channel-conversation";
+import { isAllowedTelegramSender } from "./channel-routing";
 import type { Env } from "./env";
-
-const USER_ID_PATTERN = /^[1-9]\d{0,15}$/;
 
 export const telegramConversationName = (token: string, sender: string) =>
   `telegram:${token.split(":")[0]}:${sender}`;
@@ -43,7 +42,7 @@ export class TelegramConversation extends ChannelConversation {
     return this.env.TELEGRAM_INGRESS_ENABLED === "true";
   }
   protected authorized(sender: string) {
-    return USER_ID_PATTERN.test(sender);
+    return isAllowedTelegramSender(sender, this.env.TELEGRAM_ALLOWED_USER_ID);
   }
   protected email(sender: string) {
     return `tg-${this.env.TELEGRAM_BOT_TOKEN!.split(":")[0]}-${sender}@guest.invalid`;
