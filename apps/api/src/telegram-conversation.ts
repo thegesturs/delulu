@@ -17,7 +17,6 @@ export class TelegramConversation extends ChannelConversation {
     const previous = await this.ctx.storage.get<{
       messageId: string;
       typingAt: number;
-      draftAt: number;
     }>("telegram-progress");
     const progress =
       previous?.messageId === record.id
@@ -25,47 +24,20 @@ export class TelegramConversation extends ChannelConversation {
         : {
             messageId: record.id,
             typingAt: 0,
-            draftAt: 0,
           };
-    const refresh = async (
-      method: "sendChatAction" | "sendMessageDraft",
-      field: "typingAt" | "draftAt",
-      interval: number,
-      body: Record<string, unknown>
-    ) => {
-      if (progress[field] > Date.now()) {
-        return;
-      }
+    if (progress.typingAt <= Date.now()) {
       const result = await telegramCall<boolean>(
         this.env.TELEGRAM_BOT_TOKEN!,
-        method,
-        body,
+        "sendChatAction",
+        { chat_id: record.sender, action: "typing" },
         1500
       );
-      progress[field] =
+      progress.typingAt =
         Date.now() +
-        (result.ok ? interval : Math.max(30_000, result.retryAfterMs ?? 0));
-    };
-    await Promise.all([
-      refresh("sendChatAction", "typingAt", 4000, {
-        chat_id: record.sender,
-        action: "typing",
-      }),
-      refresh("sendMessageDraft", "draftAt", 20_000, {
-        chat_id: record.sender,
-        // The Telegram update ID is stable across retries; zero is not a valid draft ID.
-        draft_id: Number(record.id) || 1,
-        text: "",
-      }),
-    ]);
+        (result.ok ? 4000 : Math.max(30_000, result.retryAfterMs ?? 0));
+    }
     await this.ctx.storage.put("telegram-progress", progress);
-    return Math.max(
-      1000,
-      Math.min(
-        30_000,
-        Math.min(progress.typingAt, progress.draftAt) - Date.now()
-      )
-    );
+    return Math.max(1000, Math.min(30_000, progress.typingAt - Date.now()));
   }
   protected enabled() {
     return this.env.TELEGRAM_INGRESS_ENABLED === "true";

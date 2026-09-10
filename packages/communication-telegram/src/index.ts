@@ -5,7 +5,6 @@ export async function telegramCall<T>(
   method:
     | "sendMessage"
     | "sendChatAction"
-    | "sendMessageDraft"
     | "setWebhook"
     | "getWebhookInfo"
     | "getMe",

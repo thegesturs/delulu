@@ -197,7 +197,7 @@ it("delivers Telegram replies once using an isolated guest identity", async () =
   await h.flush();
   await h.actor.enqueue(message);
   await h.flush();
-  expect(fetcher).toHaveBeenCalledTimes(3);
+  expect(fetcher).toHaveBeenCalledTimes(2);
   expect(h.env.AGENT_RUNTIME!.ensureExternalUser).toHaveBeenCalledWith({
     email: `tg-42-${message.sender}@guest.invalid`,
     displayName: `tg-42-${message.sender}`,
@@ -241,13 +241,9 @@ it("refreshes Telegram activity after restart without resubmitting and stops aft
   const input = { ...message, id: "123" };
   await h.actor.enqueue(input);
   await h.flush();
-  expect(calls.map((call) => call.method)).toEqual([
-    "sendChatAction",
-    "sendMessageDraft",
-  ]);
-  expect(calls[1]!.body).toMatchObject({
-    draft_id: 123,
-    text: "",
+  expect(calls.map((call) => call.method)).toEqual(["sendChatAction"]);
+  expect(calls[0]!.body).toEqual({
+    action: "typing",
     chat_id: input.sender,
   });
   now += 4000;
@@ -256,14 +252,11 @@ it("refreshes Telegram activity after restart without resubmitting and stops aft
   expect(restarted.submit).not.toHaveBeenCalled();
   expect(calls.map((call) => call.method)).toEqual([
     "sendChatAction",
-    "sendMessageDraft",
     "sendChatAction",
   ]);
   now += 16_000;
   await restarted.actor.alarm();
-  expect(
-    calls.filter((call) => call.method === "sendMessageDraft")
-  ).toHaveLength(2);
+  expect(calls.every((call) => call.method === "sendChatAction")).toBe(true);
   await restarted.actor.complete(input.id, "Done");
   await restarted.flush();
   const count = calls.length;
@@ -310,7 +303,7 @@ it("persists status rate limits and stops refreshes when ingress is disabled", a
   }));
   await h.actor.enqueue(message);
   await h.flush();
-  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher).toHaveBeenCalledTimes(1);
   now += 30_000;
   const restarted = harness(h.storage, true);
   restarted.submit.mockImplementation(async () => ({
@@ -318,11 +311,11 @@ it("persists status rate limits and stops refreshes when ingress is disabled", a
     chatPath: "/test",
   }));
   await restarted.actor.alarm();
-  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher).toHaveBeenCalledTimes(1);
   now += 30_000;
   Object.assign(restarted.env, { TELEGRAM_INGRESS_ENABLED: "false" });
   await restarted.actor.alarm();
-  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });
 
 it("preserves completion arriving during a Telegram status refresh", async () => {
