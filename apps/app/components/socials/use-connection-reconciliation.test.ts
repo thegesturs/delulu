@@ -1,5 +1,21 @@
-import { describe, expect, it } from "vitest";
-import { connectionIsVisible } from "./use-connection-reconciliation";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { StrictMode } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  connectionIsVisible,
+  useConnectionReconciliation,
+} from "./use-connection-reconciliation";
+
+const mocks = vi.hoisted(() => ({
+  registry: { fetchResource: vi.fn() },
+  resources: { connections: { list: vi.fn(() => ({})) } },
+}));
+vi.mock("@/components/providers/api-client", () => ({
+  useApiClient: () => ({ resources: mocks.resources }),
+}));
+vi.mock("@/state/resources", () => ({
+  useResourceRegistry: () => mocks.registry,
+}));
 
 const accounts = [
   {
@@ -15,6 +31,53 @@ const accounts = [
     displayName: "Delulu",
   },
 ] as const;
+
+describe("connection reconciliation lifecycle", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("finishes after React replays the effect in Strict Mode", async () => {
+    mocks.registry.fetchResource.mockResolvedValue({ data: accounts });
+    const { result } = renderHook(
+      () =>
+        useConnectionReconciliation({
+          enabled: true,
+          provider: "linkedin",
+          callbackProfileId: accounts[0].profileId,
+          callbackUsername: "Company Page",
+          workspaceId: "workspace-1",
+        }),
+      { wrapper: StrictMode }
+    );
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+  });
+
+  it("ignores a previous workspace request completing after a switch", async () => {
+    let finishOld: (value: { data: typeof accounts }) => void = () => undefined;
+    mocks.registry.fetchResource.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishOld = resolve;
+        })
+    );
+    mocks.registry.fetchResource.mockImplementation(
+      () => new Promise(() => undefined)
+    );
+    const { result, rerender } = renderHook(
+      ({ workspaceId }) =>
+        useConnectionReconciliation({
+          enabled: true,
+          provider: "linkedin",
+          callbackProfileId: accounts[0].profileId,
+          callbackUsername: "Company Page",
+          workspaceId,
+        }),
+      { initialProps: { workspaceId: "workspace-1" } }
+    );
+    rerender({ workspaceId: "workspace-2" });
+    await act(async () => finishOld({ data: accounts }));
+    expect(result.current.status).toBe("syncing");
+  });
+});
 
 describe("connectionIsVisible", () => {
   it("matches the callback provider and identity without handle punctuation", () => {

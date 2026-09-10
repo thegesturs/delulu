@@ -83,13 +83,20 @@ export function LinkedInAccountSelect() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+    setTargets([]);
+    setSelected("");
     if (!(selectionId && state)) {
       setError("This LinkedIn connection attempt is invalid. Start again.");
       setLoading(false);
       return;
     }
     const query = new URLSearchParams({ selection: selectionId, state });
-    fetch(`${apiBaseUrl}/v1/connections/linkedin/targets?${query}`)
+    fetch(`${apiBaseUrl}/v1/connections/linkedin/targets?${query}`, {
+      signal: controller.signal,
+    })
       .then(async (response) => {
         const body = (await response.json()) as {
           targets?: readonly LinkedInTarget[];
@@ -100,21 +107,32 @@ export function LinkedInAccountSelect() {
             body.error?.message ?? "No LinkedIn accounts are available."
           );
         }
+        if (controller.signal.aborted) {
+          return;
+        }
         setTargets(body.targets);
         setSelected(body.targets[0]?.id ?? "");
       })
-      .catch((cause) =>
+      .catch((cause) => {
+        if (controller.signal.aborted) {
+          return;
+        }
         setError(
           cause instanceof Error
             ? cause.message
             : "Could not load your LinkedIn accounts."
-        )
-      )
-      .finally(() => setLoading(false));
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+    return () => controller.abort();
   }, [selectionId, state]);
 
   const connect = async () => {
-    if (!selected) {
+    if (!selected || submitting) {
       return;
     }
     setSubmitting(true);
@@ -129,7 +147,13 @@ export function LinkedInAccountSelect() {
         }
       );
       const result = (await response.json()) as CompletionResult;
-      if (!response.ok || result.error) {
+      if (
+        !response.ok ||
+        result.error ||
+        !["created", "updated", "transfer_required"].includes(
+          result.status ?? ""
+        )
+      ) {
         throw new Error(
           result.error?.message ?? "Could not connect this LinkedIn account."
         );
@@ -160,7 +184,10 @@ export function LinkedInAccountSelect() {
         </div>
 
         {loading ? (
-          <Card className="flex min-h-28 items-center justify-center gap-3">
+          <Card
+            className="flex min-h-28 items-center justify-center gap-3"
+            role="status"
+          >
             <Icon className="animate-spin" icon={Loading03Icon} size={20} />
             <span className="text-muted-foreground text-sm">
               Loading LinkedIn destinations…
@@ -171,6 +198,7 @@ export function LinkedInAccountSelect() {
         ) : (
           <RadioGroup
             className="gap-3"
+            disabled={submitting}
             onValueChange={setSelected}
             value={selected}
           >
@@ -224,6 +252,14 @@ export function LinkedInAccountSelect() {
             "Connect destination"
           )}
         </Button>
+        {!loading && targets.length === 0 ? (
+          <a
+            className="flex min-h-11 items-center justify-center text-sm underline"
+            href="/socials"
+          >
+            Back to Connected Accounts
+          </a>
+        ) : null}
       </section>
     </main>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useApiClient } from "@/components/providers/api-client";
 import { useResourceRegistry } from "@/state/resources";
 
@@ -50,70 +50,71 @@ export function useConnectionReconciliation(input: {
   const [status, setStatus] = useState<ConnectionSyncStatus>(
     input.enabled ? "syncing" : "idle"
   );
-  const reconcileKeyRef = useRef<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
-  const fetchUntilVisible = useCallback(async () => {
-    if (!(input.provider && input.workspaceId)) {
-      return false;
-    }
-    const descriptor = resources.connections.list(input.workspaceId, {
-      limit: CONNECTION_LIST_LIMIT,
-    });
-    for (const delayMs of RECONCILE_DELAYS_MS) {
-      if (delayMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
+  const fetchUntilVisible = useCallback(
+    async (signal: AbortSignal) => {
+      if (!(input.provider && input.workspaceId)) {
+        return false;
       }
-      try {
-        const page = await registry.fetchResource(descriptor);
-        if (
-          connectionIsVisible(
-            page.data,
-            input.provider,
-            input.callbackProfileId,
-            input.callbackUsername
-          )
-        ) {
-          return true;
+      const descriptor = resources.connections.list(input.workspaceId, {
+        limit: CONNECTION_LIST_LIMIT,
+      });
+      for (const delayMs of RECONCILE_DELAYS_MS) {
+        if (delayMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
-      } catch {
-        // The callback has already persisted the authorization. Retry transient
-        // read failures briefly while keeping the user informed.
+        if (signal.aborted) {
+          return false;
+        }
+        try {
+          const page = await registry.fetchResource(descriptor);
+          if (
+            connectionIsVisible(
+              page.data,
+              input.provider,
+              input.callbackProfileId,
+              input.callbackUsername
+            )
+          ) {
+            return true;
+          }
+        } catch {
+          // The callback has already persisted the authorization. Retry transient
+          // read failures briefly while keeping the user informed.
+        }
       }
-    }
-    return false;
-  }, [
-    input.provider,
-    input.callbackProfileId,
-    input.workspaceId,
-    input.callbackUsername,
-    registry,
-    resources,
-  ]);
+      return false;
+    },
+    [
+      input.provider,
+      input.callbackProfileId,
+      input.workspaceId,
+      input.callbackUsername,
+      registry,
+      resources,
+    ]
+  );
 
   useEffect(() => {
     if (!(input.enabled && input.provider && input.workspaceId)) {
       return;
     }
-    const reconcileKey = `${input.workspaceId}:${input.provider}:${input.callbackProfileId ?? ""}:${input.callbackUsername ?? ""}`;
-    if (reconcileKeyRef.current === reconcileKey) {
-      return;
-    }
-    reconcileKeyRef.current = reconcileKey;
-    let cancelled = false;
+    const controller = new AbortController();
     setStatus("syncing");
-    fetchUntilVisible()
+    fetchUntilVisible(controller.signal)
       .then((visible) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setStatus(visible ? "ready" : "error");
         }
       })
       .catch(() => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setStatus("error");
         }
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [
     input.enabled,
@@ -122,13 +123,13 @@ export function useConnectionReconciliation(input: {
     input.workspaceId,
     input.callbackUsername,
     fetchUntilVisible,
+    attempt,
   ]);
 
-  const retry = useCallback(async () => {
+  const retry = useCallback(() => {
     setStatus("syncing");
-    const visible = await fetchUntilVisible();
-    setStatus(visible ? "ready" : "error");
-  }, [fetchUntilVisible]);
+    setAttempt((previous) => previous + 1);
+  }, []);
 
   return { status, retry } as const;
 }

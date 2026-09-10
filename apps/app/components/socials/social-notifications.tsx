@@ -144,9 +144,9 @@ function SocialNotificationsContent() {
     const fragment = new URLSearchParams(window.location.hash.slice(1));
     const connectedUsername = fragment.get("username");
     const connectedProfileId = fragment.get("profileId");
-    setCallbackUsername(connectedUsername);
-    setCallbackProfileId(connectedProfileId);
     if (connectedUsername || connectedProfileId) {
+      setCallbackUsername(connectedUsername);
+      setCallbackProfileId(connectedProfileId);
       window.history.replaceState(
         window.history.state,
         "",
@@ -322,7 +322,8 @@ function SocialNotificationsContent() {
   }
 
   if (success === "true" && provider && callbackReady) {
-    const syncing = connectionSync.status === "syncing";
+    const syncing =
+      connectionSync.status === "syncing" || connectionSync.status === "idle";
     const syncError = connectionSync.status === "error";
     const copy = socialSuccessCopy({
       provider,
@@ -337,14 +338,7 @@ function SocialNotificationsContent() {
           })
         : null;
     return (
-      <Dialog
-        onOpenChange={(open) => {
-          if (!syncing) {
-            setVisible(open);
-          }
-        }}
-        open={visible}
-      >
+      <Dialog onOpenChange={setVisible} open={visible}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader className="items-center text-center">
             <div className="mb-2 flex size-12 items-center justify-center rounded-full bg-emerald-500/10">
@@ -364,9 +358,7 @@ function SocialNotificationsContent() {
           {syncError ? (
             <Button
               className="min-h-11 w-full"
-              onClick={() => {
-                connectionSync.retry().catch(() => undefined);
-              }}
+              onClick={connectionSync.retry}
               variant="outline"
             >
               Refresh Connected Accounts

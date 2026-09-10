@@ -5,7 +5,13 @@ export const dynamic = "force-dynamic";
 
 export default function LinkedInAccountSelectPage() {
   return (
-    <Suspense>
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center p-6">
+          <output>Loading LinkedIn destinations…</output>
+        </main>
+      }
+    >
       <LinkedInAccountSelect />
     </Suspense>
   );
