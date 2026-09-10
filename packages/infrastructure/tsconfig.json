@@ -10,7 +10,7 @@
     },
     "strictNullChecks": true
   },
-  "include": ["**/*.ts", "**/*.tsx", ".sst/**/*.ts"],
-  "//": "sst.config.ts references ./.sst/platform/config.d.ts for its $config/$app/sst globals, which SST generates at runtime and gitignores. It can only be type-checked by the SST CLI itself, so it is excluded from the standalone tsc pass.",
-  "exclude": ["node_modules", "dist", "sst.config.ts"]
+  "include": ["**/*.ts", "**/*.tsx"],
+  "//": "Standalone tsc checks authored handlers and sst-env.d.ts. The SST CLI owns sst.config.ts and its generated .sst vendor implementation; neither belongs in this application's standalone compilation inputs.",
+  "exclude": ["node_modules", "dist", ".sst", "sst.config.ts"]
 }
