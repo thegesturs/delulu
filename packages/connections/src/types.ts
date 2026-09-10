@@ -1,3 +1,4 @@
+import type { TokenCipher } from "@delulu/core";
 import type {
   MediaType,
   SocialPublishInputType,
@@ -61,6 +62,8 @@ export interface ConnectionTemporaryStore {
  * provides Postgres persistence while connections stay framework-independent.
  */
 export interface CallbackContext {
+  /** Shared runtime cipher for encrypted multi-step selections. */
+  tokenCipher?: TokenCipher["Service"];
   /** Raw provider state, verified centrally by the M2 API before dispatch. */
   state?: string;
   code: string | null;

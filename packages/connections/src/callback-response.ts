@@ -97,6 +97,7 @@ export const withConnectionSuccess = (
   response: Response,
   context: {
     readonly provider: string;
+    readonly profileId?: string;
     readonly username: string;
     readonly client?: "cli" | "mcp";
   }
@@ -114,7 +115,10 @@ export const withConnectionSuccess = (
     if (context.client) {
       url.searchParams.set("client", context.client);
     }
-    url.hash = new URLSearchParams({ username: context.username }).toString();
+    url.hash = new URLSearchParams({
+      username: context.username,
+      ...(context.profileId ? { profileId: context.profileId } : {}),
+    }).toString();
     return true;
   });
 };

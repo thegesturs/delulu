@@ -25,7 +25,11 @@ export const ConnectionRoutes = HttpRouter.use((router) =>
           verified.workspaceId as WorkspaceId,
           verified.principal.slice(2) as UserId
         );
-      });
+      }).pipe(
+        Effect.catchCause(() =>
+          Effect.logError("Connection setup reconciliation failed")
+        )
+      );
     yield* router.add(
       "GET",
       "/v1/connections/callback/:platform",
@@ -42,9 +46,7 @@ export const ConnectionRoutes = HttpRouter.use((router) =>
             errorReason: url.searchParams.get("error_reason"),
           })
           .pipe(
-            Effect.tap(() =>
-              reconcileFromState(state).pipe(Effect.catch(() => Effect.void))
-            ),
+            Effect.tap(() => reconcileFromState(state)),
             Effect.map(HttpServerResponse.fromWeb),
             Effect.catch((error) =>
               Effect.succeed(
@@ -62,21 +64,23 @@ export const ConnectionRoutes = HttpRouter.use((router) =>
     );
     yield* router.add("POST", "/v1/connections/facebook/complete", (request) =>
       request.text.pipe(
-        Effect.flatMap((raw) => {
-          const input = Schema.decodeUnknownSync(
-            Schema.fromJsonString(
-              Schema.Struct({
-                state: Schema.String,
-                code: Schema.String,
-                pageId: Schema.String,
-                pageName: Schema.String,
-              })
-            )
-          )(raw);
-          return connections
-            .completeFacebook(input)
-            .pipe(Effect.tap(() => reconcileFromState(input.state)));
-        }),
+        Effect.flatMap(
+          Effect.fn(function* (raw: string) {
+            const input = yield* Schema.decodeUnknownEffect(
+              Schema.fromJsonString(
+                Schema.Struct({
+                  state: Schema.String,
+                  code: Schema.String,
+                  pageId: Schema.String,
+                  pageName: Schema.String,
+                })
+              )
+            )(raw);
+            return yield* connections
+              .completeFacebook(input)
+              .pipe(Effect.tap(() => reconcileFromState(input.state)));
+          })
+        ),
         Effect.map((result) => HttpServerResponse.jsonUnsafe(result)),
         Effect.catch(() =>
           Effect.succeed(
@@ -85,6 +89,61 @@ export const ConnectionRoutes = HttpRouter.use((router) =>
                 error: {
                   code: "ConflictError",
                   message: "Invalid Facebook completion",
+                },
+              },
+              { status: 400 }
+            )
+          )
+        )
+      )
+    );
+    yield* router.add("GET", "/v1/connections/linkedin/targets", (request) => {
+      const url = new URL(request.url, "http://localhost");
+      const state = url.searchParams.get("state") ?? "";
+      const selectionId = url.searchParams.get("selection") ?? "";
+      return connections.listLinkedInTargets({ state, selectionId }).pipe(
+        Effect.map((targets) => HttpServerResponse.jsonUnsafe({ targets })),
+        Effect.catch(() =>
+          Effect.succeed(
+            HttpServerResponse.jsonUnsafe(
+              {
+                error: {
+                  code: "ConflictError",
+                  message: "LinkedIn account selection expired",
+                },
+              },
+              { status: 400 }
+            )
+          )
+        )
+      );
+    });
+    yield* router.add("POST", "/v1/connections/linkedin/complete", (request) =>
+      request.text.pipe(
+        Effect.flatMap(
+          Effect.fn(function* (raw: string) {
+            const input = yield* Schema.decodeUnknownEffect(
+              Schema.fromJsonString(
+                Schema.Struct({
+                  state: Schema.String,
+                  selectionId: Schema.String,
+                  targetId: Schema.String,
+                })
+              )
+            )(raw);
+            return yield* connections
+              .completeLinkedIn(input)
+              .pipe(Effect.tap(() => reconcileFromState(input.state)));
+          })
+        ),
+        Effect.map((result) => HttpServerResponse.jsonUnsafe(result)),
+        Effect.catch(() =>
+          Effect.succeed(
+            HttpServerResponse.jsonUnsafe(
+              {
+                error: {
+                  code: "ConflictError",
+                  message: "Invalid LinkedIn completion",
                 },
               },
               { status: 400 }

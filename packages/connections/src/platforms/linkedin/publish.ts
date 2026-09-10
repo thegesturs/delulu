@@ -37,6 +37,7 @@ interface LinkedInProfile {
   profileId: string;
   accessToken: string;
   username: string;
+  targetType: "member" | "organization";
 }
 
 interface LinkedInMediaAsset {
@@ -103,7 +104,11 @@ const streamMedia = async (
 };
 
 const ownerUrn = (profileId: string, isOrg: boolean) =>
-  isOrg ? `urn:li:organization:${profileId}` : `urn:li:person:${profileId}`;
+  profileId.startsWith("urn:li:")
+    ? profileId
+    : isOrg
+      ? `urn:li:organization:${profileId}`
+      : `urn:li:person:${profileId}`;
 
 // ── Profile ─────────────────────────────────────────────────────────────────
 
@@ -122,6 +127,7 @@ const getProfile = (
       profileId: profile.profileId,
       accessToken: profile.accessToken,
       username: profile.username ?? "",
+      targetType: profile.linkedinTargetType ?? "member",
     };
   });
 
@@ -130,7 +136,8 @@ const getProfile = (
 const uploadImageToLinkedIn = (
   imageUrl: string,
   profileId: string,
-  accessToken: string
+  accessToken: string,
+  isOrg = false
 ): Effect.Effect<string, ConnectionError> =>
   Effect.gen(function* () {
     // Step 2: Register upload with LinkedIn.
@@ -140,7 +147,7 @@ const uploadImageToLinkedIn = (
           "https://api.linkedin.com/rest/images?action=initializeUpload",
           {
             initializeUploadRequest: {
-              owner: `urn:li:person:${profileId}`,
+              owner: ownerUrn(profileId, isOrg),
             },
           },
           { headers: jsonHeaders(accessToken) }
@@ -620,7 +627,8 @@ const publishContent = (
           uploadImageToLinkedIn(
             img.url as string,
             profile.profileId,
-            profile.accessToken
+            profile.accessToken,
+            isOrg
           )
         )
       );
@@ -657,7 +665,11 @@ export const linkedinPublisher: PlatformPublisher = {
       Effect.flatMap((profile) =>
         ensureFreshToken(ctx.socialProviderId).pipe(
           Effect.flatMap((accessToken) =>
-            publishContent(ctx.content, { ...profile, accessToken })
+            publishContent(
+              ctx.content,
+              { ...profile, accessToken },
+              profile.targetType === "organization"
+            )
           )
         )
       )

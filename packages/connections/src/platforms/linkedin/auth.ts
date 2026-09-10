@@ -11,12 +11,19 @@ import type {
   TokenRefreshResult,
 } from "../../types";
 import { LINKEDIN_VERSION } from "./constants";
+import { discoverLinkedInOrganizations, storeLinkedInTargets } from "./targets";
 
 /**
- * Least-required member publishing scopes. Identity comes from LinkedIn OIDC;
- * organization publishing is requested separately when that capability exists.
+ * Identity comes from LinkedIn OIDC. Publishing uses the Community Management
+ * Posts API for both members and Pages.
  */
-const SCOPES = ["openid", "profile", "w_member_social"];
+const SCOPES = [
+  "openid",
+  "profile",
+  "w_member_social",
+  "rw_organization_admin",
+  "w_organization_social",
+];
 
 interface LinkedInResponse {
   access_token: string;
@@ -35,7 +42,7 @@ interface LinkedInUserResponse {
 
 export const linkedinAuth: PlatformAuth = {
   scopes: SCOPES,
-  isMultiStep: false,
+  isMultiStep: true,
 
   /**
    * OAuth authorize URL. Ported from the connect-url service LINKEDIN block;
@@ -57,10 +64,17 @@ export const linkedinAuth: PlatformAuth = {
    * exact Location paths and error codes.
    */
   async handleCallback(ctx: CallbackContext): Promise<Response> {
-    const { code } = ctx;
+    const { code, error, errorReason } = ctx;
     const clientId = process.env.LINKEDIN_CLIENT_ID ?? "";
     const clientSecret = process.env.LINKEDIN_CLIENT_SECRET ?? "";
     const callbackUrl = process.env.LINKEDIN_CALLBACK_URL ?? "";
+
+    if (error) {
+      console.error("LinkedIn authorization rejected:", error, errorReason);
+      return callbackRedirect(
+        "/socials?error=linkedin_auth_failed&code=LINKEDIN_AUTH&provider=LINKEDIN"
+      );
+    }
 
     if (!code) {
       return callbackRedirect(
@@ -124,8 +138,15 @@ export const linkedinAuth: PlatformAuth = {
         userObject.name ||
         `${userObject.given_name ?? ""} ${userObject.family_name ?? ""}`.trim();
 
-      // 3. Upsert social provider (per-call client carrying the user's token).
-      const connection = {
+      // Page discovery is additive. A transient organization API failure must
+      // never prevent a member from connecting their personal profile.
+      const organizations = await discoverLinkedInOrganizations(
+        access_token
+      ).catch((cause) => {
+        console.error("LinkedIn Page discovery failed:", cause);
+        return [];
+      });
+      const memberConnection = {
         socialType: "LINKEDIN",
         accessToken: access_token,
         refreshToken: refresh_token,
@@ -136,15 +157,51 @@ export const linkedinAuth: PlatformAuth = {
         profileId: userObject.sub,
         fullName,
         profileImage: userObject.picture ?? "/images/user.png",
+        metadata: { linkedinTargetType: "member" },
       } as const;
-      const result = await ctx.upsert(connection);
 
-      if (result.status === "transfer_required") {
-        return transferRequiredRedirect({ platform: "linkedin", ...result });
+      // Most members have no Page to manage. Keep that path one-step and fast.
+      if (organizations.length === 0) {
+        const result = await ctx.upsert(memberConnection);
+
+        if (result.status === "transfer_required") {
+          return transferRequiredRedirect({ platform: "linkedin", ...result });
+        }
+
+        ctx.onConnected?.({ provider: "linkedin", username: fullName });
+        return callbackRedirect("/socials");
       }
 
-      ctx.onConnected?.({ provider: "linkedin", username: fullName });
-      return callbackRedirect("/socials");
+      if (!ctx.tokenCipher) {
+        throw new Error("LinkedIn target encryption is unavailable");
+      }
+      const selectionId = await storeLinkedInTargets({
+        cipher: ctx.tokenCipher,
+        userId: ctx.userId,
+        temporaryStore: ctx.temporaryStore,
+        targets: [
+          {
+            id: userObject.sub,
+            name: fullName,
+            type: "member",
+            accessToken: access_token,
+            refreshToken: refresh_token,
+            expiresIn: memberConnection.expiresIn,
+            refreshTokenExpiresIn: memberConnection.refreshTokenExpiresIn,
+          },
+          ...organizations.map((organization) => ({
+            ...organization,
+            accessToken: access_token,
+            refreshToken: refresh_token,
+            expiresIn: memberConnection.expiresIn,
+            refreshTokenExpiresIn: memberConnection.refreshTokenExpiresIn,
+          })),
+        ],
+      });
+
+      return callbackRedirect(
+        `/linkedin-account-select?selection=${encodeURIComponent(selectionId)}&state=${encodeURIComponent(ctx.state ?? "")}`
+      );
     } catch (error) {
       console.error("LinkedIn callback error:", error);
       const errorType =

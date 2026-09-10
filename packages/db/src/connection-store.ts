@@ -25,7 +25,8 @@ export const makePostgresConnectionStore = Effect.gen(function* () {
             cipher_version AS "cipherVersion",
             profile_id AS "profileId",
             username,
-            expires_at AS "expiresAt"
+            expires_at AS "expiresAt",
+            metadata->>'linkedinTargetType' AS "linkedinTargetType"
           FROM connections
           WHERE id = ${id}`;
         const row = rows[0];
@@ -53,6 +54,12 @@ export const makePostgresConnectionStore = Effect.gen(function* () {
           expiresIn: row.expiresAt
             ? new Date(row.expiresAt as Date | string).getTime()
             : undefined,
+          linkedinTargetType:
+            row.linkedinTargetType === "organization"
+              ? "organization"
+              : row.linkedinTargetType === "member"
+                ? "member"
+                : undefined,
         } satisfies SocialProviderTokens;
       }).pipe(
         Effect.mapError((error) =>

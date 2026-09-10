@@ -14,6 +14,12 @@ export {
 } from "./callback-response";
 export * from "./errors";
 export { connectFacebookPage } from "./platforms/facebook/auth";
+export {
+  connectLinkedInTarget,
+  discoverLinkedInOrganizations,
+  type LinkedInTarget,
+  listStoredLinkedInTargets,
+} from "./platforms/linkedin/targets";
 export type { TikTokCreatorInfo } from "./platforms/tiktok/queries";
 export {
   connectionRegistry,

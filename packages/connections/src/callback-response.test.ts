@@ -31,6 +31,7 @@ describe("withConnectionSuccess", () => {
 
     const response = withConnectionSuccess(callbackRedirect("/socials"), {
       provider: "TWITTER",
+      profileId: "x_user_1",
       username: "swarajb",
       client: "cli",
     });
@@ -43,6 +44,9 @@ describe("withConnectionSuccess", () => {
     });
     expect(new URLSearchParams(location.hash.slice(1)).get("username")).toBe(
       "swarajb"
+    );
+    expect(new URLSearchParams(location.hash.slice(1)).get("profileId")).toBe(
+      "x_user_1"
     );
   });
 

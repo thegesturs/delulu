@@ -1,3 +1,4 @@
+import { makeTokenCipher } from "@delulu/core";
 import axios from "axios";
 import { Effect, Layer } from "effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -5,6 +6,12 @@ import { ConnectionStore } from "../../services/connection-store";
 import { linkedinAuth } from "./auth";
 import { LINKEDIN_VERSION } from "./constants";
 import { linkedinPublisher } from "./publish";
+import {
+  connectLinkedInTarget,
+  discoverLinkedInOrganizations,
+  listStoredLinkedInTargets,
+  storeLinkedInTargets,
+} from "./targets";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -13,7 +20,7 @@ afterEach(() => {
 });
 
 describe("LinkedIn current API contract", () => {
-  it("uses the current version and least-required member scopes", async () => {
+  it("requests current member and organization publishing scopes", async () => {
     vi.stubEnv("LINKEDIN_CLIENT_ID", "client");
     vi.stubEnv("LINKEDIN_CALLBACK_URL", "https://app.test/callback");
 
@@ -26,8 +33,158 @@ describe("LinkedIn current API contract", () => {
       "openid",
       "profile",
       "w_member_social",
+      "rw_organization_admin",
+      "w_organization_social",
     ]);
     expect(url.searchParams.get("state")).toBe("signed-state");
+  });
+
+  it("discovers only approved Pages with publishing roles", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              elements: [
+                {
+                  organizationTarget: "urn:li:organization:123",
+                  role: "CONTENT_ADMINISTRATOR",
+                  state: "APPROVED",
+                },
+                {
+                  organizationTarget: "urn:li:organization:999",
+                  role: "ANALYST",
+                  state: "APPROVED",
+                },
+              ],
+              paging: { links: [] },
+            }),
+            { status: 200 }
+          )
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              id: 123,
+              localizedName: "Example Page",
+              vanityName: "example-page",
+            }),
+            { status: 200 }
+          )
+        )
+    );
+
+    await expect(discoverLinkedInOrganizations("access")).resolves.toEqual([
+      {
+        id: "urn:li:organization:123",
+        name: "Example Page",
+        username: "example-page",
+        type: "organization",
+      },
+    ]);
+  });
+
+  it("stops organization ACL discovery when LinkedIn repeats a page", async () => {
+    const firstPage =
+      "https://api.linkedin.com/rest/organizationAcls?q=roleAssignee&state=APPROVED&count=100&start=0";
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          elements: [],
+          paging: { links: [{ rel: "next", href: firstPage }] },
+        }),
+        { status: 200 }
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(discoverLinkedInOrganizations("access")).resolves.toEqual([]);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    "https://untrusted.test/next",
+    "http://api.linkedin.com/next",
+    "//untrusted.test/next",
+  ])("never forwards credentials to pagination origin %s", async (href) => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        elements: [],
+        paging: { links: [{ rel: "next", href }] },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(discoverLinkedInOrganizations("access")).resolves.toEqual([]);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ redirect: "error" });
+  });
+
+  it("follows relative LinkedIn pagination links", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          elements: [],
+          paging: {
+            links: [{ rel: "next", href: "/rest/organizationAcls?start=100" }],
+          },
+        })
+      )
+      .mockResolvedValueOnce(Response.json({ elements: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    await discoverLinkedInOrganizations("access");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "https://api.linkedin.com/rest/organizationAcls?start=100"
+    );
+  });
+
+  it("uses the injected cipher for both writing and reading temporary credentials", async () => {
+    vi.stubEnv("ENCRYPTION_SECRET", "");
+    const values = new Map<string, string>();
+    const temporaryStore = {
+      get: async (key: string) => values.get(key) ?? null,
+      put: async (key: string, value: string) => {
+        values.set(key, value);
+      },
+      delete: async (key: string) => {
+        values.delete(key);
+      },
+    };
+    const cipher = makeTokenCipher("runtime-specific-secret");
+    const selectionId = await storeLinkedInTargets({
+      cipher,
+      userId: "user",
+      temporaryStore,
+      targets: [
+        {
+          id: "member",
+          name: "Member",
+          type: "member",
+          accessToken: "sensitive-token",
+        },
+      ],
+    });
+    expect([...values.values()][0]).not.toContain("sensitive-token");
+    await expect(
+      listStoredLinkedInTargets({
+        cipher,
+        userId: "user",
+        temporaryStore,
+        selectionId,
+      })
+    ).resolves.toEqual([
+      { id: "member", name: "Member", type: "member", username: undefined },
+    ]);
+    await expect(
+      listStoredLinkedInTargets({
+        cipher: makeTokenCipher(""),
+        userId: "user",
+        temporaryStore,
+        selectionId,
+      })
+    ).rejects.toThrow();
   });
 
   it("persists OIDC userinfo and partner refresh tokens when returned", async () => {
@@ -57,6 +214,14 @@ describe("LinkedIn current API contract", () => {
               picture: "https://media.example.test/profile.jpg",
             }),
             { status: 200 }
+          )
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ elements: [], paging: { links: [] } }),
+            {
+              status: 200,
+            }
           )
         )
     );
@@ -90,6 +255,221 @@ describe("LinkedIn current API contract", () => {
     expect(vi.mocked(fetch).mock.calls[1]?.[0]).toBe(
       "https://api.linkedin.com/v2/userinfo"
     );
+  });
+
+  it("keeps personal connection available when Page discovery fails", async () => {
+    vi.stubEnv("LINKEDIN_CLIENT_ID", "client");
+    vi.stubEnv("LINKEDIN_CLIENT_SECRET", "secret");
+    vi.stubEnv("LINKEDIN_CALLBACK_URL", "https://app.test/callback");
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ access_token: "access", expires_in: 3600 }),
+            { status: 200 }
+          )
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ sub: "member_1", name: "Test Member" }),
+            { status: 200 }
+          )
+        )
+        .mockResolvedValueOnce(new Response("Unavailable", { status: 503 }))
+    );
+    const upsert = vi.fn().mockResolvedValue({ status: "created" });
+
+    const response = await linkedinAuth.handleCallback({
+      tokenCipher: makeTokenCipher("injected test secret"),
+      code: "authorization-code",
+      error: null,
+      errorReason: null,
+      state: "signed-state",
+      userId: "user_1",
+      upsert,
+      temporaryStore: {
+        get: vi.fn().mockResolvedValue(null),
+        put: vi.fn().mockResolvedValue(undefined),
+        delete: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        profileId: "member_1",
+        metadata: { linkedinTargetType: "member" },
+      })
+    );
+    expect(new URL(response.headers.get("Location") ?? "").pathname).toBe(
+      "/socials"
+    );
+  });
+
+  it("offers the member and managed Pages before persisting a target", async () => {
+    vi.stubEnv("LINKEDIN_CLIENT_ID", "client");
+    vi.stubEnv("LINKEDIN_CLIENT_SECRET", "secret");
+    vi.stubEnv("LINKEDIN_CALLBACK_URL", "https://app.test/callback");
+    vi.stubEnv("ENCRYPTION_SECRET", "a stable test secret");
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ access_token: "access", expires_in: 3600 }),
+            { status: 200 }
+          )
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ sub: "member_1", name: "Test Member" }),
+            { status: 200 }
+          )
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              elements: [
+                {
+                  organizationTarget: "urn:li:organization:123",
+                  role: "ADMINISTRATOR",
+                  state: "APPROVED",
+                },
+              ],
+              paging: { links: [] },
+            }),
+            { status: 200 }
+          )
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ id: 123, localizedName: "Example Page" }),
+            { status: 200 }
+          )
+        )
+    );
+    const put = vi.fn().mockResolvedValue(undefined);
+    const upsert = vi.fn();
+
+    const response = await linkedinAuth.handleCallback({
+      tokenCipher: makeTokenCipher("injected test secret"),
+      code: "authorization-code",
+      error: null,
+      errorReason: null,
+      state: "signed-state",
+      userId: "user_1",
+      upsert,
+      temporaryStore: {
+        get: vi.fn().mockResolvedValue(null),
+        put,
+        delete: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+
+    const location = new URL(response.headers.get("Location") ?? "");
+    expect(location.pathname).toBe("/linkedin-account-select");
+    expect(location.searchParams.get("state")).toBe("signed-state");
+    expect(location.searchParams.get("selection")).toBeTruthy();
+    expect(put).toHaveBeenCalledOnce();
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it("persists the selected Page with its organization author type", async () => {
+    vi.stubEnv("ENCRYPTION_SECRET", "a stable test secret");
+    const values = new Map<string, string>();
+    const temporaryStore = {
+      get: vi.fn(async (key: string) => values.get(key) ?? null),
+      put: vi.fn(async (key: string, value: string) => {
+        values.set(key, value);
+      }),
+      delete: vi.fn(async (key: string) => {
+        values.delete(key);
+      }),
+    };
+    const selectionId = await storeLinkedInTargets({
+      cipher: makeTokenCipher("injected test secret"),
+      userId: "user_1",
+      temporaryStore,
+      targets: [
+        {
+          id: "urn:li:organization:123",
+          name: "Example Page",
+          username: "example-page",
+          type: "organization",
+          accessToken: "access",
+        },
+      ],
+    });
+    const upsert = vi.fn().mockResolvedValue({ status: "created" });
+
+    await expect(
+      connectLinkedInTarget({
+        cipher: makeTokenCipher("injected test secret"),
+        userId: "user_1",
+        selectionId,
+        targetId: "urn:li:organization:123",
+        temporaryStore,
+        upsert,
+      })
+    ).resolves.toEqual({
+      status: "created",
+      name: "Example Page",
+      profileId: "urn:li:organization:123",
+    });
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        profileId: "urn:li:organization:123",
+        metadata: { linkedinTargetType: "organization" },
+      })
+    );
+    expect(values.size).toBe(0);
+  });
+
+  it("publishes through the Posts API as an organization connection", async () => {
+    const Store = Layer.succeed(ConnectionStore, {
+      getSocialProviderWithDecryptedTokens: () =>
+        Effect.succeed({
+          _id: "connection_linkedin_page",
+          socialType: "LINKEDIN" as const,
+          accessToken: "current-access",
+          profileId: "urn:li:organization:123",
+          username: "example-page",
+          linkedinTargetType: "organization" as const,
+        }),
+      updateSocialProvider: () => Effect.void,
+    });
+    const post = vi.spyOn(axios, "post").mockResolvedValue({
+      headers: { "x-restli-id": "urn:li:share:page_post" },
+      data: {},
+    });
+
+    await Effect.runPromise(
+      linkedinPublisher
+        .publish({
+          socialProviderId: "connection_linkedin_page",
+          content: {
+            postId: "post_page",
+            socialProviderId: "connection_linkedin_page",
+            content: [
+              {
+                order: 0,
+                name: "Post",
+                text: "Hello from the Page",
+                tags: [],
+                media: [],
+              },
+            ],
+          },
+        })
+        .pipe(Effect.provide(Store))
+    );
+
+    expect(post.mock.calls[0]?.[0]).toBe("https://api.linkedin.com/rest/posts");
+    expect(post.mock.calls[0]?.[1]).toMatchObject({
+      author: "urn:li:organization:123",
+    });
   });
 
   it("refreshes and persists an expiring partner token before publishing", async () => {

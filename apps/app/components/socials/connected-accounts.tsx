@@ -2,6 +2,7 @@
 
 import { SOCIAL_ACCOUNT_DISCONNECTED } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
+import { invalidateWorkspaceResource } from "@delulu/client";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Card } from "@delulu/design-system/components/ui/card";
@@ -101,9 +102,7 @@ export default function ConnectedAccounts() {
       if (!workspaceId) {
         return;
       }
-      await registry.invalidateResources({
-        queryKey: resources.connections.list(workspaceId).queryKey,
-      });
+      await invalidateWorkspaceResource(registry, workspaceId, "connections");
     },
   });
 
@@ -223,6 +222,11 @@ export default function ConnectedAccounts() {
                   const platform = normalizePlatform(account.platform);
                   const status = accountStatus(account.expiresAt);
                   const subtitle = [
+                    account.accountType === "organization"
+                      ? "LinkedIn Page"
+                      : account.accountType === "member"
+                        ? "Personal profile"
+                        : null,
                     account.username ? `@${account.username}` : null,
                     status.stateLine,
                   ]
