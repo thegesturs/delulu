@@ -1,3 +1,4 @@
+import { makeTokenCipher } from "@delulu/core";
 import axios from "axios";
 import { Effect, Layer } from "effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +9,7 @@ import { linkedinPublisher } from "./publish";
 import {
   connectLinkedInTarget,
   discoverLinkedInOrganizations,
+  listStoredLinkedInTargets,
   storeLinkedInTargets,
 } from "./targets";
 
@@ -100,6 +102,89 @@ describe("LinkedIn current API contract", () => {
 
     await expect(discoverLinkedInOrganizations("access")).resolves.toEqual([]);
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    "https://untrusted.test/next",
+    "http://api.linkedin.com/next",
+    "//untrusted.test/next",
+  ])("never forwards credentials to pagination origin %s", async (href) => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        elements: [],
+        paging: { links: [{ rel: "next", href }] },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(discoverLinkedInOrganizations("access")).resolves.toEqual([]);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ redirect: "error" });
+  });
+
+  it("follows relative LinkedIn pagination links", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          elements: [],
+          paging: {
+            links: [{ rel: "next", href: "/rest/organizationAcls?start=100" }],
+          },
+        })
+      )
+      .mockResolvedValueOnce(Response.json({ elements: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    await discoverLinkedInOrganizations("access");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "https://api.linkedin.com/rest/organizationAcls?start=100"
+    );
+  });
+
+  it("uses the injected cipher for both writing and reading temporary credentials", async () => {
+    vi.stubEnv("ENCRYPTION_SECRET", "");
+    const values = new Map<string, string>();
+    const temporaryStore = {
+      get: async (key: string) => values.get(key) ?? null,
+      put: async (key: string, value: string) => {
+        values.set(key, value);
+      },
+      delete: async (key: string) => {
+        values.delete(key);
+      },
+    };
+    const cipher = makeTokenCipher("runtime-specific-secret");
+    const selectionId = await storeLinkedInTargets({
+      cipher,
+      userId: "user",
+      temporaryStore,
+      targets: [
+        {
+          id: "member",
+          name: "Member",
+          type: "member",
+          accessToken: "sensitive-token",
+        },
+      ],
+    });
+    expect([...values.values()][0]).not.toContain("sensitive-token");
+    await expect(
+      listStoredLinkedInTargets({
+        cipher,
+        userId: "user",
+        temporaryStore,
+        selectionId,
+      })
+    ).resolves.toEqual([
+      { id: "member", name: "Member", type: "member", username: undefined },
+    ]);
+    await expect(
+      listStoredLinkedInTargets({
+        cipher: makeTokenCipher(""),
+        userId: "user",
+        temporaryStore,
+        selectionId,
+      })
+    ).rejects.toThrow();
   });
 
   it("persists OIDC userinfo and partner refresh tokens when returned", async () => {
@@ -197,6 +282,7 @@ describe("LinkedIn current API contract", () => {
     const upsert = vi.fn().mockResolvedValue({ status: "created" });
 
     const response = await linkedinAuth.handleCallback({
+      tokenCipher: makeTokenCipher("injected test secret"),
       code: "authorization-code",
       error: null,
       errorReason: null,
@@ -268,6 +354,7 @@ describe("LinkedIn current API contract", () => {
     const upsert = vi.fn();
 
     const response = await linkedinAuth.handleCallback({
+      tokenCipher: makeTokenCipher("injected test secret"),
       code: "authorization-code",
       error: null,
       errorReason: null,
@@ -302,6 +389,7 @@ describe("LinkedIn current API contract", () => {
       }),
     };
     const selectionId = await storeLinkedInTargets({
+      cipher: makeTokenCipher("injected test secret"),
       userId: "user_1",
       temporaryStore,
       targets: [
@@ -318,6 +406,7 @@ describe("LinkedIn current API contract", () => {
 
     await expect(
       connectLinkedInTarget({
+        cipher: makeTokenCipher("injected test secret"),
         userId: "user_1",
         selectionId,
         targetId: "urn:li:organization:123",

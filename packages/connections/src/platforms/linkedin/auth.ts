@@ -172,7 +172,11 @@ export const linkedinAuth: PlatformAuth = {
         return callbackRedirect("/socials");
       }
 
+      if (!ctx.tokenCipher) {
+        throw new Error("LinkedIn target encryption is unavailable");
+      }
       const selectionId = await storeLinkedInTargets({
+        cipher: ctx.tokenCipher,
         userId: ctx.userId,
         temporaryStore: ctx.temporaryStore,
         targets: [

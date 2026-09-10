@@ -1,4 +1,4 @@
-import { makeTokenCipher } from "@delulu/core";
+import type { TokenCipher } from "@delulu/core";
 import { Effect, Schema } from "effect";
 import { nanoid } from "nanoid";
 import type {
@@ -89,6 +89,7 @@ const fetchLinkedInJson = async <T>(
   const timeout = setTimeout(() => controller.abort(), remainingMs);
   try {
     const response = await fetch(url, {
+      redirect: "error",
       headers: linkedinHeaders(accessToken),
       signal: controller.signal,
     });
@@ -152,7 +153,13 @@ export async function discoverLinkedInOrganizations(
       }
     }
     const next = body.paging?.links?.find((link) => link.rel === "next")?.href;
-    nextUrl = next ? new URL(next, "https://api.linkedin.com").toString() : "";
+    const candidate = next ? new URL(next, "https://api.linkedin.com") : null;
+    nextUrl =
+      candidate?.origin === "https://api.linkedin.com" &&
+      !candidate.username &&
+      !candidate.password
+        ? candidate.toString()
+        : "";
   }
 
   const urns = [...organizationUrns];
@@ -209,14 +216,14 @@ const selectionKey = (externalId: string, selectionId: string) =>
   `li-targets-${externalId}-${selectionId}`;
 
 export async function storeLinkedInTargets(input: {
+  readonly cipher: TokenCipher["Service"];
   readonly userId: string;
   readonly targets: readonly LinkedInSelection[];
   readonly temporaryStore: ConnectionTemporaryStore;
 }): Promise<string> {
   const selectionId = nanoid(24);
-  const cipher = makeTokenCipher(process.env.ENCRYPTION_SECRET ?? "");
   const encrypted = await Effect.runPromise(
-    cipher.encrypt(JSON.stringify(input.targets))
+    input.cipher.encrypt(JSON.stringify(input.targets))
   );
   await input.temporaryStore.put(
     selectionKey(input.userId, selectionId),
@@ -227,6 +234,7 @@ export async function storeLinkedInTargets(input: {
 }
 
 const loadLinkedInTargets = async (input: {
+  readonly cipher: TokenCipher["Service"];
   readonly userId: string;
   readonly selectionId: string;
   readonly temporaryStore: ConnectionTemporaryStore;
@@ -237,14 +245,14 @@ const loadLinkedInTargets = async (input: {
   if (!encrypted) {
     throw new Error("LinkedIn account selection expired");
   }
-  const cipher = makeTokenCipher(process.env.ENCRYPTION_SECRET ?? "");
   const decrypted = await Effect.runPromise(
-    cipher.decrypt({ ciphertext: encrypted, cipherVersion: "v1" })
+    input.cipher.decrypt({ ciphertext: encrypted, cipherVersion: "v1" })
   );
   return Schema.decodeUnknownSync(LinkedInSelections)(JSON.parse(decrypted));
 };
 
 export async function listStoredLinkedInTargets(input: {
+  readonly cipher: TokenCipher["Service"];
   readonly userId: string;
   readonly selectionId: string;
   readonly temporaryStore: ConnectionTemporaryStore;
@@ -259,6 +267,7 @@ export async function listStoredLinkedInTargets(input: {
 }
 
 export async function connectLinkedInTarget(input: {
+  readonly cipher: TokenCipher["Service"];
   readonly userId: string;
   readonly selectionId: string;
   readonly targetId: string;

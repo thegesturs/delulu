@@ -840,6 +840,7 @@ export class ConnectionsService extends Context.Service<
               let response: Response;
               try {
                 response = await connection.auth.handleCallback({
+                  tokenCipher: cipher,
                   code: input.code,
                   error: input.error,
                   errorReason: input.errorReason,
@@ -980,6 +981,7 @@ export class ConnectionsService extends Context.Service<
         return yield* Effect.tryPromise({
           try: () =>
             listStoredLinkedInTargets({
+              cipher,
               userId: verified.principal,
               selectionId: input.selectionId,
               temporaryStore,
@@ -1001,6 +1003,7 @@ export class ConnectionsService extends Context.Service<
           const result = yield* Effect.tryPromise({
             try: () =>
               connectLinkedInTarget({
+                cipher,
                 userId: verified.principal,
                 selectionId: input.selectionId,
                 targetId: input.targetId,
