@@ -155,11 +155,6 @@ export default $config({
     // URL policy updates: Lambda rejects concurrent permission changes.
     for (const [name, fn, url] of [
       [
-        "PostgresTriggerSqsFunction",
-        postgresTrigger.nodes.function,
-        postgresTrigger.url,
-      ],
-      [
         "TranscriptionFunction",
         transcriptionFunction.nodes.function,
         transcriptionFunction.url,
