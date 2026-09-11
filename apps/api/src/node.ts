@@ -5,8 +5,8 @@ import {
 } from "node:http";
 import { Readable } from "node:stream";
 import { buildWebHandler } from "./app";
+import { makeBaseLayer } from "./base-layer";
 import { appOrigins, type Env } from "./env";
-import { makeBaseLayer } from "./index";
 import { runMaintenance } from "./maintenance";
 
 const required = [
