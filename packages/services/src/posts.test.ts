@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   decodePostContentForView,
-  postRequiresTarget,
   decodePostTargetSettingsForView,
+  postRequiresTarget,
 } from "./posts";
 
 describe("decodePostContentForView", () => {

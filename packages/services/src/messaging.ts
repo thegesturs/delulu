@@ -114,7 +114,7 @@ export class MessagingService extends Context.Service<
       readonly replyTo?: string;
       readonly idempotencyKey: string;
       readonly metadata?: Readonly<Record<string, unknown>>;
-    }) => Effect.Effect<{ readonly sent: boolean }>;
+    }) => Effect.Effect<{ readonly status: "queued" }>;
     readonly deliver: (messageId: string) => Effect.Effect<void>;
   }
 >()("@delulu/services/MessagingService") {

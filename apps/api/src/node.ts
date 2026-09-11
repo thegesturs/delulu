@@ -7,6 +7,7 @@ import { Readable } from "node:stream";
 import { buildWebHandler } from "./app";
 import { appOrigins, type Env } from "./env";
 import { makeBaseLayer } from "./index";
+import { runMaintenance } from "./maintenance";
 
 const required = [
   "DATABASE_URL",
@@ -72,7 +73,21 @@ const server = createServer(async (request, response) => {
   }
 });
 
+let maintenanceRun: Promise<void> | undefined;
+const maintenance = setInterval(() => {
+  if (!maintenanceRun) {
+    maintenanceRun = runMaintenance(layer)
+      .catch(console.error)
+      .finally(() => {
+        maintenanceRun = undefined;
+      });
+  }
+}, 60_000);
+maintenance.unref();
+
 const shutdown = async (signal: string) => {
+  clearInterval(maintenance);
+  await maintenanceRun;
   console.log(`Received ${signal}; shutting down`);
   server.closeIdleConnections();
   await new Promise<void>((resolve) => {

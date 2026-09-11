@@ -72,11 +72,11 @@ import {
   AutomationProviderLive,
   PaymentWebhookSinkLive,
 } from "./automation-providers";
-import { DurableJobObject, type JobState } from "./durable-job";
 import {
   assertContentReceiptOwner,
   prepareContentWrite,
 } from "./content-action-policy";
+import { DurableJobObject, type JobState } from "./durable-job";
 import {
   agentRuntimeProviderLayer,
   appOrigins,
@@ -90,7 +90,7 @@ import {
 import { executeJob, failJob } from "./execute-job";
 import { jobTransportLayer, makeJobRuntime, sendIntent } from "./job-runtime";
 import { LiveInsightsProviderLive } from "./live-insights";
-
+import { runMaintenance } from "./maintenance";
 import { messagingProvidersLayer } from "./messaging-providers";
 import { handleProviderIngress } from "./provider-ingress";
 
@@ -749,6 +749,11 @@ export class JobExecutor extends DurableJobObject {
   }
 }
 export default {
+  scheduled(_controller: unknown, env: Env, ctx: ExecutionContext): void {
+    if (env.DATABASE_URL || env.HYPERDRIVE) {
+      ctx.waitUntil(runMaintenance(makeBaseLayer(env)));
+    }
+  },
   async fetch(
     request: Request,
     env: Env,

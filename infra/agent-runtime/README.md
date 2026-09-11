@@ -2,6 +2,8 @@
 
 This directory owns the separately deployed Content HQ runtime. It is intentionally outside the root pnpm workspace and requires Node 24 plus pnpm 11.
 
+The agent SQL migrations follow main's scheduler cutover: `0016` through `0025`. Main's `0014` execution receipts and `0015` queue retirement remain unchanged, including their guarded transfer requirements. The legacy data importer intentionally stays pinned to schema `0013`. Agent expiry recovery uses its own maintenance lease; publishing and lifecycle execution remain owned by `JobExecutor`.
+
 The upstream source is a git submodule pinned to one reviewed revision. Delulu-specific trusted RPC methods are kept in `patches/` and are applied only to `.build/cloudflare-os`; the submodule must remain clean. This makes every upgrade a visible source and trust-boundary review.
 
 ## Prepare and verify
