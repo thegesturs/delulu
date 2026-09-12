@@ -28,6 +28,7 @@ export interface Env {
   readonly SCHEDULER_URL?: string;
   readonly SCHEDULER_SECRET?: string;
   readonly SCHEDULER_PAUSED?: string;
+  readonly API_MAINTENANCE?: string;
   readonly DATABASE_URL?: string;
   readonly HYPERDRIVE?: Hyperdrive;
   readonly DELULU_DEPLOYMENT_MODE?: "hosted" | "self_hosted";

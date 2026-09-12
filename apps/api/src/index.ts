@@ -79,6 +79,7 @@ import {
 import { executeJob, failJob } from "./execute-job";
 import { jobTransportLayer, makeJobRuntime, sendIntent } from "./job-runtime";
 import { LiveInsightsProviderLive } from "./live-insights";
+import { maintenanceResponse } from "./maintenance";
 
 import { messagingProvidersLayer } from "./messaging-providers";
 
@@ -405,6 +406,10 @@ export default {
     env: Env,
     ctx: ExecutionContext
   ): Promise<Response> {
+    const maintenance = maintenanceResponse(request, env.API_MAINTENANCE);
+    if (maintenance) {
+      return maintenance;
+    }
     if (new URL(request.url).pathname === "/internal/jobs") {
       if (
         !(env.JOBS && env.SCHEDULER_SECRET) ||

@@ -35,6 +35,36 @@ persisted. Long resumable uploads yield a continuation without consuming retries
 This is a coordinated cutover, not an ordinary automatic deploy. The final SQL
 migration refuses to retire a populated queue before the transfer completes.
 
+`API_MAINTENANCE=true` returns a non-cacheable 503 with `Retry-After: 60`
+before public HTTP handlers run, including GET OAuth callbacks. Only the exact
+`/internal/jobs` path remains reachable and still requires its scheduler bearer
+secret. Use it together with `SCHEDULER_PAUSED=true` during transfer. Maintenance
+does not drain already-running requests or stop legacy publishers: verify those
+separately. Remove both flags only after the database and scheduler are ready.
+Do not set either flag in normal deployment defaults.
+
+## Scoped cleanup transfer
+
+For a cleanup-only transfer, do **not** run the broad `migrate-scheduler.ts`
+command below or apply retirement migration 0015. The broad command also seeds
+other deadline classes and can re-enqueue exhausted jobs still marked pending.
+
+Before pausing traffic, record an explicit manifest of approved job IDs, payloads,
+idempotency keys, retry limits, and original deadlines. After draining publishers,
+lock those exact rows in a transaction and verify that every row is still
+`pending`, has type `ReclaimMedia`, has zero attempts, and has a future deadline.
+Abort on any missing or changed row or unexpected count; do not expand the ID set.
+For each row, prepare its DO intent with a transaction witness and its original
+deadline, and delete only that locked source row after the DO acknowledges durable
+storage. Commit the witness and source deletion together. If any acknowledgement
+fails, roll back; never delete first. Verify every manifest ID is absent from the
+SQL queue and each committed intent has settled in DO before reporting success.
+Leave all non-manifest jobs, including exhausted publishing jobs, untouched.
+This partial transfer does not authorize dropping the SQL queue or claim that
+the full production cutover below is complete.
+
+## Full production cutover
+
 1. Pause application mutations and stop the old cron, Node publisher and SQS
    consumer. Drain in-flight publication and inspect uncertain targets.
 2. Apply additive migration 0014 only. Configure a strong `SCHEDULER_SECRET` on
