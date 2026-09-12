@@ -28,7 +28,6 @@ export default $config({
   },
   async run() {
     const isProduction = $app.stage === "production";
-    const SECRET_KEY = new sst.Secret("LAMBDA_SECRET_KEY");
     const GROQ_API_KEY = new sst.Secret("GROQ_API_KEY");
     const CLERK_SECRET_KEY = new sst.Secret("CLERK_SECRET_KEY");
     const DODO_PAYMENTS_API_KEY = new sst.Secret("DODO_PAYMENTS_API_KEY");

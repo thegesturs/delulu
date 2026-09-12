@@ -76,6 +76,11 @@ the full production cutover below is complete.
    to the production Worker to bypass this restriction.
 3. Run `packages/services/scripts/migrate-scheduler.ts --old-workers-stopped`
    using `tsx`, with `DATABASE_URL`, `SCHEDULER_URL`, and `SCHEDULER_SECRET`.
+   Before running it, archive the exact source inventory and classify exhausted
+   work: the generic transfer resets job retries and must not receive exhausted
+   jobs or message deliveries. Preserve their errors and mark those records
+   terminal without resending them. Verify the locked inventory still matches
+   the archive before retiring any rows or columns.
    It transfers pending jobs transactionally and seeds existing message,
    reservation, lifecycle, cancellation and cache-repair deadlines. A failure
    leaves untransferred SQL jobs intact and can be retried.
@@ -84,6 +89,9 @@ the full production cutover below is complete.
    queues are gone and DO executions complete, then resume application writes.
 5. Deploy the infrastructure change to remove the obsolete publishing queue,
    consumer and ingress resources. Remove their old credentials/configuration.
+   Check every stack sharing the database and verify both queues and dead-letter
+   queues are empty. Preview explicit comma-separated SST component targets when
+   a full infrastructure deployment would also update unrelated services.
 
 Cloudflare Builds skips database migrations for non-main branches. Main builds
 normally migrate automatically, so complete the transfer before merging this
@@ -94,8 +102,28 @@ own database and credentials via `SCHEDULER_URL`/`SCHEDULER_SECRET`. The Node AP
 has no background timers. Configure this Worker in `self_hosted` deployment mode
 before starting the Compose API. Never point it at the hosted production Worker.
 
+## Hosted retirement record — 2026-09-12
+
+The hosted database is at migration 15, and all 348 lifecycle, billing and
+cancellation handoff receipts settled. The earlier 24 cleanup jobs had already
+been transferred with their original deadlines. Before retirement, the exact
+source records were archived locally in a private, gitignored backup. One
+exhausted publishing job was not replayed; 112 exhausted message deliveries were
+marked `dead` with their errors and 72-attempt counts preserved.
+
+The `production` and `whizzy` AWS stacks shared this database. Their empty queues,
+dead-letter queues, publisher and ingress functions, roles and logs were removed
+using scheduler-only targets. Two orphan event-source mappings were also removed.
+Transcription and trimmer services were not redeployed. The obsolete Worker SQS
+secrets were removed; its active encryption and scheduler secrets were retained.
+
+Verification found no retired SQL tables, job status type, message lease columns,
+Worker cron schedules or `pg_cron` extension. Both pause flags were false, health
+returned 200, unauthenticated internal job requests returned 401, and malformed
+LinkedIn completion returned 400. This records cutover verification, not a claim
+that every scheduled job has already executed successfully.
+
 Historical SQL migrations and the frozen pre-cutover data-import tool describe
 the previous schema; they are not runtime schedulers. The import integration
 suite creates an isolated schema at migration 13, verifies the complete import,
-and checks that newer schemas are rejected before truncation. This document does not
-claim that manually configured live `pg_cron` entries have been inspected.
+and checks that newer schemas are rejected before truncation.
